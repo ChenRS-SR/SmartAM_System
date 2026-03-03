@@ -1,0 +1,116 @@
+version: '3.8'
+
+# SmartAM_System Docker Compose 配置
+# 使用方法：
+#   docker-compose up -d    # 启动服务
+#   docker-compose down     # 停止服务
+#   docker-compose logs -f  # 查看日志
+
+services:
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartam-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # 数据持久化
+      - ./data:/app/data
+      - ./backend/logs:/app/logs
+      # 模型文件（只读）
+      - ./backend/weights:/app/weights:ro
+    environment:
+      - LOG_LEVEL=info
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - MODEL_PATH=weights/model_full.pt
+      - DEVICE=auto
+    env_file:
+      - ./backend/.env
+    networks:
+      - smartam-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartam-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - smartam-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # 可选：Redis 缓存（用于分布式锁、会话等）
+  redis:
+    image: redis:7-alpine
+    container_name: smartam-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - smartam-network
+    command: redis-server --appendonly yes
+
+  # 可选：Prometheus 监控
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: smartam-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - smartam-network
+    profiles:
+      - monitoring  # 仅在使用 --profile monitoring 时启动
+
+  # 可选：Grafana 仪表盘
+  grafana:
+    image: grafana/grafana:latest
+    container_name: smartam-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - smartam-network
+    profiles:
+      - monitoring
+
+networks:
+  smartam-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:

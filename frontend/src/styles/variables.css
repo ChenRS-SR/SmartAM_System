@@ -1,0 +1,111 @@
+:root {
+  /* 主题色 */
+  --primary: #00d4ff;
+  --primary-dark: #00a8cc;
+  --success: #00ff88;
+  --warning: #ffc107;
+  --danger: #ff4d4f;
+  
+  /* 背景色 */
+  --bg-dark: #0f172a;
+  --bg-card: rgba(15, 23, 42, 0.6);
+  --bg-hover: rgba(0, 212, 255, 0.1);
+  
+  /* 边框 */
+  --border-color: rgba(0, 212, 255, 0.2);
+  --border-glow: 0 0 10px rgba(0, 212, 255, 0.3);
+  
+  /* 文字 */
+  --text-primary: #e2e8f0;
+  --text-secondary: #a0aec0;
+  --text-muted: #64748b;
+  
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+  
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  
+  /* 过渡 */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.5);
+}
+
+/* 选中文本 */
+::selection {
+  background: rgba(0, 212, 255, 0.3);
+  color: #fff;
+}
+
+/* Element Plus 通知样式覆盖 */
+.smartam-notification {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+}
+
+.smartam-notification .el-notification__title {
+  color: #e2e8f0 !important;
+  font-weight: 600;
+}
+
+.smartam-notification .el-notification__content {
+  color: #a0aec0 !important;
+}
+
+.smartam-notification.el-notification--success {
+  border-color: rgba(0, 255, 136, 0.3) !important;
+}
+
+.smartam-notification.el-notification--warning {
+  border-color: rgba(255, 193, 7, 0.3) !important;
+}
+
+.smartam-notification.el-notification--error {
+  border-color: rgba(255, 77, 79, 0.3) !important;
+}
+
+/* Element Plus Message 样式覆盖 */
+.el-message {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border-color: rgba(0, 212, 255, 0.3) !important;
+  color: #e2e8f0 !important;
+}
+
+.el-message .el-message__content {
+  color: #e2e8f0 !important;
+}
+
+/* 加载动画 */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

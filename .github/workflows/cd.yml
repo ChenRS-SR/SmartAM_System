@@ -1,0 +1,175 @@
+name: CD - 持续部署
+
+on:
+  push:
+    tags:
+      - 'v*'  # 推送版本标签时触发
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '部署环境'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # 构建并推送镜像
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    outputs:
+      backend-image: ${{ steps.backend-meta.outputs.tags }}
+      frontend-image: ${{ steps.frontend-meta.outputs.tags }}
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+    
+    - name: 设置 Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: 登录容器仓库
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    # 构建后端镜像
+    - name: 后端镜像元数据
+      id: backend-meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+        tags: |
+          type=ref,event=tag
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: 构建并推送后端镜像
+      uses: docker/build-push-action@v5
+      with:
+        context: SmartAM_System/backend
+        push: true
+        tags: ${{ steps.backend-meta.outputs.tags }}
+        labels: ${{ steps.backend-meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    # 构建前端镜像
+    - name: 前端镜像元数据
+      id: frontend-meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+        tags: |
+          type=ref,event=tag
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: 构建并推送前端镜像
+      uses: docker/build-push-action@v5
+      with:
+        context: SmartAM_System/frontend
+        push: true
+        tags: ${{ steps.frontend-meta.outputs.tags }}
+        labels: ${{ steps.frontend-meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # 部署到测试环境
+  deploy-staging:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'staging' || startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: staging
+      url: https://staging.smartam.example.com
+    
+    steps:
+    - name: 部署到测试服务器
+      run: |
+        echo "部署到测试环境..."
+        echo "后端镜像: ${{ needs.build-and-push.outputs.backend-image }}"
+        echo "前端镜像: ${{ needs.build-and-push.outputs.frontend-image }}"
+        # 这里添加实际的部署命令
+        # 例如：SSH 到服务器执行 docker-compose pull && docker-compose up -d
+    
+    - name: 健康检查
+      run: |
+        echo "等待服务启动..."
+        sleep 30
+        echo "执行健康检查..."
+        # curl -f https://staging.smartam.example.com/health
+
+  # 部署到生产环境
+  deploy-production:
+    needs: [build-and-push, deploy-staging]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'production' && startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: production
+      url: https://smartam.example.com
+    
+    steps:
+    - name: 等待手动确认
+      run: |
+        echo "等待生产环境部署确认..."
+        echo "版本: ${{ github.ref_name }}"
+    
+    - name: 部署到生产服务器
+      run: |
+        echo "部署到生产环境..."
+        echo "后端镜像: ${{ needs.build-and-push.outputs.backend-image }}"
+        echo "前端镜像: ${{ needs.build-and-push.outputs.frontend-image }}"
+        # 这里添加实际的部署命令
+    
+    - name: 健康检查
+      run: |
+        echo "执行生产环境健康检查..."
+        # curl -f https://smartam.example.com/health
+    
+    - name: 发送部署通知
+      run: |
+        echo "发送部署成功通知..."
+        # 可以集成 Slack、钉钉等通知
+
+  # 创建 GitHub Release
+  create-release:
+    needs: [build-and-push]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+    
+    - name: 创建 Release
+      uses: softprops/action-gh-release@v1
+      with:
+        generate_release_notes: true
+        files: |
+          SmartAM_System/backend/requirements.txt
+        body: |
+          ## SmartAM System ${{ github.ref_name }}
+          
+          ### 镜像地址
+          - 后端: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.ref_name }}`
+          - 前端: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.ref_name }}`
+          
+          ### 部署命令
+          ```bash
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.ref_name }}
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.ref_name }}
+          docker-compose up -d
+          ```
