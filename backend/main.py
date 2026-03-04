@@ -306,45 +306,78 @@ async def video_stream_generator():
             prediction_dict = None
             printer_dict = None
             
-            if daq and hasattr(daq, '_ids_camera') and daq._ids_camera:
-                try:
-                    ids_frame = daq._get_ids_frame()
-                except:
-                    pass
-            
-            if daq and hasattr(daq, '_side_camera') and daq._side_camera:
-                try:
-                    ret, side_frame = daq._side_camera.read()
-                    if not ret:
-                        side_frame = None
-                except:
-                    pass
-            
-            if daq and hasattr(daq, '_fotric_device') and daq._fotric_device:
-                try:
-                    if daq._fotric_device.is_connected:
-                        thermal_data = daq._fotric_device.get_thermal_data()
-                        if thermal_data is not None:
-                            thermal_status = {
-                                "available": True,
-                                "matrix": thermal_data,  # 传递原始温度矩阵
-                                "min": float(np.min(thermal_data)),
-                                "max": float(np.max(thermal_data)),
-                                "melt_pool": float(np.max(thermal_data))
-                            }
-                except:
-                    pass
-            
-            # 获取打印机状态
-            if daq and hasattr(daq, '_current_position'):
-                pos = daq._current_position
-                printer_dict = {
-                    "x": pos.get("X", 0),
-                    "y": pos.get("Y", 0),
-                    "z": pos.get("Z", 0),
-                    "nozzle_temp": 0,
-                    "state": "Unknown"
-                }
+            if daq:
+                # 检查是否处于模拟模式
+                is_simulation = getattr(daq, '_simulation_mode_active', False)
+                
+                # 获取 IDS 帧（真实或模拟）
+                if hasattr(daq, '_ids_camera') and daq._ids_camera:
+                    try:
+                        ids_frame = daq._get_ids_frame()
+                    except:
+                        pass
+                elif is_simulation and hasattr(daq, '_simulation_generator') and daq._simulation_generator:
+                    # 模拟模式：从模拟生成器获取
+                    try:
+                        ids_frame = daq._simulation_generator.generate_ids_frame()
+                    except:
+                        pass
+                
+                # 获取旁轴相机帧（真实或模拟）
+                if hasattr(daq, '_side_camera') and daq._side_camera:
+                    try:
+                        ret, side_frame = daq._side_camera.read()
+                        if not ret:
+                            side_frame = None
+                    except:
+                        pass
+                elif is_simulation and hasattr(daq, '_simulation_generator') and daq._simulation_generator:
+                    try:
+                        side_frame = daq._simulation_generator.generate_side_frame()
+                    except:
+                        pass
+                
+                # 获取热像数据（真实或模拟）
+                if hasattr(daq, '_fotric_device') and daq._fotric_device:
+                    try:
+                        if daq._fotric_device.is_connected:
+                            thermal_data = daq._fotric_device.get_thermal_data()
+                            if thermal_data is not None:
+                                thermal_status = {
+                                    "available": True,
+                                    "matrix": thermal_data,
+                                    "min": float(np.min(thermal_data)),
+                                    "max": float(np.max(thermal_data)),
+                                    "melt_pool": float(np.max(thermal_data))
+                                }
+                    except:
+                        pass
+                elif is_simulation and hasattr(daq, '_simulation_generator') and daq._simulation_generator:
+                    try:
+                        thermal_data = daq._simulation_generator.generate_thermal_data()
+                        thermal_status = {
+                            "available": True,
+                            "matrix": thermal_data,
+                            "min": float(np.min(thermal_data)),
+                            "max": float(np.max(thermal_data)),
+                            "melt_pool": float(np.max(thermal_data))
+                        }
+                    except:
+                        pass
+                
+                # 获取打印机状态（真实或模拟）
+                if hasattr(daq, '_current_position'):
+                    pos = daq._current_position
+                    printer_dict = {
+                        "x": pos.get("X", 0),
+                        "y": pos.get("Y", 0),
+                        "z": pos.get("Z", 0),
+                        "nozzle_temp": 0,
+                        "state": "Unknown"
+                    }
+                    # 模拟模式下显示特殊状态
+                    if is_simulation:
+                        printer_dict["state"] = "Simulation"
             
             # 创建组合画面
             combined = create_combined_frame(
@@ -388,16 +421,28 @@ async def video_feed():
 # 单独的视频流接口（可选）
 @app.get("/video_feed/ids")
 async def video_feed_ids():
-    """IDS 相机单独视频流"""
+    """IDS 相机单独视频流（支持模拟模式）"""
     async def ids_generator():
         while True:
-            if daq and daq._ids_camera:
-                frame = daq._get_ids_frame()
-                if frame is not None:
-                    ret, buffer = cv2.imencode('.jpg', frame)
-                    if ret:
-                        yield (b"--frame\r\n"
-                               b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
+            frame = None
+            if daq:
+                is_simulation = getattr(daq, '_simulation_mode_active', False)
+                if daq._ids_camera:
+                    try:
+                        frame = daq._get_ids_frame()
+                    except:
+                        pass
+                elif is_simulation and daq._simulation_generator:
+                    try:
+                        frame = daq._simulation_generator.generate_ids_frame()
+                    except:
+                        pass
+            
+            if frame is not None:
+                ret, buffer = cv2.imencode('.jpg', frame)
+                if ret:
+                    yield (b"--frame\r\n"
+                           b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
             await asyncio.sleep(0.033)
     
     return StreamingResponse(ids_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
@@ -405,16 +450,28 @@ async def video_feed_ids():
 
 @app.get("/video_feed/side")
 async def video_feed_side():
-    """旁轴摄像头单独视频流"""
+    """旁轴摄像头单独视频流（支持模拟模式）"""
     async def side_generator():
         while True:
-            if daq and daq._side_camera:
-                frame = daq._side_camera.get_frame() if hasattr(daq._side_camera, 'get_frame') else daq._side_camera.read()[1]
-                if frame is not None:
-                    ret, buffer = cv2.imencode('.jpg', frame)
-                    if ret:
-                        yield (b"--frame\r\n"
-                               b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
+            frame = None
+            if daq:
+                is_simulation = getattr(daq, '_simulation_mode_active', False)
+                if daq._side_camera:
+                    try:
+                        frame = daq._side_camera.get_frame() if hasattr(daq._side_camera, 'get_frame') else daq._side_camera.read()[1]
+                    except:
+                        pass
+                elif is_simulation and daq._simulation_generator:
+                    try:
+                        frame = daq._simulation_generator.generate_side_frame()
+                    except:
+                        pass
+            
+            if frame is not None:
+                ret, buffer = cv2.imencode('.jpg', frame)
+                if ret:
+                    yield (b"--frame\r\n"
+                           b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
             await asyncio.sleep(0.033)
     
     return StreamingResponse(side_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
