@@ -50,6 +50,14 @@ except ImportError:
     SIMULATION_AVAILABLE = False
     logging.warning("模拟生成器不可用")
 
+# 导入 OctoPrint 模拟器
+try:
+    from core.octoprint_simulation import OctoPrintSimulator, OctoPrintSimulationConfig, get_octoprint_simulator
+    OCTOPRINT_SIMULATION_AVAILABLE = True
+except ImportError:
+    OCTOPRINT_SIMULATION_AVAILABLE = False
+    logging.warning("OctoPrint 模拟器不可用")
+
 try:
     from hardware.vibration_sensor import DeviceModel as VibrationDevice
     VIBRATION_AVAILABLE = True
@@ -158,6 +166,10 @@ class AcquisitionConfig:
     # 模拟模式配置
     simulation_mode: bool = False      # 启用模拟模式（无硬件调试）
     simulation_auto_fallback: bool = True  # 硬件连接失败时自动切换到模拟模式
+    
+    # OctoPrint 模拟配置
+    octoprint_simulation: bool = False  # 启用 OctoPrint 模拟（无需真实打印机）
+    octoprint_simulation_auto_fallback: bool = True  # OctoPrint 连接失败时自动使用模拟
 
 
 @dataclass
@@ -254,6 +266,10 @@ class DataAcquisition:
         self._simulation_generator = None
         self._simulation_mode_active = False
         
+        # OctoPrint 模拟器
+        self._octoprint_simulator = None
+        self._octoprint_simulation_active = False
+        
         # OctoPrint 缓存和连接控制
         self._octoprint_cache = {
             "printer": {"hotend": 0, "bed": 0, "hotend_target": 0, "bed_target": 0},
@@ -286,6 +302,23 @@ class DataAcquisition:
         logging.info("[模拟模式] 旁轴相机: 模拟")
         logging.info("[模拟模式] 热像相机: 模拟")
         logging.info("[模拟模式] 打印机位置: 模拟")
+        
+        # 同时启用 OctoPrint 模拟
+        self._enable_octoprint_simulation()
+    
+    def _enable_octoprint_simulation(self):
+        """启用 OctoPrint 模拟模式"""
+        if not OCTOPRINT_SIMULATION_AVAILABLE:
+            logging.error("[OctoPrint模拟] OctoPrint 模拟器不可用")
+            return
+        
+        self._octoprint_simulation_active = True
+        self._octoprint_simulator = get_octoprint_simulator()
+        logging.info("[OctoPrint模拟] ========== 已启用 ==========")
+        logging.info("[OctoPrint模拟] 打印机状态: 模拟")
+        logging.info("[OctoPrint模拟] 温度数据: 模拟")
+        logging.info("[OctoPrint模拟] 位置数据: 模拟")
+        logging.info("[OctoPrint模拟] G-code命令: 记录（不实际执行）")
     
     def _get_param_class(self, param_value: float, thresholds: List[float]) -> int:
         """
@@ -323,6 +356,12 @@ class DataAcquisition:
         logging.info(f"[_on_param_changed] Z={current_z:.2f}mm，开始处理参数变化: "
                     f"T={new_params.target_hotend}°C, Z={new_params.z_offset}mm, "
                     f"F={new_params.feed_rate}, E={new_params.flow_rate}")
+        
+        # OctoPrint 模拟模式：发送命令到模拟器
+        if self._octoprint_simulation_active and self._octoprint_simulator:
+            self._send_gcode_to_simulator(new_params)
+            return
+        
         try:
             import requests
             url = f"{self.config.octoprint_url}/api/printer/command"
@@ -402,6 +441,50 @@ class DataAcquisition:
             
         except Exception as e:
             logging.error(f"[DataAcquisition] 发送参数到打印机失败: {e}")
+    
+    def _send_gcode_to_simulator(self, new_params):
+        """将 G-code 命令发送给 OctoPrint 模拟器"""
+        if not self._octoprint_simulator:
+            return
+        
+        logging.info("[OctoPrint模拟] 发送参数到模拟器")
+        
+        # 发送流量倍率
+        if hasattr(new_params, 'flow_rate'):
+            gcode = f"M221 S{int(new_params.flow_rate)}"
+            self._octoprint_simulator.send_command(gcode)
+            logging.info(f"[OctoPrint模拟] 流量倍率: {new_params.flow_rate}%")
+        
+        # 发送速度倍率
+        if hasattr(new_params, 'feed_rate'):
+            gcode = f"M220 S{int(new_params.feed_rate)}"
+            self._octoprint_simulator.send_command(gcode)
+            logging.info(f"[OctoPrint模拟] 速度倍率: {new_params.feed_rate}%")
+        
+        # 发送Z偏移
+        if hasattr(new_params, 'z_offset'):
+            target_display_offset = new_params.z_offset
+            if -0.5 <= target_display_offset <= 0.5:
+                # 计算差值（简化处理，模拟器中直接设置）
+                current_offset = self._octoprint_simulator._z_offset
+                delta = target_display_offset - current_offset
+                if abs(delta) >= 0.01:
+                    gcode = f"M290 Z{delta:+.2f}"
+                    self._octoprint_simulator.send_command(gcode)
+                    logging.info(f"[OctoPrint模拟] Z偏移调整: {current_offset:.2f} -> {target_display_offset:.2f}")
+                self.config.z_offset = target_display_offset
+            else:
+                logging.error(f"[OctoPrint模拟] Z偏移值超出安全范围: {target_display_offset}")
+        
+        # 发送热端温度
+        if hasattr(new_params, 'target_hotend'):
+            temp = int(new_params.target_hotend)
+            if 150 <= temp <= 300:
+                gcode = f"M104 S{temp}"
+                self._octoprint_simulator.send_command(gcode)
+                logging.info(f"[OctoPrint模拟] 热端温度: {temp}°C")
+            else:
+                logging.error(f"[OctoPrint模拟] 温度值异常: {temp}°C")
     
     def _update_params_from_manager(self, current_z: float):
         """
@@ -519,7 +602,7 @@ class DataAcquisition:
         
         return False
     
-    def get_device_status(self) -> Dict[str, bool]:
+    def get_device_status(self) -> Dict[str, Any]:
         """获取所有设备的连接状态"""
         # 模拟模式下所有设备都报告为可用
         if self._simulation_mode_active:
@@ -529,7 +612,22 @@ class DataAcquisition:
                 "fotric": True,
                 "vibration": False,  # 振动传感器暂不模拟
                 "m114": True,
-                "simulation": True  # 标记当前为模拟模式
+                "octoprint": True,
+                "simulation": True,  # 标记当前为模拟模式
+                "octoprint_simulation": self._octoprint_simulation_active
+            }
+        
+        # OctoPrint 单独模拟模式
+        if self._octoprint_simulation_active:
+            return {
+                "ids": self._ids_camera is not None,
+                "side_camera": self._side_camera is not None,
+                "fotric": self._fotric_device is not None and (hasattr(self._fotric_device, 'is_connected') and self._fotric_device.is_connected),
+                "vibration": self._vibration_device is not None,
+                "m114": True,  # 使用模拟位置
+                "octoprint": True,
+                "simulation": False,
+                "octoprint_simulation": True
             }
         
         return {
@@ -538,7 +636,9 @@ class DataAcquisition:
             "fotric": self._fotric_device is not None and (hasattr(self._fotric_device, 'is_connected') and self._fotric_device.is_connected),
             "vibration": self._vibration_device is not None,
             "m114": self._m114_coord is not None,
-            "simulation": False
+            "octoprint": self._m114_coord is not None,
+            "simulation": False,
+            "octoprint_simulation": False
         }
     
     def initialize_devices(self) -> Dict[str, bool]:
@@ -560,6 +660,11 @@ class DataAcquisition:
             self._enable_simulation_mode()
             # 模拟模式下所有设备都标记为可用
             return {k: True for k in results.keys()}
+        
+        # 检查是否仅启用 OctoPrint 模拟
+        if self.config.octoprint_simulation:
+            logging.info("[设备] ========== OctoPrint 模拟模式已启用 ==========")
+            self._enable_octoprint_simulation()
         
         start_time = time.time()
         any_device_connected = False
@@ -1490,6 +1595,18 @@ class DataAcquisition:
             self._current_position.update(sim_pos)
             return self._current_position
         
+        # OctoPrint 模拟模式
+        if self._octoprint_simulation_active and self._octoprint_simulator:
+            status = self._octoprint_simulator.get_printer_status()
+            pos = status.get("position", {})
+            self._current_position.update({
+                "X": pos.get("x", 0),
+                "Y": pos.get("y", 0),
+                "Z": pos.get("z", 0),
+                "E": pos.get("e", 0)
+            })
+            return self._current_position
+        
         # 如果正在停止，直接返回缓存位置
         if hasattr(self, '_stop_event') and self._stop_event.is_set():
             return self._current_position
@@ -1559,6 +1676,17 @@ class DataAcquisition:
         if self._simulation_mode_active and self._simulation_generator:
             return self._simulation_generator.generate_printer_status()
         
+        # OctoPrint 模拟模式
+        if self._octoprint_simulation_active and self._octoprint_simulator:
+            status = self._octoprint_simulator.get_printer_status()
+            temp = status.get("temperature", {})
+            return {
+                "hotend": temp.get("tool0", {}).get("actual", 0),
+                "bed": temp.get("bed", {}).get("actual", 0),
+                "hotend_target": temp.get("tool0", {}).get("target", 0),
+                "bed_target": temp.get("bed", {}).get("target", 0)
+            }
+        
         current_time = time.time()
         
         # 检查缓存是否有效
@@ -1607,6 +1735,10 @@ class DataAcquisition:
                 "filename": "simulation_test.gcode",
                 "estimated_print_time": 3600
             }
+        
+        # OctoPrint 模拟模式
+        if self._octoprint_simulation_active and self._octoprint_simulator:
+            return self._octoprint_simulator.get_job_status()
         
         current_time = time.time()
         
@@ -1957,8 +2089,12 @@ class DataAcquisition:
         """获取打印机状态（公共API）"""
         status = self._get_printer_status()
         job = self._get_job_status()
-        return {
-            "connected": self._m114_coord is not None,
+        
+        # 判断连接状态
+        is_connected = self._m114_coord is not None or self._octoprint_simulation_active
+        
+        result = {
+            "connected": is_connected,
             "position": self._current_position,
             "hotend_actual": status.get("hotend", 0),
             "bed_actual": status.get("bed", 0),
@@ -1970,6 +2106,13 @@ class DataAcquisition:
             "print_time": job.get("print_time", 0),
             "print_time_left": job.get("print_time_left", 0)
         }
+        
+        # 添加模拟状态标记
+        if self._octoprint_simulation_active:
+            result["simulation"] = True
+            result["state"] = "Printing (OctoPrint Simulation)"
+        
+        return result
     
     def get_thermal_status(self) -> Dict:
         """获取热像相机状态（公共API）"""
@@ -2082,6 +2225,14 @@ def _load_config_from_env(config: AcquisitionConfig):
                             print(f"[DAQ] 从 .env 加载: 模拟模式已启用")
                     elif key == 'SIMULATION_AUTO_FALLBACK':
                         config.simulation_auto_fallback = value.lower() in ('true', '1', 'yes', 'on')
+                    
+                    # OctoPrint 模拟配置
+                    elif key == 'OCTOPRINT_SIMULATION':
+                        config.octoprint_simulation = value.lower() in ('true', '1', 'yes', 'on')
+                        if config.octoprint_simulation:
+                            print(f"[DAQ] 从 .env 加载: OctoPrint模拟已启用")
+                    elif key == 'OCTOPRINT_SIMULATION_AUTO_FALLBACK':
+                        config.octoprint_simulation_auto_fallback = value.lower() in ('true', '1', 'yes', 'on')
                     
                     # 设备启用配置
                     elif key == 'IDS_ENABLE':
