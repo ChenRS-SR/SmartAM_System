@@ -120,16 +120,16 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useDataStore } from '../stores/data'
-import { useResponsive } from '../composables/useResponsive'
-import { useNotification } from '../composables/useNotification'
-import { printerApi } from '../utils/api'
-import StatusCard from '../components/StatusCard.vue'
-import SkeletonStatus from '../components/SkeletonStatus.vue'
-import PredictionPanel from '../components/PredictionPanel.vue'
-import TemperatureChart from '../components/TemperatureChart.vue'
-import ControlPanel from '../components/ControlPanel.vue'
-import PrintFileManager from '../components/PrintFileManager.vue'
+import { useDataStore } from '../../stores/data'
+import { useResponsive } from '../../composables/useResponsive'
+import { useNotification } from '../../composables/useNotification'
+import { printerApi } from '../../utils/api'
+import StatusCard from '../../components/StatusCard.vue'
+import SkeletonStatus from '../../components/SkeletonStatus.vue'
+import PredictionPanel from '../../components/PredictionPanel.vue'
+import TemperatureChart from '../../components/TemperatureChart.vue'
+import ControlPanel from '../../components/ControlPanel.vue'
+import PrintFileManager from '../../components/PrintFileManager.vue'
 
 const store = useDataStore()
 const { gridCols, isMobile } = useResponsive()

@@ -1,6 +1,8 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { ElNotification } from 'element-plus'
+import { generateMockWebSocketData } from '../utils/mockData'
+import { FORCE_MOCK } from '../utils/api'
 
 // 通知辅助函数
 const notify = (options) => {
@@ -94,10 +96,47 @@ export const useDataStore = defineStore('data', () => {
   
   // ============ Actions ============
   
+  // 模拟数据定时器
+  let mockDataInterval = null
+  
+  function startMockDataStream() {
+    console.log('[DataStore] 启动模拟数据流')
+    connected.value = true
+    connecting.value = false
+    
+    // 立即发送一次数据
+    handleWebSocketData(generateMockWebSocketData())
+    
+    // 每秒发送模拟数据
+    mockDataInterval = setInterval(() => {
+      handleWebSocketData(generateMockWebSocketData())
+    }, 1000)
+    
+    notify({
+      type: 'info',
+      title: '模拟模式',
+      message: '使用模拟数据运行（无后端）',
+      duration: 3000
+    })
+  }
+  
+  function stopMockDataStream() {
+    if (mockDataInterval) {
+      clearInterval(mockDataInterval)
+      mockDataInterval = null
+    }
+  }
+  
   function connectWebSocket() {
-    if (ws.value || connecting.value) return
+    if (ws.value || connecting.value || mockDataInterval) return
     
     connecting.value = true
+    
+    // 模拟模式：直接使用模拟数据
+    if (FORCE_MOCK) {
+      startMockDataStream()
+      return
+    }
     
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsUrl = `${protocol}//localhost:8000/ws/sensor_data`
@@ -144,13 +183,22 @@ export const useDataStore = defineStore('data', () => {
     
     ws.value.onerror = (error) => {
       console.error('WebSocket 错误:', error)
-      ws.value?.close()
+      // 连接失败且不在模拟模式，切换到模拟
+      if (!FORCE_MOCK && !connected.value) {
+        console.log('[DataStore] WebSocket 连接失败，切换到模拟模式')
+        ws.value = null
+        connecting.value = false
+        startMockDataStream()
+      } else {
+        ws.value?.close()
+      }
     }
   }
   
   function disconnectWebSocket() {
     ws.value?.close()
     ws.value = null
+    stopMockDataStream()
     connected.value = false
   }
   

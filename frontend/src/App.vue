@@ -1,10 +1,24 @@
 <template>
   <div class="app-wrapper">
-    <!-- 侧边栏 -->
-    <aside class="sidebar" :class="{ collapsed: isCollapsed }">
+    <!-- 侧边栏（设备选择页不显示） -->
+    <aside v-if="showSidebar" class="sidebar" :class="{ collapsed: isCollapsed }">
       <div class="logo">
         <el-icon size="32"><Cpu /></el-icon>
         <span v-show="!isCollapsed" class="logo-text">SmartAM</span>
+      </div>
+      
+      <!-- 设备类型标识 -->
+      <div v-if="deviceType && !isCollapsed" class="device-badge" :class="deviceType">
+        <el-icon size="14"><component :is="deviceType === 'fdm' ? 'Printer' : 'Lightning'" /></el-icon>
+        <span>{{ deviceType.toUpperCase() }}</span>
+      </div>
+      
+      <!-- 返回按钮 -->
+      <div v-if="deviceType && !isCollapsed" class="back-section">
+        <el-button text size="small" @click="backToDeviceSelect">
+          <el-icon><ArrowLeft /></el-icon>
+          切换设备
+        </el-button>
       </div>
       
       <nav class="nav-menu">
@@ -13,7 +27,7 @@
           :key="item.path"
           :to="item.path"
           class="nav-item"
-          :class="{ active: $route.path === item.path }"
+          :class="{ active: isActive(item.path) }"
         >
           <el-icon size="20">
             <component :is="item.icon" />
@@ -36,8 +50,8 @@
     </aside>
     
     <!-- 主内容区 -->
-    <main class="main-content">
-      <header class="header">
+    <main class="main-content" :class="{ 'full-width': !showSidebar }">
+      <header v-if="showSidebar" class="header">
         <div class="header-left">
           <el-button text @click="isCollapsed = !isCollapsed">
             <el-icon size="20"><Fold v-if="!isCollapsed" /><Expand v-else /></el-icon>
@@ -66,14 +80,14 @@
         </div>
       </header>
       
-      <div class="page-container">
+      <div class="page-container" :class="{ 'no-padding': !showSidebar }">
         <router-view />
       </div>
     </main>
     
     <!-- 移动端遮罩层 -->
     <div 
-      v-if="isMobile && !isCollapsed" 
+      v-if="showSidebar && isMobile && !isCollapsed" 
       class="mobile-overlay"
       @click="isCollapsed = true"
     ></div>
@@ -84,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDataStore } from './stores/data'
 import { useResponsive } from './composables/useResponsive'
@@ -102,6 +116,45 @@ const { success } = useNotification()
 
 const isCollapsed = ref(sidebarCollapsed.value)
 
+// 是否显示侧边栏（设备选择页不显示）
+const showSidebar = computed(() => route.path !== '/' && route.path !== '/login')
+
+// 当前设备类型
+const deviceType = computed(() => route.meta.device || localStorage.getItem('deviceType'))
+
+// FDM 菜单
+const fdmMenuItems = [
+  { name: '仪表盘', path: '/fdm/dashboard', icon: 'Monitor' },
+  { name: '数据分析', path: '/fdm/analysis', icon: 'TrendCharts' },
+  { name: '系统控制', path: '/fdm/control', icon: 'SetUp' },
+  { name: '设置', path: '/fdm/settings', icon: 'Setting' },
+]
+
+// SLM 菜单
+const slmMenuItems = [
+  { name: '仪表盘', path: '/slm/dashboard', icon: 'Monitor' },
+  { name: '数据分析', path: '/slm/analysis', icon: 'TrendCharts' },
+  { name: '系统控制', path: '/slm/control', icon: 'SetUp' },
+  { name: '设置', path: '/slm/settings', icon: 'Setting' },
+]
+
+// 根据设备类型返回对应菜单
+const menuItems = computed(() => {
+  if (deviceType.value === 'slm') return slmMenuItems
+  return fdmMenuItems
+})
+
+// 判断菜单项是否激活
+const isActive = (path) => {
+  return route.path === path
+}
+
+// 返回设备选择页
+const backToDeviceSelect = () => {
+  localStorage.removeItem('deviceType')
+  router.push('/')
+}
+
 // 监听响应式变化
 watch(() => sidebarCollapsed.value, (val) => {
   isCollapsed.value = val
@@ -114,13 +167,6 @@ watch(() => store.connected, (connected) => {
   }
 })
 
-const menuItems = [
-  { name: '仪表盘', path: '/', icon: 'Monitor' },
-  { name: '数据分析', path: '/analysis', icon: 'TrendCharts' },
-  { name: '系统控制', path: '/control', icon: 'SetUp' },
-  { name: '设置', path: '/settings', icon: 'Setting' },
-]
-
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
@@ -130,6 +176,8 @@ const toggleFullscreen = () => {
 }
 
 const logout = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('deviceType')
   router.push('/login')
 }
 
@@ -188,6 +236,47 @@ onMounted(async () => {
   background: linear-gradient(90deg, #00d4ff, #00ff88);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* 设备类型标识 */
+.device-badge {
+  margin: 12px 16px 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.device-badge.fdm {
+  background: rgba(0, 212, 255, 0.15);
+  color: #00d4ff;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.device-badge.slm {
+  background: rgba(0, 255, 136, 0.15);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+/* 返回按钮区域 */
+.back-section {
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.back-section .el-button {
+  color: #94a3b8;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.back-section .el-button:hover {
+  color: #00d4ff;
 }
 
 .nav-menu {
@@ -264,6 +353,10 @@ onMounted(async () => {
   overflow: hidden;
 }
 
+.main-content.full-width {
+  width: 100%;
+}
+
 .header {
   height: 64px;
   background: rgba(15, 23, 42, 0.6);
@@ -296,6 +389,10 @@ onMounted(async () => {
   flex: 1;
   padding: 24px;
   overflow: auto;
+}
+
+.page-container.no-padding {
+  padding: 0;
 }
 
 /* 响应式 */
