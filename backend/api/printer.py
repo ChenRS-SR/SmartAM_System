@@ -1,8 +1,10 @@
 """
-打印机控制 API
+打印机控制 API (FDM 专用)
 - 连接/断开打印机
 - 获取打印状态
 - 发送 G-code 指令
+
+注意：此 API 仅在 FDM 模式下可用
 """
 
 from fastapi import APIRouter, HTTPException, Query
@@ -13,6 +15,17 @@ import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _check_fdm_mode():
+    """检查当前是否为 FDM 模式"""
+    from core.device_manager import get_device_manager
+    manager = get_device_manager()
+    if manager.current_type.value != "fdm":
+        raise HTTPException(
+            status_code=503, 
+            detail=f"打印机 API 仅在 FDM 模式下可用，当前模式: {manager.current_type.value}"
+        )
 
 
 class PrinterCommand(BaseModel):
@@ -48,6 +61,20 @@ async def disconnect_printer():
 @router.get("/status", response_model=PrinterStatus)
 async def get_printer_status():
     """获取打印机当前状态（从 OctoPrint）"""
+    # 检查是否为 FDM 模式
+    try:
+        _check_fdm_mode()
+    except HTTPException:
+        # 非 FDM 模式返回空状态
+        return PrinterStatus(
+            connected=False,
+            printing=False,
+            progress=0.0,
+            nozzle_temp=0.0,
+            bed_temp=0.0,
+            position={"x": 0, "y": 0, "z": 0}
+        )
+    
     from main import daq
     
     if not daq:
@@ -100,6 +127,9 @@ def _get_api_key_from_env():
 @router.get("/temperature")
 async def get_printer_temperature():
     """获取打印机当前温度（实时从 OctoPrint 获取，支持模拟模式）"""
+    # 检查是否为 FDM 模式
+    _check_fdm_mode()
+    
     from main import daq
     
     if not daq:
