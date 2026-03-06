@@ -67,6 +67,7 @@ class VibrationSensor:
     def connect(self) -> bool:
         """连接振动传感器"""
         try:
+            # 尝试打开串口
             self.serial = serial.Serial(
                 port=self.port,
                 baudrate=self.baudrate,
@@ -75,10 +76,13 @@ class VibrationSensor:
                 stopbits=serial.STOPBITS_ONE,
                 timeout=1.0
             )
+            
+            # 串口打开成功
             self.connected = True
             self._running = True
+            self.simulation_mode = False
             
-            # 启动读取线程
+            # 启动真实读取线程
             self._read_thread = threading.Thread(target=self._read_loop, daemon=True)
             self._read_thread.start()
             
@@ -86,41 +90,62 @@ class VibrationSensor:
             return True
             
         except Exception as e:
-            logging.warning(f"[VibrationSensor] 连接失败: {e}")
+            logging.warning(f"[VibrationSensor] 串口连接失败: {e}")
             # 启用模拟模式
             self.simulation_mode = True
+            self.connected = True  # 模拟模式下也算连接
+            self._running = True
+            
+            # 启动模拟线程（而不是真实读取线程）
             self._start_simulation()
+            
             logging.info("[VibrationSensor] 已切换到模拟模式")
-            return True  # 模拟模式下也算"连接成功"
+            return True
     
     def disconnect(self):
         """断开连接"""
         self._running = False
         
-        if self._read_thread:
+        # 等待真实读取线程结束
+        if self._read_thread and self._read_thread.is_alive():
             self._read_thread.join(timeout=2.0)
         
+        # 等待模拟线程结束
+        if self._simulation_thread and self._simulation_thread.is_alive():
+            self._simulation_thread.join(timeout=2.0)
+        
+        # 关闭串口
         if self.serial and self.serial.is_open:
-            self.serial.close()
+            try:
+                self.serial.close()
+            except Exception as e:
+                logging.debug(f"[VibrationSensor] 关闭串口异常: {e}")
         
         self.connected = False
         logging.info("[VibrationSensor] 已断开")
     
     def _read_loop(self):
         """数据读取循环"""
+        # 模拟模式下不执行真实读取
+        if self.simulation_mode:
+            logging.info("[VibrationSensor] 模拟模式，跳过真实读取循环")
+            return
+            
         while self._running:
             try:
                 if self.serial and self.serial.is_open:
-                    # 读取寄存器数据 (简化版Modbus RTU)
-                    # 实际实现需要完整的Modbus协议
-                    data = self._read_registers(0x3A, 10)  # 从0x3A开始读10个寄存器
-                    if data:
-                        self._parse_data(data)
+                    try:
+                        # 读取寄存器数据 (简化版Modbus RTU)
+                        data = self._read_registers(0x3A, 10)
+                        if data:
+                            self._parse_data(data)
+                    except Exception as e:
+                        logging.debug(f"[VibrationSensor] 读取异常: {e}")
                 
                 time.sleep(0.05)  # 20Hz读取频率
                 
             except Exception as e:
-                logging.error(f"[VibrationSensor] 读取错误: {e}")
+                logging.error(f"[VibrationSensor] 读取循环错误: {e}")
                 time.sleep(0.1)
     
     def _read_registers(self, start_addr: int, count: int) -> Optional[bytes]:

@@ -146,15 +146,15 @@ router.beforeEach((to, from, next) => {
   
   // 访问具体设备页面时，检查是否匹配
   if (targetDevice) {
-    // 如果没有选择过设备，或者设备类型不匹配，跳转到设备选择页
+    // 如果没有选择过设备，强制跳转到设备选择页（让用户手动选择）
     if (!savedDeviceType) {
-      console.log(`[Router] 未选择设备，跳转到设备选择页`)
+      console.log(`[Router] 请先选择设备类型，当前访问: ${targetDevice}`)
       next('/')
       return
     }
     // 如果设备类型不匹配（比如之前选了 FDM，现在直接访问 SLS）
     if (savedDeviceType !== targetDevice) {
-      console.log(`[Router] 设备类型不匹配: 已选 ${savedDeviceType}, 目标 ${targetDevice}`)
+      console.log(`[Router] 设备类型不匹配，已选 ${savedDeviceType}，请重新选择`)
       // 清除设备类型，让用户重新选择
       localStorage.removeItem('deviceType')
       next('/')
