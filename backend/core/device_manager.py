@@ -35,7 +35,7 @@ class DeviceManager:
     
     def set_device_type(self, device_type: str) -> bool:
         """
-        设置设备类型并初始化对应驱动
+        设置设备类型并初始化对应驱动（快速返回，后台初始化）
         
         Args:
             device_type: 'fdm', 'sls', 'slm'
@@ -54,7 +54,11 @@ class DeviceManager:
                 self._init_fdm()
             elif device_type == "sls":
                 self._current_type = DeviceType.SLS
-                self._init_sls()
+                # SLS 使用后台线程初始化，避免阻塞
+                import threading
+                init_thread = threading.Thread(target=self._init_sls, daemon=True)
+                init_thread.start()
+                logging.info("[DeviceManager] SLS 初始化已在后台启动")
             elif device_type == "slm":
                 self._current_type = DeviceType.SLM
                 self._init_slm()

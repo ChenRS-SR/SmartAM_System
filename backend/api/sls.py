@@ -99,7 +99,7 @@ async def get_powder_status():
 
 # ========== 设备状态 ==========
 
-@router.get("/devices")
+@router.get("/status/devices")
 async def get_device_status():
     """获取所有设备状态"""
     try:
