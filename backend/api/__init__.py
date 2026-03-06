@@ -26,12 +26,13 @@ from .device import router as device_router
 from .system import router as system_router
 from .device_type import router as device_type_router
 
+# 导入SLS路由
 try:
     from .sls import router as sls_router
     SLS_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     SLS_AVAILABLE = False
-    print("[API] SLS模块导入失败")
+    print(f"[API] SLS模块导入失败: {e}")
 
 router.include_router(auth_router, prefix="/auth", tags=["认证"])
 router.include_router(device_type_router, tags=["设备类型"])
@@ -45,7 +46,7 @@ router.include_router(data_router, prefix="/data", tags=["数据管理"])
 router.include_router(acquisition_router, prefix="/acquisition", tags=["数据采集"])
 
 if SLS_AVAILABLE:
-    router.include_router(sls_router, prefix="/sls", tags=["SLS采集"])
+    router.include_router(sls_router)
     print("[API] SLS路由已注册: /api/sls/*")
 
 # 健康检查

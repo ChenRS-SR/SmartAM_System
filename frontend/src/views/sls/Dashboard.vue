@@ -1,6 +1,9 @@
 <template>
   <div class="sls-dashboard">
-    <h1>SLS 粉末烧结监控系统</h1>
+    <div class="header">
+      <h1>SLS 粉末烧结监控系统</h1>
+      <el-button @click="backToDeviceSelect">切换设备</el-button>
+    </div>
     
     <!-- 状态概览 -->
     <div class="status-cards">
@@ -124,8 +127,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+
+const router = useRouter()
 
 // API基础URL
 const API_BASE = 'http://localhost:8000/api/sls'
@@ -247,6 +253,22 @@ const applyThreshold = async () => {
   }
 }
 
+const backToDeviceSelect = async () => {
+  try {
+    // 停止当前设备
+    await axios.post('/api/device-type/stop')
+    // 清除设备类型
+    localStorage.removeItem('deviceType')
+    // 跳转
+    router.push('/')
+  } catch (error) {
+    console.error('切换设备失败:', error)
+    // 即使后端失败，也要跳转
+    localStorage.removeItem('deviceType')
+    router.push('/')
+  }
+}
+
 const resetState = async () => {
   try {
     await axios.post(`${API_BASE}/control/reset`)
@@ -314,6 +336,17 @@ onUnmounted(() => {
 <style scoped>
 .sls-dashboard {
   padding: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  margin: 0;
 }
 
 .status-cards {

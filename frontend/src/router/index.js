@@ -134,19 +134,32 @@ router.beforeEach((to, from, next) => {
   document.title = to.meta.title ? `${to.meta.title} - SmartAM` : 'SmartAM System'
   
   const token = localStorage.getItem('token')
+  const savedDeviceType = localStorage.getItem('deviceType')
+  const targetDevice = to.meta.device
   
-  // 检查是否是设备选择页面
+  // 设备选择页面 - 如果有保存的设备类型但目标是不同设备，清除缓存
   if (to.path === '/') {
-    // 如果已登录且有设备类型，直接跳转到对应设备
-    if (token) {
-      const deviceType = localStorage.getItem('deviceType')
-      if (deviceType) {
-        next(`/${deviceType}/dashboard`)
-        return
-      }
-    }
+    // 正常显示设备选择页
     next()
     return
+  }
+  
+  // 访问具体设备页面时，检查是否匹配
+  if (targetDevice) {
+    // 如果没有选择过设备，或者设备类型不匹配，跳转到设备选择页
+    if (!savedDeviceType) {
+      console.log(`[Router] 未选择设备，跳转到设备选择页`)
+      next('/')
+      return
+    }
+    // 如果设备类型不匹配（比如之前选了 FDM，现在直接访问 SLS）
+    if (savedDeviceType !== targetDevice) {
+      console.log(`[Router] 设备类型不匹配: 已选 ${savedDeviceType}, 目标 ${targetDevice}`)
+      // 清除设备类型，让用户重新选择
+      localStorage.removeItem('deviceType')
+      next('/')
+      return
+    }
   }
   
   // 需要登录的页面
