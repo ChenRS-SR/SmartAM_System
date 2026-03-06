@@ -20,7 +20,7 @@ import json
 import requests
 import numpy as np
 from datetime import datetime
-from typing import Optional, Dict, Callable, List, Tuple
+from typing import Optional, Dict, Callable, List, Tuple, Any
 from dataclasses import dataclass, field
 from enum import Enum
 import logging
