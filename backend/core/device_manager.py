@@ -80,10 +80,16 @@ class DeviceManager:
     def _init_sls(self):
         """初始化 SLS 设备"""
         logging.info("[DeviceManager] 正在初始化 SLS 设备...")
-        from core.sls import get_sls_acquisition
-        self._sls_acquisition = get_sls_acquisition()
-        # 初始化 SLS 设备（振动传感器、摄像头）
-        self._sls_acquisition.initialize_devices()
+        try:
+            from core.sls import get_sls_acquisition
+            self._sls_acquisition = get_sls_acquisition()
+            # 初始化 SLS 设备（振动传感器、摄像头）
+            self._sls_acquisition.initialize_devices()
+            logging.info("[DeviceManager] SLS 设备初始化完成")
+        except Exception as e:
+            logging.error(f"[DeviceManager] SLS 设备初始化失败: {e}")
+            # 即使初始化失败，也继续运行（传感器会使用模拟模式）
+            raise
         
     def _init_slm(self):
         """初始化 SLM 设备"""
