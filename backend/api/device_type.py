@@ -2,11 +2,14 @@
 设备类型管理 API
 """
 
+import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
 from core.device_manager import get_device_manager
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/device-type", tags=["设备类型"])
 

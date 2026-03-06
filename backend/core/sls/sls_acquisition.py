@@ -418,6 +418,24 @@ class SLSAcquisition:
             }
         }
     
+    def get_device_status(self) -> dict:
+        """获取设备连接状态"""
+        return {
+            'vibration': {
+                'connected': self.vibration_sensor.connected if self.vibration_sensor else False,
+                'magnitude': self.vibration_sensor.vibration_magnitude if self.vibration_sensor else 0
+            },
+            'main_camera': {
+                'connected': self.main_camera.isOpened() if self.main_camera else False
+            },
+            'secondary_camera': {
+                'connected': self.secondary_camera.isOpened() if self.secondary_camera else False
+            },
+            'thermal': {
+                'connected': self.thermal_camera is not None
+            }
+        }
+    
     def set_layer(self, layer: int):
         """设置当前层数"""
         self.current_layer = layer
