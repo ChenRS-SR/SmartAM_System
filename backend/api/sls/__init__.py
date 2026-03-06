@@ -4,6 +4,6 @@ SLS API路由
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/sls", tags=["SLS"])
+router = APIRouter()
 
 from . import acquisition, status, control

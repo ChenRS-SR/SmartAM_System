@@ -70,12 +70,32 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 
-const selectDevice = (type) => {
-  localStorage.setItem('deviceType', type)
-  router.push(`/${type}/dashboard`)
+const selectDevice = async (type) => {
+  try {
+    // 先保存设备类型到本地
+    localStorage.setItem('deviceType', type)
+    
+    // 通知后端切换设备类型
+    const response = await axios.post('/api/device-type/select', {
+      device_type: type
+    })
+    
+    if (response.data.success) {
+      ElMessage.success(`已切换到 ${type.toUpperCase()} 模式`)
+      // 跳转到对应设备的仪表盘
+      router.push(`/${type}/dashboard`)
+    } else {
+      ElMessage.error(response.data.message || '设备切换失败')
+    }
+  } catch (error) {
+    console.error('选择设备失败:', error)
+    ElMessage.error('后端连接失败，请确保服务已启动')
+  }
 }
 </script>
 

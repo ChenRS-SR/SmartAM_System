@@ -202,19 +202,11 @@ const logout = () => {
 }
 
 onMounted(async () => {
-  // 连接 WebSocket 数据流
+  // 连接 WebSocket 数据流（仅用于基础状态）
   store.connectWebSocket()
   
-  // 延迟 3 秒后自动连接设备（等待服务完全启动）
-  setTimeout(async () => {
-    try {
-      console.log('[App] 自动连接设备中...')
-      const res = await deviceApi.connectAll()
-      console.log('[App] 设备连接成功:', res.data)
-    } catch (error) {
-      console.log('[App] 设备连接失败（可能已连接或服务未就绪）:', error.message)
-    }
-  }, 3000)
+  // 注意：设备初始化现在在 DeviceSelect.vue 中选择设备后执行
+  // 不再自动连接 FDM 设备
 })
 </script>
 

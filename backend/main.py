@@ -55,41 +55,20 @@ signal.signal(signal.SIGTERM, signal_handler)  # 终止信号
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期管理"""
-    global daq
+    """应用生命周期管理 - 设备选择后延迟初始化"""
     
-    # 启动时初始化
-    if DAQ_AVAILABLE:
-        print("[Main] 正在初始化 DAQ 系统...")
-        daq = get_daq_system()
-        print("[Main] DAQ 系统已就绪")
-        
-        # 启动后自动连接设备（延迟2秒确保服务完全启动）
-        async def auto_connect_devices():
-            await asyncio.sleep(2)
-            try:
-                print("[Main] 自动连接设备中...")
-                results = daq.initialize_devices()
-                connected = sum(1 for v in results.values() if v)
-                total = len(results)
-                print(f"[Main] 设备连接完成: {connected}/{total}")
-                if connected > 0:
-                    print(f"[Main] 已连接设备: {results}")
-            except Exception as e:
-                print(f"[Main] 自动连接设备失败: {e}")
-        
-        # 启动自动连接任务
-        asyncio.create_task(auto_connect_devices())
-    else:
-        print("[Main] DAQ 系统不可用")
+    print("[Main] SmartAM 后端服务启动")
+    print("[Main] 等待前端选择设备类型...")
     
     yield
     
     # 关闭时清理
-    if daq:
-        print("[Main] 正在关闭 DAQ 系统...")
-        daq.stop()
-        print("[Main] DAQ 系统已关闭")
+    from core.device_manager import get_device_manager
+    device_manager = get_device_manager()
+    if device_manager.current_type.value != "none":
+        print(f"[Main] 正在关闭 {device_manager.current_type.value} 设备...")
+        device_manager.stop_current_device()
+    print("[Main] 服务已关闭")
 
 
 app = FastAPI(

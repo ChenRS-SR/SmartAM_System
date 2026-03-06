@@ -24,6 +24,7 @@ from .acquisition import router as acquisition_router
 from .auth import router as auth_router
 from .device import router as device_router
 from .system import router as system_router
+from .device_type import router as device_type_router
 
 try:
     from .sls import router as sls_router
@@ -33,6 +34,7 @@ except ImportError:
     print("[API] SLS模块导入失败")
 
 router.include_router(auth_router, prefix="/auth", tags=["认证"])
+router.include_router(device_type_router, tags=["设备类型"])
 router.include_router(system_router, prefix="/system", tags=["系统配置"])
 router.include_router(device_router, prefix="/device", tags=["设备管理"])
 router.include_router(printer_router, prefix="/printer", tags=["打印机控制"])
@@ -43,7 +45,8 @@ router.include_router(data_router, prefix="/data", tags=["数据管理"])
 router.include_router(acquisition_router, prefix="/acquisition", tags=["数据采集"])
 
 if SLS_AVAILABLE:
-    router.include_router(sls_router, tags=["SLS采集"])
+    router.include_router(sls_router, prefix="/sls", tags=["SLS采集"])
+    print("[API] SLS路由已注册: /api/sls/*")
 
 # 健康检查
 @router.get("/health")
