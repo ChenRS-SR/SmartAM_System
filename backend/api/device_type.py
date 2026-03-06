@@ -31,6 +31,8 @@ async def select_device_type(request: DeviceTypeRequest):
     - sls: 选择性激光烧结（振动传感器、双摄像头、Fotric）
     - slm: 选择性激光熔化（待实现）
     """
+    import traceback
+    
     try:
         manager = get_device_manager()
         success = manager.set_device_type(request.device_type)
@@ -45,11 +47,18 @@ async def select_device_type(request: DeviceTypeRequest):
         else:
             return DeviceTypeResponse(
                 success=False,
-                message=f"切换到 {request.device_type} 失败",
+                message=f"切换到 {request.device_type} 失败，请检查设备连接",
                 current_type=manager.current_type.value
             )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_detail = f"{str(e)}\n{traceback.format_exc()}"
+        logging.error(f"[DeviceType API] 选择设备类型失败: {error_detail}")
+        # 返回 200 但标记为失败，避免前端显示网络错误
+        return DeviceTypeResponse(
+            success=False,
+            message=f"设备初始化失败: {str(e)}",
+            current_type="none"
+        )
 
 
 @router.get("/current", response_model=DeviceTypeResponse)

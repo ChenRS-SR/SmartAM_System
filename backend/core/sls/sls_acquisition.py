@@ -130,18 +130,23 @@ class SLSAcquisition:
                 self.vibration_sensor._start_simulation()
             
             # 2. 初始化扑粉检测器
-            if status['vibration']:
-                detector_config = {
-                    'motion_threshold': self.config.motion_threshold,
-                    'state_machine_mode': self.config.state_machine_mode,
-                }
-                self.powder_detector = PowderDetector(
-                    self.vibration_sensor,
-                    detector_config
-                )
-                # 设置回调
-                self.powder_detector.on_first_motion = self._on_first_motion
-                self.powder_detector.on_cycle_complete = self._on_cycle_complete
+            if status['vibration'] and self.vibration_sensor:
+                try:
+                    detector_config = {
+                        'motion_threshold': self.config.motion_threshold,
+                        'state_machine_mode': self.config.state_machine_mode,
+                    }
+                    self.powder_detector = PowderDetector(
+                        self.vibration_sensor,
+                        detector_config
+                    )
+                    # 设置回调
+                    self.powder_detector.on_first_motion = self._on_first_motion
+                    self.powder_detector.on_cycle_complete = self._on_cycle_complete
+                    logging.info("[SLSAcquisition] 扑粉检测器初始化完成")
+                except Exception as e:
+                    logging.error(f"[SLSAcquisition] 扑粉检测器初始化失败: {e}")
+                    self.powder_detector = None
             
             # 3. 初始化主摄像头
             logging.info("[SLSAcquisition] 初始化主摄像头...")
