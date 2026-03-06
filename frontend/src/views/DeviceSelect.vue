@@ -7,6 +7,7 @@
     </div>
     
     <div class="device-cards">
+      <!-- FDM -->
       <div class="device-card" @click="selectDevice('fdm')">
         <div class="card-icon fdm">
           <el-icon size="48"><Printer /></el-icon>
@@ -24,6 +25,25 @@
         </el-button>
       </div>
       
+      <!-- SLS -->
+      <div class="device-card" @click="selectDevice('sls')">
+        <div class="card-icon sls">
+          <el-icon size="48"><CopyDocument /></el-icon>
+        </div>
+        <h2 class="card-title">SLS 选择性激光烧结</h2>
+        <p class="card-desc">高分子粉末激光烧结成型技术</p>
+        <div class="card-features">
+          <span class="feature-tag">振动监测</span>
+          <span class="feature-tag">扑粉检测</span>
+          <span class="feature-tag">双视觉</span>
+        </div>
+        <el-button type="warning" size="large" class="enter-btn">
+          进入系统
+          <el-icon class="btn-icon"><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+      
+      <!-- SLM -->
       <div class="device-card" @click="selectDevice('slm')">
         <div class="card-icon slm">
           <el-icon size="48"><Lightning /></el-icon>
@@ -143,6 +163,17 @@ const selectDevice = (type) => {
 .card-icon.slm {
   background: linear-gradient(135deg, #00ff88, #00cc66);
   box-shadow: 0 8px 24px rgba(0, 255, 136, 0.3);
+}
+
+.card-icon.sls {
+  background: linear-gradient(135deg, #ff9500, #ff5500);
+  box-shadow: 0 8px 24px rgba(255, 149, 0, 0.3);
+}
+
+.device-card:nth-child(3) .feature-tag {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: rgba(0, 255, 136, 0.2);
+  color: #00ff88;
 }
 
 .card-title {

@@ -12,6 +12,11 @@ import SLMAnalysis from '../views/slm/Analysis.vue'
 import SLMControl from '../views/slm/Control.vue'
 import SLMSettings from '../views/slm/Settings.vue'
 
+// SLS 页面
+import SLSDashboard from '../views/sls/Dashboard.vue'
+import SLSAnalysis from '../views/sls/Analysis.vue'
+import SLSControl from '../views/sls/Control.vue'
+
 // 其他页面
 import DeviceSelect from '../views/DeviceSelect.vue'
 import Login from '../views/Login.vue'
@@ -75,6 +80,26 @@ const routes = [
     name: 'SLMSettings',
     component: SLMSettings,
     meta: { title: '设置', device: 'slm' }
+  },
+  
+  // SLS 路由
+  {
+    path: '/sls/dashboard',
+    name: 'SLSDashboard',
+    component: SLSDashboard,
+    meta: { title: '仪表盘', device: 'sls' }
+  },
+  {
+    path: '/sls/analysis',
+    name: 'SLSAnalysis',
+    component: SLSAnalysis,
+    meta: { title: '数据分析', device: 'sls' }
+  },
+  {
+    path: '/sls/control',
+    name: 'SLSControl',
+    component: SLSControl,
+    meta: { title: '系统控制', device: 'sls' }
   },
   
   // 登录
