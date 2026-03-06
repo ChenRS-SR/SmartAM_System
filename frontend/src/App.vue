@@ -9,7 +9,9 @@
       
       <!-- 设备类型标识 -->
       <div v-if="deviceType && !isCollapsed" class="device-badge" :class="deviceType">
-        <el-icon size="14"><component :is="deviceType === 'fdm' ? 'Printer' : 'Lightning'" /></el-icon>
+        <el-icon size="14">
+          <component :is="deviceTypeIcon" />
+        </el-icon>
         <span>{{ deviceType.toUpperCase() }}</span>
       </div>
       
@@ -122,6 +124,16 @@ const showSidebar = computed(() => route.path !== '/' && route.path !== '/login'
 // 当前设备类型
 const deviceType = computed(() => route.meta.device || localStorage.getItem('deviceType'))
 
+// 设备类型图标
+const deviceTypeIcon = computed(() => {
+  switch (deviceType.value) {
+    case 'fdm': return 'Printer'
+    case 'sls': return 'CopyDocument'
+    case 'slm': return 'Lightning'
+    default: return 'Cpu'
+  }
+})
+
 // FDM 菜单
 const fdmMenuItems = [
   { name: '仪表盘', path: '/fdm/dashboard', icon: 'Monitor' },
@@ -138,9 +150,17 @@ const slmMenuItems = [
   { name: '设置', path: '/slm/settings', icon: 'Setting' },
 ]
 
+// SLS 菜单
+const slsMenuItems = [
+  { name: '仪表盘', path: '/sls/dashboard', icon: 'Monitor' },
+  { name: '数据分析', path: '/sls/analysis', icon: 'TrendCharts' },
+  { name: '系统控制', path: '/sls/control', icon: 'SetUp' },
+]
+
 // 根据设备类型返回对应菜单
 const menuItems = computed(() => {
   if (deviceType.value === 'slm') return slmMenuItems
+  if (deviceType.value === 'sls') return slsMenuItems
   return fdmMenuItems
 })
 
@@ -261,6 +281,12 @@ onMounted(async () => {
   background: rgba(0, 255, 136, 0.15);
   color: #00ff88;
   border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.device-badge.sls {
+  background: rgba(255, 149, 0, 0.15);
+  color: #ff9500;
+  border: 1px solid rgba(255, 149, 0, 0.3);
 }
 
 /* 返回按钮区域 */

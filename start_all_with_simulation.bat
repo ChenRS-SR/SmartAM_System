@@ -46,8 +46,18 @@ if not exist "%BACKEND_PATH%\.env" (
     echo SIMULATION_AUTO_FALLBACK=true >> "%BACKEND_PATH%\.env"
 )
 
-:: 启动后端（在新窗口）
-start "SmartAM Backend (Simulation)" cmd /k "cd /d "%BACKEND_PATH%" && python main.py"
+echo.
+echo [激活 Conda 环境...]
+call conda activate pytorch_env
+if errorlevel 1 (
+    echo [错误] 无法激活 Conda 环境 pytorch_env
+    echo 请确保 Anaconda/Miniconda 已正确安装
+    pause
+    exit /b 1
+)
+
+:: 启动后端（在新窗口）- 使用 Conda 环境
+start "SmartAM Backend (Simulation)" cmd /k "conda activate pytorch_env && cd /d "%BACKEND_PATH%" && python main.py"
 
 echo        等待后端启动...
 timeout /t 3 /nobreak >nul
