@@ -18,6 +18,10 @@ export default defineConfig({
         changeOrigin: true
         // 注意：后端路由以 /api 开头，不需要 rewrite
       },
+      '/state_picture': {
+        target: 'http://localhost:8000',
+        changeOrigin: true
+      },
       '/video_feed': {
         target: 'http://localhost:8000',
         changeOrigin: true

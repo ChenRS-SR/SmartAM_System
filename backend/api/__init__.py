@@ -34,6 +34,14 @@ except ImportError as e:
     SLS_AVAILABLE = False
     print(f"[API] SLS模块导入失败: {e}")
 
+# 导入SLM路由
+try:
+    from .slm import router as slm_router
+    SLM_AVAILABLE = True
+except ImportError as e:
+    SLM_AVAILABLE = False
+    print(f"[API] SLM模块导入失败: {e}")
+
 router.include_router(auth_router, prefix="/auth", tags=["认证"])
 router.include_router(device_type_router, tags=["设备类型"])
 router.include_router(system_router, prefix="/system", tags=["系统配置"])
@@ -48,6 +56,10 @@ router.include_router(acquisition_router, prefix="/acquisition", tags=["数据�
 if SLS_AVAILABLE:
     router.include_router(sls_router)
     print("[API] SLS路由已注册: /api/sls/*")
+
+if SLM_AVAILABLE:
+    router.include_router(slm_router)
+    print("[API] SLM路由已注册: /api/slm/*")
 
 # 健康检查
 @router.get("/health")
