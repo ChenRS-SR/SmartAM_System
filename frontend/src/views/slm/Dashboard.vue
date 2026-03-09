@@ -55,6 +55,14 @@
       />
     </div>
     
+    <!-- 视频录制与诊断 -->
+    <div class="video-section">
+      <VideoRecordingPanel
+        :is-running="isRunning"
+        @diagnosis-complete="handleDiagnosisComplete"
+      />
+    </div>
+    
     <!-- 设置对话框 -->
     <el-dialog
       v-model="showSettings"
@@ -155,6 +163,7 @@ import axios from 'axios'
 import SensorConnectionStatus from '../../components/slm/SensorConnectionStatus.vue'
 import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
 import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
+import VideoRecordingPanel from '../../components/slm/VideoRecordingPanel.vue'
 
 // 状态
 const isRunning = ref(false)
@@ -532,6 +541,53 @@ onMounted(() => {
     connectWebSocket()
   }
 })
+
+// 处理诊断结果
+const handleDiagnosisComplete = (result) => {
+  console.log('[Dashboard] 诊断结果:', result)
+  
+  // 更新健康状态
+  healthData.status_code = result.status_code
+  healthData.status = getStatusFromCode(result.status_code)
+  healthData.status_labels = [result.status_label]
+  
+  // 更新子系统状态
+  if (result.status_code === 0) {
+    healthData.laser_system = { status: 'healthy', message: '健康' }
+    healthData.powder_system = { status: 'healthy', message: '健康' }
+    healthData.gas_system = { status: 'healthy', message: '健康' }
+  } else if (result.status_code === 1) {
+    healthData.laser_system = { status: 'healthy', message: '健康' }
+    healthData.powder_system = { status: 'fault', message: '刮刀磨损' }
+    healthData.gas_system = { status: 'healthy', message: '健康' }
+  } else if (result.status_code === 2) {
+    healthData.laser_system = { status: 'fault', message: '激光功率异常' }
+    healthData.powder_system = { status: 'healthy', message: '健康' }
+    healthData.gas_system = { status: 'healthy', message: '健康' }
+  } else if (result.status_code === 3) {
+    healthData.laser_system = { status: 'healthy', message: '健康' }
+    healthData.powder_system = { status: 'healthy', message: '健康' }
+    healthData.gas_system = { status: 'fault', message: '保护气体异常' }
+  } else if (result.status_code === 4) {
+    healthData.laser_system = { status: 'fault', message: '需检查' }
+    healthData.powder_system = { status: 'fault', message: '需检查' }
+    healthData.gas_system = { status: 'fault', message: '需检查' }
+  }
+  
+  ElMessage.success(`诊断完成: ${result.status_label}`)
+}
+
+const getStatusFromCode = (code) => {
+  const map = {
+    '-1': 'power_off',
+    '0': 'healthy',
+    '1': 'powder_fault',
+    '2': 'laser_fault',
+    '3': 'gas_fault',
+    '4': 'compound_fault'
+  }
+  return map[String(code)] || 'power_off'
+}
 
 onUnmounted(() => {
   closeWebSocket()

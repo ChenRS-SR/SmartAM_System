@@ -72,16 +72,16 @@ class SLMDataPacket:
     sensor_status: Dict = field(default_factory=dict)
     
     # 摄像头数据
-    camera_ch1: Optional[Dict] = None  # JPEG图像的base64或URL
+    camera_ch1: Optional[Dict] = None
     camera_ch2: Optional[Dict] = None
     
     # 红外热像数据
     thermal: Optional[Dict] = None
-    thermal_image: Optional[bytes] = None  # JPEG图像
+    thermal_image: Optional[bytes] = None
     
     # 振动数据
     vibration: Optional[Dict] = None
-    vibration_waveform: Dict = field(default_factory=dict)  # XYZ波形数据
+    vibration_waveform: Dict = field(default_factory=dict)
     
     # 统计数据
     statistics: Dict = field(default_factory=dict)
@@ -135,7 +135,7 @@ class SLMAcquisition:
         self._latest_packet: Optional[SLMDataPacket] = None
         self._数据锁 = threading.Lock()
         
-        # 波形数据缓存 (用于实时波形显示)
+        # 波形数据缓存
         self._vibration_buffer_x: List[float] = []
         self._vibration_buffer_y: List[float] = []
         self._vibration_buffer_z: List[float] = []
@@ -151,6 +151,14 @@ class SLMAcquisition:
         
         # 健康状态
         self._health_state = SLMHealthState()
+        
+        # 视频录制器
+        self._video_recorder: Optional[Any] = None
+        self._video_recorder_enabled = False
+        
+        # 视频诊断引擎
+        self._diagnosis_engine: Optional[Any] = None
+        self._auto_diagnosis_enabled = False
         
         # 统计信息
         self._statistics = {
@@ -195,7 +203,6 @@ class SLMAcquisition:
         if self.camera_ch1_enabled or self.camera_ch2_enabled:
             if not self.camera_manager.connect():
                 print("[SLMAcquisition] 摄像头连接失败，将使用模拟数据")
-                # 如果真实连接失败，切换到模拟
                 if not self.use_mock:
                     self.camera_manager = MockCameraManager(
                         ch1_index=camera_ch1_index,
@@ -247,9 +254,13 @@ class SLMAcquisition:
         
         # 更新健康状态为开机/健康
         self._health_state.status = SLMHealthStatus.HEALTHY
-        self._health_state.status_code = 0  # 健康状态
+        self._health_state.status_code = 0
         self._health_state.status_labels = ['系统健康']
         print("[SLMAcquisition] 健康状态已更新为: HEALTHY (状态码: 0)")
+        
+        # 启动视频录制（如果启用）
+        if self._video_recorder_enabled and self._video_recorder:
+            self._video_recorder.start_recording()
     
     def stop(self):
         """停止数据采集"""
@@ -258,6 +269,10 @@ class SLMAcquisition:
         
         if self._采集线程 and self._采集线程.is_alive():
             self._采集线程.join(timeout=2.0)
+        
+        # 停止视频录制
+        if self._video_recorder:
+            self._video_recorder.stop_recording()
         
         # 停止传感器
         if self.camera_manager:
@@ -269,7 +284,7 @@ class SLMAcquisition:
         
         # 重置健康状态为未开机
         self._health_state.status = SLMHealthStatus.POWER_OFF
-        self._health_state.status_code = -1  # 未开机
+        self._health_state.status_code = -1
         self._health_state.status_labels = []
         print("[SLMAcquisition] 健康状态已重置为: POWER_OFF (状态码: -1)")
         
@@ -318,7 +333,6 @@ class SLMAcquisition:
                         'timestamp': time.time(),
                         'size': len(jpeg)
                     }
-                    # 存储JPEG数据供流服务使用
                     packet.camera_ch1['jpeg_data'] = jpeg
             
             if self.camera_ch2_enabled:
@@ -333,47 +347,52 @@ class SLMAcquisition:
         
         # 3. 红外热像数据
         if self.thermal_camera and self.thermal_enabled:
-            thermal_data = self.thermal_camera.get_latest_data()
+            thermal_data = self.thermal_camera.get_data()
             if thermal_data:
-                packet.thermal = thermal_data.to_dict()
-                # 生成热图
-                thermal_image = self.thermal_camera.generate_thermal_image(640, 480)
-                if thermal_image is not None:
-                    import cv2
-                    ret, jpeg = cv2.imencode('.jpg', thermal_image, [cv2.IMWRITE_JPEG_QUALITY, 85])
-                    if ret:
-                        packet.thermal_image = jpeg.tobytes()
+                packet.thermal = {
+                    'temp_max': thermal_data.max_temp,
+                    'temp_min': thermal_data.min_temp,
+                    'temp_avg': thermal_data.avg_temp,
+                    'melt_pool_temp': getattr(thermal_data, 'melt_pool_temp', 0)
+                }
         
         # 4. 振动数据
         if self.vibration_sensor and self.vibration_enabled:
-            vib_data = self.vibration_sensor.get_latest_data()
+            vib_data = self.vibration_sensor.read_data()
             if vib_data:
-                packet.vibration = vib_data.to_dict()
+                packet.vibration = {
+                    'x': vib_data.x,
+                    'y': vib_data.y,
+                    'z': vib_data.z,
+                    'amplitude': vib_data.amplitude,
+                    'timestamp': vib_data.timestamp
+                }
                 
                 # 更新波形缓冲区
                 with self._波形锁:
-                    self._vibration_buffer_x.append(vib_data.vx)
-                    self._vibration_buffer_y.append(vib_data.vy)
-                    self._vibration_buffer_z.append(vib_data.vz)
+                    self._vibration_buffer_x.append(vib_data.x)
+                    self._vibration_buffer_y.append(vib_data.y)
+                    self._vibration_buffer_z.append(vib_data.z)
                     
-                    # 限制长度
+                    # 限制缓冲区大小
                     if len(self._vibration_buffer_x) > self._最大波形点数:
-                        self._vibration_buffer_x.pop(0)
-                        self._vibration_buffer_y.pop(0)
-                        self._vibration_buffer_z.pop(0)
+                        self._vibration_buffer_x = self._vibration_buffer_x[-self._最大波形点数:]
+                        self._vibration_buffer_y = self._vibration_buffer_y[-self._最大波形点数:]
+                        self._vibration_buffer_z = self._vibration_buffer_z[-self._最大波形点数:]
                 
-                # 添加波形数据到包
-                with self._波形锁:
-                    packet.vibration_waveform = {
-                        'x': self._vibration_buffer_x.copy(),
-                        'y': self._vibration_buffer_y.copy(),
-                        'z': self._vibration_buffer_z.copy(),
-                        'sample_count': len(self._vibration_buffer_x)
-                    }
+                packet.vibration_waveform = {
+                    'x': self._vibration_buffer_x[-100:] if len(self._vibration_buffer_x) > 100 else self._vibration_buffer_x,
+                    'y': self._vibration_buffer_y[-100:] if len(self._vibration_buffer_y) > 100 else self._vibration_buffer_y,
+                    'z': self._vibration_buffer_z[-100:] if len(self._vibration_buffer_z) > 100 else self._vibration_buffer_z,
+                    'sample_count': len(self._vibration_buffer_x)
+                }
         
         # 5. 统计数据
-        if self.vibration_sensor and self.vibration_enabled:
-            packet.statistics['vibration'] = self.vibration_sensor.calculate_statistics(duration=5.0)
+        packet.statistics = {
+            'fps': self._statistics['fps'],
+            'total_frames': self.frame_number,
+            'duration': time.time() - self._statistics['start_time'] if self._statistics['start_time'] else 0
+        }
         
         # 6. 健康状态
         packet.health = self._health_state.to_dict()
@@ -381,39 +400,26 @@ class SLMAcquisition:
         return packet
     
     def _获取传感器状态(self) -> Dict:
-        """获取所有传感器的状态"""
-        status = {
+        """获取传感器状态"""
+        return {
             'camera_ch1': {
                 'enabled': self.camera_ch1_enabled,
-                'connected': False
+                'connected': self.camera_manager is not None and self.camera_manager.is_connected if hasattr(self.camera_manager, 'is_connected') else False
             },
             'camera_ch2': {
                 'enabled': self.camera_ch2_enabled,
-                'connected': False
-            },
-            'vibration': {
-                'enabled': self.vibration_enabled,
-                'connected': False,
-                'com_port': self.vibration_com_port
+                'connected': self.camera_manager is not None and self.camera_manager.is_connected if hasattr(self.camera_manager, 'is_connected') else False
             },
             'thermal': {
                 'enabled': self.thermal_enabled,
-                'connected': False
+                'connected': self.thermal_camera is not None and self.thermal_camera.is_connected if hasattr(self.thermal_camera, 'is_connected') else False
+            },
+            'vibration': {
+                'enabled': self.vibration_enabled,
+                'connected': self.vibration_sensor is not None and self.vibration_sensor.is_connected if hasattr(self.vibration_sensor, 'is_connected') else False,
+                'com_port': self.vibration_com_port
             }
         }
-        
-        if self.camera_manager:
-            cam_status = self.camera_manager.get_status()
-            status['camera_ch1']['connected'] = cam_status['CH1']['connected']
-            status['camera_ch2']['connected'] = cam_status['CH2']['connected']
-        
-        if self.vibration_sensor:
-            status['vibration']['connected'] = self.vibration_sensor.is_connected
-        
-        if self.thermal_camera:
-            status['thermal']['connected'] = self.thermal_camera.is_connected
-        
-        return status
     
     def _更新统计(self):
         """更新统计信息"""
@@ -432,7 +438,6 @@ class SLMAcquisition:
         """触发WebSocket回调"""
         for callback in self._ws_callbacks:
             try:
-                # 如果回调是异步函数，使用asyncio运行
                 if asyncio.iscoroutinefunction(callback):
                     asyncio.create_task(callback(data))
                 else:
@@ -466,7 +471,6 @@ class SLMAcquisition:
         elif sensor == 'thermal':
             self.thermal_enabled = enabled
         
-        # 更新摄像头管理器
         if self.camera_manager:
             if sensor == 'camera_ch1':
                 self.camera_manager.set_camera_enabled('CH1', enabled)
@@ -477,7 +481,6 @@ class SLMAcquisition:
         """设置振动传感器COM口"""
         self.vibration_com_port = port
         if self.vibration_sensor:
-            # 需要重新初始化
             was_running = self.is_running
             if was_running:
                 self.stop()
@@ -488,58 +491,36 @@ class SLMAcquisition:
                 self.start()
     
     def update_health_status(self, status_code: int, labels: List[str] = None):
-        """更新设备健康状态（由模型调用）
-        
-        状态码定义（与前端保持一致）：
-        -1: 未开机
-         0: 健康
-         1: 刮刀磨损
-         2: 激光功率异常
-         3: 保护气体异常
-         4: 复合故障
-        """
+        """更新设备健康状态（由模型调用）"""
         self._health_state.status_code = status_code
         self._health_state.status_labels = labels or []
         
-        # 根据状态码设置各子系统状态
         if status_code == 0:
-            # 健康状态
             self._health_state.status = SLMHealthStatus.HEALTHY
             self._health_state.laser_system = {'status': 'healthy', 'message': '健康'}
             self._health_state.powder_system = {'status': 'healthy', 'message': '健康'}
             self._health_state.gas_system = {'status': 'healthy', 'message': '健康'}
-        
         elif status_code == 1:
-            # 刮刀磨损
             self._health_state.status = SLMHealthStatus.POWDER_FAULT
             self._health_state.laser_system = {'status': 'healthy', 'message': '健康'}
             self._health_state.powder_system = {'status': 'fault', 'message': '刮刀磨损'}
             self._health_state.gas_system = {'status': 'healthy', 'message': '健康'}
-        
         elif status_code == 2:
-            # 激光功率异常
             self._health_state.status = SLMHealthStatus.LASER_FAULT
             self._health_state.laser_system = {'status': 'fault', 'message': '激光功率衰减或波动'}
             self._health_state.powder_system = {'status': 'healthy', 'message': '健康'}
             self._health_state.gas_system = {'status': 'healthy', 'message': '健康'}
-        
         elif status_code == 3:
-            # 保护气体异常
             self._health_state.status = SLMHealthStatus.GAS_FAULT
             self._health_state.laser_system = {'status': 'healthy', 'message': '健康'}
             self._health_state.powder_system = {'status': 'healthy', 'message': '健康'}
             self._health_state.gas_system = {'status': 'fault', 'message': '舱内气体异常'}
-        
         elif status_code == 4:
-            # 复合故障
             self._health_state.status = SLMHealthStatus.COMPOUND_FAULT
-            # 复合故障时所有系统都可能异常，这里简化处理
             self._health_state.laser_system = {'status': 'fault', 'message': '需检查'}
             self._health_state.powder_system = {'status': 'fault', 'message': '需检查'}
             self._health_state.gas_system = {'status': 'fault', 'message': '需检查'}
-        
         else:
-            # 未开机或其他未知状态
             self._health_state.status = SLMHealthStatus.POWER_OFF
             self._health_state.laser_system = {'status': 'unknown', 'message': '未检测'}
             self._health_state.powder_system = {'status': 'unknown', 'message': '未检测'}
@@ -554,6 +535,139 @@ class SLMAcquisition:
         """取消注册WebSocket回调"""
         if callback in self._ws_callbacks:
             self._ws_callbacks.remove(callback)
+    
+    # ========== 视频录制与诊断方法 ==========
+    
+    def setup_video_recorder(self, save_dir: str = None) -> bool:
+        """设置视频录制器"""
+        try:
+            from .video_recorder import VideoRecorder
+            
+            self._video_recorder = VideoRecorder(save_dir=save_dir or "./recordings")
+            
+            # 注册帧获取回调
+            def get_ch1_frame():
+                if self.camera_manager:
+                    return self.camera_manager.get_latest_frame('CH1')
+                return None
+            
+            def get_ch2_frame():
+                if self.camera_manager:
+                    return self.camera_manager.get_latest_frame('CH2')
+                return None
+            
+            def get_ch3_frame():
+                if self.thermal_camera and hasattr(self.thermal_camera, 'get_latest_frame'):
+                    return self.thermal_camera.get_latest_frame()
+                return None
+            
+            self._video_recorder.register_frame_callback('CH1', get_ch1_frame)
+            self._video_recorder.register_frame_callback('CH2', get_ch2_frame)
+            self._video_recorder.register_frame_callback('CH3', get_ch3_frame)
+            
+            print(f"[SLMAcquisition] 视频录制器已设置，保存目录: {self._video_recorder.get_save_directory()}")
+            return True
+        except Exception as e:
+            print(f"[SLMAcquisition] 设置视频录制器失败: {e}")
+            return False
+    
+    def set_video_recording_enabled(self, enabled: bool):
+        """启用/禁用视频录制"""
+        self._video_recorder_enabled = enabled
+        print(f"[SLMAcquisition] 视频录制已{'启用' if enabled else '禁用'}")
+        
+        if self.is_running and self._video_recorder:
+            if enabled:
+                self._video_recorder.start_recording()
+            else:
+                self._video_recorder.stop_recording()
+    
+    def set_video_recording_interval(self, interval_seconds: int):
+        """设置视频录制间隔"""
+        if self._video_recorder:
+            self._video_recorder.set_interval(interval_seconds)
+    
+    def set_video_save_directory(self, save_dir: str) -> bool:
+        """设置视频保存目录"""
+        if self._video_recorder:
+            return self._video_recorder.set_save_directory(save_dir)
+        return False
+    
+    def get_video_recorder_status(self) -> Dict:
+        """获取视频录制器状态"""
+        if self._video_recorder:
+            return {
+                'enabled': self._video_recorder_enabled,
+                **self._video_recorder.get_status()
+            }
+        return {
+            'enabled': False,
+            'is_recording': False,
+            'save_directory': '',
+            'interval_seconds': 30,
+            'clip_duration': 5,
+            'fps': 10,
+            'history_count': 0
+        }
+    
+    def get_video_recording_history(self) -> List[Dict]:
+        """获取视频录制历史"""
+        if self._video_recorder:
+            return self._video_recorder.get_recording_history()
+        return []
+    
+    def setup_diagnosis_engine(self, model_path: str = None, frame_count: int = 50) -> bool:
+        """设置视频诊断引擎"""
+        try:
+            from .video_diagnosis import get_diagnosis_engine
+            
+            self._diagnosis_engine = get_diagnosis_engine(model_path, frame_count)
+            
+            # 注册诊断结果回调
+            def on_diagnosis_result(result):
+                # 更新健康状态
+                self.update_health_status(
+                    result.status_code,
+                    result.status_labels if hasattr(result, 'status_labels') else [result.status_label]
+                )
+                print(f"[SLMAcquisition] 诊断结果更新健康状态: {result.status_code} - {result.status_label}")
+            
+            self._diagnosis_engine.register_callbacks(
+                result_callback=on_diagnosis_result
+            )
+            
+            print(f"[SLMAcquisition] 诊断引擎已设置，模型: {model_path or '模拟模式'}")
+            return True
+        except Exception as e:
+            print(f"[SLMAcquisition] 设置诊断引擎失败: {e}")
+            return False
+    
+    def start_video_diagnosis(self, video_files: Dict[str, str], mode: str = "simulation") -> bool:
+        """开始视频诊断
+        
+        Args:
+            video_files: {'CH1': 'path/to/video1.mp4', 'CH2': '...', 'CH3': '...'}
+            mode: 'realtime' 或 'simulation'
+        """
+        if not self._diagnosis_engine:
+            print("[SLMAcquisition] 诊断引擎未初始化")
+            return False
+        
+        from .video_diagnosis import DiagnosisMode
+        
+        diagnosis_mode = DiagnosisMode.REALTIME if mode == "realtime" else DiagnosisMode.SIMULATION
+        
+        return self._diagnosis_engine.start_diagnosis(video_files, diagnosis_mode)
+    
+    def get_diagnosis_status(self) -> Dict:
+        """获取诊断状态"""
+        if self._diagnosis_engine:
+            return self._diagnosis_engine.get_status()
+        return {
+            'status': 'idle',
+            'progress': 0,
+            'has_model': False
+        }
 
 
 # 全局实例

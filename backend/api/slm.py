@@ -197,6 +197,177 @@ async def update_health_status(
     }
 
 
+# ========== 视频录制与诊断 ==========
+
+@router.post("/video/setup")
+async def setup_video_recorder(save_dir: str = "./recordings"):
+    """设置视频录制器"""
+    try:
+        acquisition = get_acquisition()
+        success = acquisition.setup_video_recorder(save_dir)
+        return {
+            "success": success,
+            "save_directory": acquisition._video_recorder.get_save_directory() if acquisition._video_recorder else ""
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/video/enable")
+async def enable_video_recording(enabled: bool = True):
+    """启用/禁用视频录制"""
+    try:
+        acquisition = get_acquisition()
+        acquisition.set_video_recording_enabled(enabled)
+        return {
+            "success": True,
+            "enabled": enabled,
+            "is_running": acquisition.is_running
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/video/interval")
+async def set_video_recording_interval(interval_seconds: int = 30):
+    """设置视频录制间隔（10-60秒）"""
+    try:
+        acquisition = get_acquisition()
+        acquisition.set_video_recording_interval(interval_seconds)
+        return {
+            "success": True,
+            "interval_seconds": interval_seconds
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/video/directory")
+async def set_video_save_directory(save_dir: str):
+    """设置视频保存目录"""
+    try:
+        acquisition = get_acquisition()
+        success = acquisition.set_video_save_directory(save_dir)
+        return {
+            "success": success,
+            "save_directory": acquisition._video_recorder.get_save_directory() if acquisition._video_recorder else save_dir
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.get("/video/status")
+async def get_video_recorder_status():
+    """获取视频录制器状态"""
+    try:
+        acquisition = get_acquisition()
+        status = acquisition.get_video_recorder_status()
+        return {"success": True, **status}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.get("/video/history")
+async def get_video_recording_history(limit: int = 50):
+    """获取视频录制历史"""
+    try:
+        acquisition = get_acquisition()
+        history = acquisition.get_video_recording_history(limit)
+        return {"success": True, "history": history, "count": len(history)}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+# ========== 视频诊断 API ==========
+
+@router.post("/diagnosis/setup")
+async def setup_diagnosis_engine(model_path: str = None, frame_count: int = 50):
+    """设置视频诊断引擎"""
+    try:
+        acquisition = get_acquisition()
+        success = acquisition.setup_diagnosis_engine(model_path, frame_count)
+        status = acquisition.get_diagnosis_status()
+        return {
+            "success": success,
+            "has_model": status.get('has_model', False),
+            "model_path": model_path
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/diagnosis/start")
+async def start_video_diagnosis(
+    ch1_video: str = None,
+    ch2_video: str = None,
+    ch3_video: str = None,
+    mode: str = "simulation"
+):
+    """开始视频诊断
+    
+    Args:
+        ch1_video: CH1视频文件路径
+        ch2_video: CH2视频文件路径
+        ch3_video: CH3视频文件路径
+        mode: 'realtime' 或 'simulation'
+    """
+    try:
+        acquisition = get_acquisition()
+        
+        video_files = {}
+        if ch1_video:
+            video_files['CH1'] = ch1_video
+        if ch2_video:
+            video_files['CH2'] = ch2_video
+        if ch3_video:
+            video_files['CH3'] = ch3_video
+        
+        if not video_files:
+            return {"success": False, "message": "请至少选择一个视频文件"}
+        
+        success = acquisition.start_video_diagnosis(video_files, mode)
+        return {
+            "success": success,
+            "mode": mode,
+            "videos": video_files
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.get("/diagnosis/status")
+async def get_diagnosis_status():
+    """获取诊断状态"""
+    try:
+        acquisition = get_acquisition()
+        status = acquisition.get_diagnosis_status()
+        return {"success": True, **status}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.get("/diagnosis/health")
+async def get_diagnosis_health():
+    """获取诊断相关的健康状态（用于前端显示诊断结果）"""
+    try:
+        acquisition = get_acquisition()
+        # 获取最新的健康状态
+        packet = acquisition.get_latest_packet()
+        if packet:
+            return {
+                "success": True,
+                "health": packet.health,
+                "is_diagnosis_result": True
+            }
+        return {
+            "success": True,
+            "health": acquisition._health_state.to_dict(),
+            "is_diagnosis_result": False
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
 # ========== WebSocket 实时数据 ==========
 
 @router.websocket("/ws/data")
