@@ -32,9 +32,18 @@ class SLMHealthStatus(Enum):
 
 @dataclass
 class SLMHealthState:
-    """SLM健康状态数据"""
+    """SLM健康状态数据
+    
+    状态码定义（与前端保持一致）：
+    -1: 未开机
+     0: 健康
+     1: 刮刀磨损
+     2: 激光功率异常
+     3: 保护气体异常
+     4: 复合故障
+    """
     status: SLMHealthStatus = SLMHealthStatus.POWER_OFF
-    status_code: int = 0  # 0:健康, 1:刮刀磨损, 2:刮刀磨损(重复?), 3:激光功率异常, 4:保护气体异常
+    status_code: int = -1
     status_labels: List[str] = field(default_factory=list)
     
     # 子系统状态
@@ -238,7 +247,9 @@ class SLMAcquisition:
         
         # 更新健康状态为开机/健康
         self._health_state.status = SLMHealthStatus.HEALTHY
-        print("[SLMAcquisition] 健康状态已更新为: HEALTHY")
+        self._health_state.status_code = 0  # 健康状态
+        self._health_state.status_labels = ['系统健康']
+        print("[SLMAcquisition] 健康状态已更新为: HEALTHY (状态码: 0)")
     
     def stop(self):
         """停止数据采集"""
@@ -258,7 +269,9 @@ class SLMAcquisition:
         
         # 重置健康状态为未开机
         self._health_state.status = SLMHealthStatus.POWER_OFF
-        print("[SLMAcquisition] 健康状态已重置为: POWER_OFF")
+        self._health_state.status_code = -1  # 未开机
+        self._health_state.status_labels = []
+        print("[SLMAcquisition] 健康状态已重置为: POWER_OFF (状态码: -1)")
         
         self.is_running = False
     
@@ -475,69 +488,62 @@ class SLMAcquisition:
                 self.start()
     
     def update_health_status(self, status_code: int, labels: List[str] = None):
-        """更新设备健康状态（由模型调用）"""
+        """更新设备健康状态（由模型调用）
+        
+        状态码定义（与前端保持一致）：
+        -1: 未开机
+         0: 健康
+         1: 刮刀磨损
+         2: 激光功率异常
+         3: 保护气体异常
+         4: 复合故障
+        """
         self._health_state.status_code = status_code
         self._health_state.status_labels = labels or []
         
-        # 解析状态码
-        # 0: 健康
-        # 1: 刮刀磨损
-        # 2: 刮刀磨损 (重复)
-        # 3: 激光功率异常
-        # 4: 保护气体异常
-        
-        faults = []
-        
-        # 激光系统状态
-        if status_code == 3:
-            self._health_state.laser_system = {
-                'status': 'fault',
-                'message': '激光功率衰减或波动'
-            }
-            faults.append('laser')
-        else:
-            self._health_state.laser_system = {
-                'status': 'healthy',
-                'message': '健康'
-            }
-        
-        # 铺粉系统状态
-        if status_code in [1, 2]:
-            self._health_state.powder_system = {
-                'status': 'fault',
-                'message': '刮刀磨损'
-            }
-            faults.append('powder')
-        else:
-            self._health_state.powder_system = {
-                'status': 'healthy',
-                'message': '健康'
-            }
-        
-        # 保护气体状态
-        if status_code == 4:
-            self._health_state.gas_system = {
-                'status': 'fault',
-                'message': '舱内气体异常'
-            }
-            faults.append('gas')
-        else:
-            self._health_state.gas_system = {
-                'status': 'healthy',
-                'message': '健康'
-            }
-        
-        # 确定总体状态
-        if len(faults) == 0:
+        # 根据状态码设置各子系统状态
+        if status_code == 0:
+            # 健康状态
             self._health_state.status = SLMHealthStatus.HEALTHY
-        elif len(faults) > 1:
-            self._health_state.status = SLMHealthStatus.COMPOUND_FAULT
-        elif 'laser' in faults:
-            self._health_state.status = SLMHealthStatus.LASER_FAULT
-        elif 'powder' in faults:
+            self._health_state.laser_system = {'status': 'healthy', 'message': '健康'}
+            self._health_state.powder_system = {'status': 'healthy', 'message': '健康'}
+            self._health_state.gas_system = {'status': 'healthy', 'message': '健康'}
+        
+        elif status_code == 1:
+            # 刮刀磨损
             self._health_state.status = SLMHealthStatus.POWDER_FAULT
-        elif 'gas' in faults:
+            self._health_state.laser_system = {'status': 'healthy', 'message': '健康'}
+            self._health_state.powder_system = {'status': 'fault', 'message': '刮刀磨损'}
+            self._health_state.gas_system = {'status': 'healthy', 'message': '健康'}
+        
+        elif status_code == 2:
+            # 激光功率异常
+            self._health_state.status = SLMHealthStatus.LASER_FAULT
+            self._health_state.laser_system = {'status': 'fault', 'message': '激光功率衰减或波动'}
+            self._health_state.powder_system = {'status': 'healthy', 'message': '健康'}
+            self._health_state.gas_system = {'status': 'healthy', 'message': '健康'}
+        
+        elif status_code == 3:
+            # 保护气体异常
             self._health_state.status = SLMHealthStatus.GAS_FAULT
+            self._health_state.laser_system = {'status': 'healthy', 'message': '健康'}
+            self._health_state.powder_system = {'status': 'healthy', 'message': '健康'}
+            self._health_state.gas_system = {'status': 'fault', 'message': '舱内气体异常'}
+        
+        elif status_code == 4:
+            # 复合故障
+            self._health_state.status = SLMHealthStatus.COMPOUND_FAULT
+            # 复合故障时所有系统都可能异常，这里简化处理
+            self._health_state.laser_system = {'status': 'fault', 'message': '需检查'}
+            self._health_state.powder_system = {'status': 'fault', 'message': '需检查'}
+            self._health_state.gas_system = {'status': 'fault', 'message': '需检查'}
+        
+        else:
+            # 未开机或其他未知状态
+            self._health_state.status = SLMHealthStatus.POWER_OFF
+            self._health_state.laser_system = {'status': 'unknown', 'message': '未检测'}
+            self._health_state.powder_system = {'status': 'unknown', 'message': '未检测'}
+            self._health_state.gas_system = {'status': 'unknown', 'message': '未检测'}
     
     def register_ws_callback(self, callback: Callable[[Dict], None]):
         """注册WebSocket回调"""

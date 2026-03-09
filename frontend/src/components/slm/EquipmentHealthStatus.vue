@@ -3,53 +3,90 @@
     <template #header>
       <div class="card-header">
         <span class="header-title">SLM设备健康状态</span>
-        <el-tag 
-          :type="healthTagType" 
-          size="small"
-          effect="dark"
-        >
-          {{ healthStatusText }}
-        </el-tag>
+        <div class="header-actions">
+          <!-- 模拟模式开关 -->
+          <el-switch
+            v-model="isMockMode"
+            active-text="模拟"
+            inactive-text="真实"
+            size="small"
+            @change="onMockModeChange"
+          />
+          <el-tag 
+            :type="currentStatusConfig.tagType" 
+            size="small"
+            effect="dark"
+            class="status-tag"
+          >
+            {{ currentStatusConfig.label }}
+          </el-tag>
+        </div>
       </div>
     </template>
     
+    <!-- 模拟控制面板 -->
+    <div v-if="isMockMode" class="mock-control-panel">
+      <el-divider content-position="left">
+        <el-icon><Setting /></el-icon> 模拟控制
+      </el-divider>
+      <div class="mock-controls">
+        <div class="mock-item">
+          <span class="mock-label">状态码:</span>
+          <el-input-number 
+            v-model="mockStatusCode" 
+            :min="-1" 
+            :max="4" 
+            :step="1"
+            size="small"
+            @change="onMockStatusChange"
+          />
+          <span class="mock-hint">(-1=未开机, 0=健康, 1=刮刀磨损, 2=激光异常, 3=气体异常, 4=复合故障)</span>
+        </div>
+        <div class="mock-item">
+          <span class="mock-label">当前模拟:</span>
+          <el-tag size="small" :type="currentStatusConfig.tagType">
+            {{ currentStatusConfig.label }}
+          </el-tag>
+        </div>
+      </div>
+    </div>
+
     <div class="health-content">
       <!-- 左侧：设备状态图 -->
       <div class="status-image-section">
-        <div class="status-image-container">
+        <div class="status-image-container" :class="{ 'fault': isFaultStatus }">
           <img 
-            :src="currentStatusImage" 
-            alt="SLM Equipment Status"
+            :src="currentStatusConfig.image" 
+            :alt="currentStatusConfig.label"
             class="status-image"
+            @error="onImageError"
           />
-          <div v-if="isCompoundFault" class="fault-overlay">
+          <!-- 故障闪烁遮罩 -->
+          <div v-if="isFaultStatus" class="fault-overlay">
             <el-icon :size="48" color="#ef4444"><Warning /></el-icon>
+            <span class="fault-text">{{ currentStatusConfig.label }}</span>
           </div>
         </div>
         
-        <!-- 状态图例 -->
-        <div class="image-legend">
-          <div 
-            v-for="(item, key) in statusImages" 
-            :key="key"
-            class="legend-item"
-            :class="{ 'active': currentStatus === key }"
-          >
-            <div class="legend-dot" :style="{ background: item.color }"></div>
-            <span class="legend-label">{{ item.label }}</span>
+        <!-- 当前状态指示器 -->
+        <div class="current-status-bar" :style="{ background: currentStatusConfig.color + '20', borderColor: currentStatusConfig.color }">
+          <div class="status-dot-large" :style="{ background: currentStatusConfig.color }"></div>
+          <div class="status-info">
+            <div class="status-name" :style="{ color: currentStatusConfig.color }">{{ currentStatusConfig.label }}</div>
+            <div class="status-code">状态码: {{ displayStatusCode }}</div>
           </div>
         </div>
       </div>
       
       <!-- 右侧：文字状态介绍 -->
       <div class="status-text-section">
-        <!-- 主要状态 -->
-        <div class="main-status">
-          <h3 class="status-title" :style="{ color: currentStatusColor }">
-            {{ healthData.status_labels?.join(' + ') || '系统正常' }}
+        <!-- 主要状态描述 -->
+        <div class="main-status" :class="{ 'fault': isFaultStatus }" :style="{ borderLeftColor: currentStatusConfig.color }">
+          <h3 class="status-title" :style="{ color: currentStatusConfig.color }">
+            {{ currentStatusConfig.title }}
           </h3>
           <p class="status-description">
-            {{ currentStatusDescription }}
+            {{ currentStatusConfig.description }}
           </p>
         </div>
         
@@ -58,99 +95,66 @@
           <h4 class="subsection-title">子系统状态</h4>
           
           <!-- 光路与激光系统 -->
-          <div class="subsystem-item" :class="{ 'fault': isLaserFault }">
+          <div class="subsystem-item" :class="{ 'fault': isLaserFault, 'disabled': !isRunning }">
             <div class="subsystem-header">
-              <div class="subsystem-icon" :class="{ 'fault': isLaserFault }">
+              <div class="subsystem-icon" :class="{ 'fault': isLaserFault, 'disabled': !isRunning }">
                 <el-icon><Sunny /></el-icon>
               </div>
               <div class="subsystem-info">
                 <span class="subsystem-name">光路与激光系统</span>
                 <span class="subsystem-status" :class="{ 'fault': isLaserFault }">
-                  {{ healthData.laser_system?.message || '未检测' }}
+                  {{ isRunning ? (isLaserFault ? '激光功率异常' : '工作正常') : '未检测' }}
                 </span>
               </div>
-              <el-tag 
-                :type="isLaserFault ? 'danger' : 'success'" 
-                size="small"
-                effect="isLaserFault ? 'dark' : 'light'"
-              >
+              <el-tag :type="isLaserFault ? 'danger' : 'success'" size="small">
                 {{ isLaserFault ? '异常' : '健康' }}
               </el-tag>
-            </div>
-            <div v-if="isLaserFault" class="subsystem-detail">
-              <el-alert type="error" :closable="false" show-icon>
-                <template #title>
-                  检测到激光功率衰减或波动，建议检查激光器状态
-                </template>
-              </el-alert>
             </div>
           </div>
           
           <!-- 铺粉运动系统 -->
-          <div class="subsystem-item" :class="{ 'fault': isPowderFault }">
+          <div class="subsystem-item" :class="{ 'fault': isPowderFault, 'disabled': !isRunning }">
             <div class="subsystem-header">
-              <div class="subsystem-icon" :class="{ 'fault': isPowderFault }">
+              <div class="subsystem-icon" :class="{ 'fault': isPowderFault, 'disabled': !isRunning }">
                 <el-icon><FirstAidKit /></el-icon>
               </div>
               <div class="subsystem-info">
                 <span class="subsystem-name">铺粉运动系统</span>
                 <span class="subsystem-status" :class="{ 'fault': isPowderFault }">
-                  {{ healthData.powder_system?.message || '未检测' }}
+                  {{ isRunning ? (isPowderFault ? '刮刀磨损' : '工作正常') : '未检测' }}
                 </span>
               </div>
-              <el-tag 
-                :type="isPowderFault ? 'danger' : 'success'" 
-                size="small"
-                effect="isPowderFault ? 'dark' : 'light'"
-              >
+              <el-tag :type="isPowderFault ? 'danger' : 'success'" size="small">
                 {{ isPowderFault ? '异常' : '健康' }}
               </el-tag>
-            </div>
-            <div v-if="isPowderFault" class="subsystem-detail">
-              <el-alert type="error" :closable="false" show-icon>
-                <template #title>
-                  检测到刮刀磨损，建议检查并更换刮刀
-                </template>
-              </el-alert>
             </div>
           </div>
           
           <!-- 保护氛围系统 -->
-          <div class="subsystem-item" :class="{ 'fault': isGasFault }">
+          <div class="subsystem-item" :class="{ 'fault': isGasFault, 'disabled': !isRunning }">
             <div class="subsystem-header">
-              <div class="subsystem-icon" :class="{ 'fault': isGasFault }">
+              <div class="subsystem-icon" :class="{ 'fault': isGasFault, 'disabled': !isRunning }">
                 <el-icon><WindPower /></el-icon>
               </div>
               <div class="subsystem-info">
                 <span class="subsystem-name">保护氛围系统</span>
                 <span class="subsystem-status" :class="{ 'fault': isGasFault }">
-                  {{ healthData.gas_system?.message || '未检测' }}
+                  {{ isRunning ? (isGasFault ? '气体异常' : '工作正常') : '未检测' }}
                 </span>
               </div>
-              <el-tag 
-                :type="isGasFault ? 'danger' : 'success'" 
-                size="small"
-                effect="isGasFault ? 'dark' : 'light'"
-              >
+              <el-tag :type="isGasFault ? 'danger' : 'success'" size="small">
                 {{ isGasFault ? '异常' : '健康' }}
               </el-tag>
-            </div>
-            <div v-if="isGasFault" class="subsystem-detail">
-              <el-alert type="error" :closable="false" show-icon>
-                <template #title>
-                  检测到舱内气体异常，建议检查气体供应系统
-                </template>
-              </el-alert>
             </div>
           </div>
         </div>
         
-        <!-- 状态标签 -->
-        <div class="status-tags-section">
-          <h4 class="subsection-title">状态标签</h4>
+        <!-- 状态标签（仅在复合故障时显示） -->
+        <div v-if="currentStatusConfig.statusLabels.length > 1" class="status-tags-section">
+          <h4 class="subsection-title">复合故障标签</h4>
           <div class="status-tags">
             <el-tag 
-              v-for="(label, index) in healthData.status_labels" 
+              v-for="(label, index) in currentStatusConfig.statusLabels" 
               :key="index"
               type="danger"
               effect="dark"
@@ -159,22 +163,7 @@
             >
               {{ label }}
             </el-tag>
-            <el-tag 
-              v-if="!healthData.status_labels?.length"
-              type="success"
-              effect="light"
-              size="small"
-            >
-              系统运行正常
-            </el-tag>
           </div>
-        </div>
-        
-        <!-- 状态码信息 -->
-        <div class="status-code-info">
-          <span class="code-label">状态码:</span>
-          <el-tag type="info" size="small">{{ healthData.status_code || 0 }}</el-tag>
-          <span class="code-hint">（0=健康, 1/2=刮刀磨损, 3=激光异常, 4=气体异常）</span>
         </div>
       </div>
     </div>
@@ -182,139 +171,175 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { Warning, Sunny, FirstAidKit, WindPower } from '@element-plus/icons-vue'
+import { ref, computed, watch } from 'vue'
+import { Warning, Sunny, FirstAidKit, WindPower, Setting } from '@element-plus/icons-vue'
 
 const props = defineProps({
   healthData: {
     type: Object,
     default: () => ({
       status: 'power_off',
-      status_code: 0,
+      status_code: -1,
       status_labels: [],
       laser_system: { status: 'unknown', message: '未检测' },
       powder_system: { status: 'unknown', message: '未检测' },
       gas_system: { status: 'unknown', message: '未检测' }
     })
+  },
+  isRunning: {
+    type: Boolean,
+    default: false
   }
 })
 
-// 状态图片配置
-const statusImages = {
-  power_off: {
-    src: '/state_picture/power_off.png',
+// 模拟模式
+const isMockMode = ref(false)
+const mockStatusCode = ref(-1)
+
+// 状态码映射配置
+const statusCodeMap = {
+  '-1': {
+    code: -1,
+    status: 'power_off',
     label: '未开机',
-    color: '#64748b'
+    title: '系统未启动',
+    description: '设备未开机，请启动设备后查看状态。启动后将自动检测各子系统健康状态。',
+    image: '/state_picture/power_off.png',
+    color: '#64748b',
+    tagType: 'info',
+    statusLabels: []
   },
-  healthy: {
-    src: '/state_picture/power_on.png',
+  '0': {
+    code: 0,
+    status: 'healthy',
     label: '全系统正常',
-    color: '#22c55e'
+    title: '系统运行健康',
+    description: '所有系统运行正常，设备处于良好工作状态。激光功率稳定，铺粉系统无磨损，保护气体供应正常。',
+    image: '/state_picture/health.png',
+    color: '#22c55e',
+    tagType: 'success',
+    statusLabels: ['系统健康']
   },
-  laser_fault: {
-    src: '/state_picture/fault_laser.png',
-    label: '激光系统异常',
-    color: '#ef4444'
-  },
-  powder_fault: {
-    src: '/state_picture/fault_powder.png',
+  '1': {
+    code: 1,
+    status: 'powder_fault',
     label: '铺粉系统异常',
-    color: '#ef4444'
+    title: '刮刀磨损',
+    description: '检测到刮刀磨损，已影响铺粉质量。建议检查并更换刮刀，以避免打印失败。',
+    image: '/state_picture/fault_powder.png',
+    color: '#ef4444',
+    tagType: 'danger',
+    statusLabels: ['刮刀磨损']
   },
-  gas_fault: {
-    src: '/state_picture/fault_gas.png',
+  '2': {
+    code: 2,
+    status: 'laser_fault',
+    label: '激光系统异常',
+    title: '激光功率异常',
+    description: '检测到激光功率衰减或波动，可能影响打印质量。建议检查激光器状态、光学镜片清洁度及冷却系统。',
+    image: '/state_picture/fault_laser.png',
+    color: '#ef4444',
+    tagType: 'danger',
+    statusLabels: ['激光功率异常']
+  },
+  '3': {
+    code: 3,
+    status: 'gas_fault',
     label: '保护气体异常',
-    color: '#ef4444'
+    title: '舱内气体异常',
+    description: '检测到舱内保护气体异常，氧含量可能超标。建议检查气体供应系统、密封性及排气系统。',
+    image: '/state_picture/fault_gas.png',
+    color: '#ef4444',
+    tagType: 'danger',
+    statusLabels: ['保护气体异常']
   },
-  compound_fault: {
-    src: '/state_picture/power_on.png',  // 使用power_on作为基础图
+  '4': {
+    code: 4,
+    status: 'compound_fault',
     label: '复合故障',
-    color: '#dc2626'
+    title: '多系统复合故障',
+    description: '检测到多个系统同时异常，请立即检查设备状态。建议停机进行全面检查，排除故障后再继续打印。',
+    image: '/state_picture/fault_multi.png',
+    color: '#dc2626',
+    tagType: 'danger',
+    statusLabels: ['复合故障', '需立即处理']
   }
 }
 
-// 当前状态
-const currentStatus = computed(() => {
-  return props.healthData.status || 'power_off'
+// 计算当前显示的状态码
+const displayStatusCode = computed(() => {
+  if (isMockMode.value) {
+    return mockStatusCode.value
+  }
+  return props.healthData?.status_code ?? -1
 })
 
-// 当前状态图片
-const currentStatusImage = computed(() => {
-  return statusImages[currentStatus.value]?.src || statusImages.power_off.src
+// 计算当前状态配置
+const currentStatusConfig = computed(() => {
+  const code = String(displayStatusCode.value)
+  return statusCodeMap[code] || statusCodeMap['-1']
 })
 
-// 是否复合故障
-const isCompoundFault = computed(() => {
-  return currentStatus.value === 'compound_fault' || 
-         (props.healthData.status_labels?.length > 1)
+// 是否故障状态（用于闪烁效果）- 状态码 >= 1 都是故障（除了0健康、-1未开机）
+const isFaultStatus = computed(() => {
+  const code = displayStatusCode.value
+  return code >= 1  // 1=刮刀磨损, 2=激光异常, 3=气体异常, 4=复合故障
 })
 
-// 各子系统故障状态
+// 各子系统故障状态（更新后的状态码）
 const isLaserFault = computed(() => {
-  return props.healthData.laser_system?.status === 'fault' ||
-         currentStatus.value === 'laser_fault'
+  const code = displayStatusCode.value
+  return code === 2 || code === 4  // 激光异常或复合故障
 })
 
 const isPowderFault = computed(() => {
-  return props.healthData.powder_system?.status === 'fault' ||
-         currentStatus.value === 'powder_fault'
+  const code = displayStatusCode.value
+  return code === 1 || code === 4  // 刮刀磨损或复合故障
 })
 
 const isGasFault = computed(() => {
-  return props.healthData.gas_system?.status === 'fault' ||
-         currentStatus.value === 'gas_fault'
+  const code = displayStatusCode.value
+  return code === 3 || code === 4  // 气体异常或复合故障
 })
 
-// 健康状态文本
-const healthStatusText = computed(() => {
-  const statusMap = {
-    'power_off': '未开机',
-    'healthy': '系统健康',
-    'laser_fault': '激光系统异常',
-    'powder_fault': '铺粉系统异常',
-    'gas_fault': '保护气体异常',
-    'compound_fault': '复合故障'
+// 模拟模式切换
+const onMockModeChange = (val) => {
+  if (val) {
+    // 开启模拟模式时，使用当前状态码作为初始值
+    mockStatusCode.value = props.healthData?.status_code ?? -1
   }
-  return statusMap[currentStatus.value] || '未知状态'
+}
+
+// 模拟状态变化
+const onMockStatusChange = (val) => {
+  console.log(`[EquipmentHealth] 模拟状态码切换为: ${val}`)
+  // 这里可以触发事件通知父组件
+}
+
+// 图片加载错误处理
+const onImageError = (e) => {
+  console.error('[EquipmentHealth] 图片加载失败:', e.target.src)
+  // 使用备用图片
+  e.target.src = '/state_picture/power_off.png'
+}
+
+// 监听真实健康数据变化（非模拟模式时）
+watch(() => props.healthData?.status_code, (newCode) => {
+  if (!isMockMode.value && newCode !== undefined) {
+    console.log(`[EquipmentHealth] 真实状态码更新: ${newCode}`)
+  }
 })
 
-// 健康标签类型
-const healthTagType = computed(() => {
-  const typeMap = {
-    'power_off': 'info',
-    'healthy': 'success',
-    'laser_fault': 'danger',
-    'powder_fault': 'danger',
-    'gas_fault': 'danger',
-    'compound_fault': 'danger'
+// 暴露方法给父组件
+defineExpose({
+  // 获取当前状态配置（供测试用）
+  getCurrentStatusConfig: () => currentStatusConfig.value,
+  // 设置模拟状态码
+  setMockStatusCode: (code) => {
+    if (isMockMode.value) {
+      mockStatusCode.value = code
+    }
   }
-  return typeMap[currentStatus.value] || 'info'
-})
-
-// 当前状态颜色
-const currentStatusColor = computed(() => {
-  const colorMap = {
-    'power_off': '#64748b',
-    'healthy': '#22c55e',
-    'laser_fault': '#ef4444',
-    'powder_fault': '#ef4444',
-    'gas_fault': '#ef4444',
-    'compound_fault': '#dc2626'
-  }
-  return colorMap[currentStatus.value] || '#64748b'
-})
-
-// 当前状态描述
-const currentStatusDescription = computed(() => {
-  const descMap = {
-    'power_off': '设备未开机，请启动设备后查看状态',
-    'healthy': '所有系统运行正常，设备处于良好工作状态',
-    'laser_fault': '检测到激光系统异常，可能存在激光功率衰减或波动，建议检查激光器状态',
-    'powder_fault': '检测到铺粉运动系统异常，可能存在刮刀磨损，建议检查并更换刮刀',
-    'gas_fault': '检测到保护氛围系统异常，舱内气体可能存在异常，建议检查气体供应系统',
-    'compound_fault': '检测到多个系统异常，请立即检查设备状态并采取相应措施'
-  }
-  return descMap[currentStatus.value] || '设备状态未知'
 })
 </script>
 
@@ -336,13 +361,58 @@ const currentStatusDescription = computed(() => {
   color: #e2e8f0;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-tag {
+  min-width: 80px;
+  text-align: center;
+}
+
+/* 模拟控制面板 */
+.mock-control-panel {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 8px;
+  border: 1px dashed rgba(100, 116, 139, 0.5);
+}
+
+.mock-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mock-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mock-label {
+  font-size: 13px;
+  color: #94a3b8;
+  min-width: 70px;
+}
+
+.mock-hint {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* 健康内容区域 */
 .health-content {
   display: grid;
   grid-template-columns: 1fr 1.5fr;
   gap: 24px;
 }
 
-/* 状态图区域 */
+/* 状态图片区域 */
 .status-image-section {
   display: flex;
   flex-direction: column;
@@ -355,6 +425,17 @@ const currentStatusDescription = computed(() => {
   overflow: hidden;
   background: rgba(30, 41, 59, 0.5);
   border: 2px solid rgba(100, 116, 139, 0.2);
+  transition: all 0.3s ease;
+}
+
+.status-image-container.fault {
+  border-color: rgba(239, 68, 68, 0.5);
+  animation: border-pulse 2s infinite;
+}
+
+@keyframes border-pulse {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.5); }
+  50% { border-color: rgba(239, 68, 68, 0.8); }
 }
 
 .status-image {
@@ -371,50 +452,58 @@ const currentStatusDescription = computed(() => {
   right: 0;
   bottom: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: rgba(239, 68, 68, 0.2);
   animation: pulse 2s infinite;
+  gap: 8px;
+}
+
+.fault-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ef4444;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.8;
-  }
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
 }
 
-.image-legend {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.legend-item {
+/* 当前状态栏 */
+.current-status-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 6px;
-  background: rgba(30, 41, 59, 0.3);
-  transition: all 0.3s ease;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border-left: 4px solid;
+  background: rgba(30, 41, 59, 0.5);
 }
 
-.legend-item.active {
-  background: rgba(100, 116, 139, 0.3);
-}
-
-.legend-dot {
-  width: 12px;
-  height: 12px;
+.status-dot-large {
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
 }
 
-.legend-label {
-  font-size: 12px;
-  color: #94a3b8;
+.status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.status-code {
+  font-size: 11px;
+  color: #64748b;
 }
 
 /* 文字状态区域 */
@@ -428,7 +517,19 @@ const currentStatusDescription = computed(() => {
   padding: 16px;
   background: rgba(30, 41, 59, 0.5);
   border-radius: 8px;
-  border-left: 4px solid v-bind('currentStatusColor');
+  border-left: 4px solid;
+  transition: all 0.3s ease;
+}
+
+.main-status.fault {
+  background: rgba(239, 68, 68, 0.1);
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
 }
 
 .status-title {
@@ -470,6 +571,10 @@ const currentStatusDescription = computed(() => {
   border-color: rgba(239, 68, 68, 0.3);
 }
 
+.subsystem-item.disabled {
+  opacity: 0.5;
+}
+
 .subsystem-header {
   display: flex;
   align-items: center;
@@ -494,6 +599,11 @@ const currentStatusDescription = computed(() => {
   color: #ef4444;
 }
 
+.subsystem-icon.disabled {
+  background: rgba(100, 116, 139, 0.2);
+  color: #64748b;
+}
+
 .subsystem-info {
   flex: 1;
   display: flex;
@@ -516,10 +626,6 @@ const currentStatusDescription = computed(() => {
   color: #ef4444;
 }
 
-.subsystem-detail {
-  margin-top: 10px;
-}
-
 /* 状态标签区域 */
 .status-tags-section {
   padding: 12px;
@@ -537,32 +643,6 @@ const currentStatusDescription = computed(() => {
   animation: shake 0.5s ease-in-out;
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-2px); }
-  75% { transform: translateX(2px); }
-}
-
-/* 状态码信息 */
-.status-code-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(30, 41, 59, 0.3);
-  border-radius: 6px;
-  font-size: 12px;
-}
-
-.code-label {
-  color: #94a3b8;
-}
-
-.code-hint {
-  color: #64748b;
-  font-size: 11px;
-}
-
 @media (max-width: 968px) {
   .health-content {
     grid-template-columns: 1fr;
@@ -571,6 +651,11 @@ const currentStatusDescription = computed(() => {
   .status-image-container {
     max-width: 400px;
     margin: 0 auto;
+  }
+  
+  .mock-item {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

@@ -51,6 +51,7 @@
     <div class="health-section">
       <EquipmentHealthStatus
         :health-data="healthData"
+        :is-running="isRunning"
       />
     </div>
     
