@@ -44,6 +44,8 @@
         :sensor-status="sensorStatus"
         :latest-data="latestData"
         :stream-key="streamKey"
+        :display-paused="displayPaused"
+        :last-frames="lastFrames"
       />
     </div>
     
@@ -55,11 +57,12 @@
       />
     </div>
     
-    <!-- 视频录制与诊断 -->
-    <div class="video-section">
-      <VideoRecordingPanel
+    <!-- 振动触发图像采集 -->
+    <div class="capture-section">
+      <ImageCapturePanel
         :is-running="isRunning"
-        @diagnosis-complete="handleDiagnosisComplete"
+        :latest-data="latestData"
+        @capture-triggered="handleCaptureTriggered"
       />
     </div>
     
@@ -163,7 +166,7 @@ import axios from 'axios'
 import SensorConnectionStatus from '../../components/slm/SensorConnectionStatus.vue'
 import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
 import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
-import VideoRecordingPanel from '../../components/slm/VideoRecordingPanel.vue'
+import ImageCapturePanel from '../../components/slm/ImageCapturePanel.vue'
 
 // 状态
 const isRunning = ref(false)
@@ -171,6 +174,12 @@ const starting = ref(false)
 const showSettings = ref(false)
 const wsConnected = ref(false)
 const streamKey = ref(Date.now())  // 用于强制刷新视频流
+const displayPaused = ref(false)   // 显示暂停状态（录制时节省带宽）
+const lastFrames = reactive({      // 暂停时显示的最后一帧
+  CH1: null,
+  CH2: null,
+  thermal: null
+})
 
 // 传感器状态
 const sensorStatus = reactive({
@@ -200,10 +209,10 @@ const latestData = reactive({
   }
 })
 
-// 健康数据
+// 健康数据 - 初始状态为未开机（状态码-1）
 const healthData = reactive({
   status: 'power_off',
-  status_code: 0,
+  status_code: -1,
   status_labels: [],
   laser_system: { status: 'unknown', message: '未检测' },
   powder_system: { status: 'unknown', message: '未检测' },
@@ -242,11 +251,58 @@ const fetchStatus = async () => {
   try {
     const response = await axios.get('/api/slm/status')
     if (response.data) {
+      const wasRunning = isRunning.value
       isRunning.value = response.data.is_running
       Object.assign(sensorStatus, response.data.sensor_status || {})
+      
+      // 如果正在采集且当前状态为未开机(-1)，则更新为开机正常状态(0)
+      if (isRunning.value && healthData.status_code === -1) {
+        console.log('[Dashboard] 刷新状态：采集运行中，更新健康状态为开机正常')
+        healthData.status = 'healthy'
+        healthData.status_code = 0
+        healthData.status_labels = ['系统健康']
+        healthData.laser_system = { status: 'healthy', message: '健康' }
+        healthData.powder_system = { status: 'healthy', message: '健康' }
+        healthData.gas_system = { status: 'healthy', message: '健康' }
+        
+        // 通知后端更新健康状态
+        await updateHealthStatusOnBackend(0, ['系统健康'])
+      }
+      
+      // 如果采集刚停止（wasRunning && !isRunning），立即重置健康状态为未开机
+      if (wasRunning && !isRunning.value) {
+        console.log('[Dashboard] 刷新状态：采集已停止，重置健康状态为未开机')
+        healthData.status = 'power_off'
+        healthData.status_code = -1
+        healthData.status_labels = []
+        healthData.laser_system = { status: 'unknown', message: '未检测' }
+        healthData.powder_system = { status: 'unknown', message: '未检测' }
+        healthData.gas_system = { status: 'unknown', message: '未检测' }
+        
+        // 重置后端健康状态缓存
+        lastBackendHealthCode = -1
+        
+        // 关闭WebSocket连接
+        closeWebSocket()
+      }
     }
   } catch (error) {
     console.error('获取状态失败:', error)
+  }
+}
+
+// 通知后端更新健康状态
+const updateHealthStatusOnBackend = async (statusCode, labels) => {
+  try {
+    await axios.post('/api/slm/health/status', null, {
+      params: {
+        status_code: statusCode,
+        labels: labels
+      }
+    })
+    console.log(`[Dashboard] 后端健康状态已更新: ${statusCode}`)
+  } catch (error) {
+    console.error('[Dashboard] 更新后端健康状态失败:', error)
   }
 }
 
@@ -327,9 +383,18 @@ const toggleAcquisition = async () => {
       
       await new Promise(resolve => setTimeout(resolve, 1500))
       
+      // 重置传感器状态为未连接
       Object.keys(sensorStatus).forEach(key => {
         if (sensorStatus[key]) sensorStatus[key].connected = false
       })
+      
+      // 重置健康状态为未开机（状态码-1）
+      healthData.status = 'power_off'
+      healthData.status_code = -1
+      healthData.status_labels = []
+      healthData.laser_system = { status: 'unknown', message: '未检测' }
+      healthData.powder_system = { status: 'unknown', message: '未检测' }
+      healthData.gas_system = { status: 'unknown', message: '未检测' }
       
       ElMessage.success('采集已停止')
     } catch (error) {
@@ -448,8 +513,23 @@ const handleWebSocketData = (data) => {
   if (data.statistics) {
     latestData.statistics = data.statistics
   }
+  // 更新健康状态
   if (data.health) {
-    Object.assign(healthData, data.health)
+    console.log('[Dashboard] 收到健康状态:', data.health)
+    // 直接赋值确保响应式更新
+    healthData.status = data.health.status || healthData.status
+    healthData.status_code = data.health.status_code !== undefined ? data.health.status_code : healthData.status_code
+    healthData.status_labels = data.health.status_labels || healthData.status_labels
+    if (data.health.laser_system) {
+      healthData.laser_system = { ...data.health.laser_system }
+    }
+    if (data.health.powder_system) {
+      healthData.powder_system = { ...data.health.powder_system }
+    }
+    if (data.health.gas_system) {
+      healthData.gas_system = { ...data.health.gas_system }
+    }
+    // 同时更新latestData
     Object.assign(latestData.health, data.health)
   }
   
@@ -531,17 +611,6 @@ const saveSettings = async () => {
   showSettings.value = false
 }
 
-onMounted(() => {
-  fetchStatus()
-  fetchComPorts()
-  fetchCameras()  // 自动检测摄像头
-  
-  // 如果正在运行，连接WebSocket
-  if (isRunning.value) {
-    connectWebSocket()
-  }
-})
-
 // 处理诊断结果
 const handleDiagnosisComplete = (result) => {
   console.log('[Dashboard] 诊断结果:', result)
@@ -589,8 +658,72 @@ const getStatusFromCode = (code) => {
   return map[String(code)] || 'power_off'
 }
 
+// 处理图像采集触发
+const handleCaptureTriggered = (event) => {
+  console.log('[Dashboard] 图像采集触发:', event)
+  // 可以在这里添加提示音或其他反馈
+  if (event.type === 'after') {
+    // 完成一层时给出提示
+    ElMessage.success(`第 ${event.layer} 层采集完成`)
+  }
+}
+
+// 后端健康状态缓存
+let lastBackendHealthCode = -1
+let healthCheckTimer = null
+
+// 从后端获取健康状态（用于检测诊断模块输出）
+const fetchBackendHealthStatus = async () => {
+  // 只有在采集运行中才获取
+  if (!isRunning.value) return
+  
+  try {
+    const response = await axios.get('/api/slm/health/status')
+    if (response.data.success && response.data.health) {
+      const backendCode = response.data.health.status_code
+      
+      // 只有状态码变化时才更新前端显示
+      if (backendCode !== lastBackendHealthCode) {
+        console.log(`[Dashboard] 后端健康状态变化: ${lastBackendHealthCode} -> ${backendCode}`)
+        lastBackendHealthCode = backendCode
+        
+        // 更新前端健康状态
+        Object.assign(healthData, response.data.health)
+        
+        // 如果状态码表示故障，提示用户
+        if (backendCode > 0) {
+          const statusLabels = response.data.health.status_labels || ['异常']
+          ElMessage.warning(`检测到设备异常: ${statusLabels.join(', ')}`)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[Dashboard] 获取后端健康状态失败:', error)
+  }
+}
+
+onMounted(() => {
+  fetchStatus()
+  fetchComPorts()
+  fetchCameras()
+  
+  if (isRunning.value) {
+    connectWebSocket()
+  }
+  
+  // 启动健康状态定期检查（每3秒检查一次，仅状态变化时刷新）
+  healthCheckTimer = setInterval(() => {
+    fetchBackendHealthStatus()
+  }, 3000)
+})
+
 onUnmounted(() => {
   closeWebSocket()
+  // 清理健康状态检查定时器
+  if (healthCheckTimer) {
+    clearInterval(healthCheckTimer)
+    healthCheckTimer = null
+  }
 })
 </script>
 

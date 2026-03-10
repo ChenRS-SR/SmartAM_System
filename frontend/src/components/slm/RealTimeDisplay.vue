@@ -33,6 +33,7 @@
             v-if="sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected"
             :src="ch1StreamUrl" 
             class="video-stream"
+            :class="{ 'paused': displayPaused }"
             alt="CH1 Stream"
             @error="onCh1Error"
           />
@@ -40,6 +41,11 @@
             <el-icon :size="40"><VideoCamera /></el-icon>
             <span>{{ sensorStatus.camera_ch1?.enabled ? '未连接' : '已禁用' }}</span>
             <span v-if="sensorStatus.camera_ch1?.enabled && !sensorStatus.camera_ch1?.connected" class="sub-text">请检查USB摄像头</span>
+          </div>
+          <!-- 暂停遮罩 -->
+          <div v-if="displayPaused && sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected" class="pause-overlay">
+            <el-icon :size="30"><VideoPause /></el-icon>
+            <span>录制中</span>
           </div>
         </div>
       </div>
@@ -59,6 +65,7 @@
             v-if="sensorStatus.camera_ch2?.enabled && sensorStatus.camera_ch2?.connected"
             :src="ch2StreamUrl" 
             class="video-stream"
+            :class="{ 'paused': displayPaused }"
             alt="CH2 Stream"
             @error="onCh2Error"
           />
@@ -66,6 +73,11 @@
             <el-icon :size="40"><VideoCamera /></el-icon>
             <span>{{ sensorStatus.camera_ch2?.enabled ? '未连接' : '已禁用' }}</span>
             <span v-if="sensorStatus.camera_ch2?.enabled && !sensorStatus.camera_ch2?.connected" class="sub-text">请检查USB摄像头</span>
+          </div>
+          <!-- 暂停遮罩 -->
+          <div v-if="displayPaused && sensorStatus.camera_ch2?.enabled && sensorStatus.camera_ch2?.connected" class="pause-overlay">
+            <el-icon :size="30"><VideoPause /></el-icon>
+            <span>录制中</span>
           </div>
         </div>
       </div>
@@ -88,6 +100,7 @@
             v-if="sensorStatus.thermal?.enabled && sensorStatus.thermal?.connected"
             :src="thermalStreamUrl" 
             class="video-stream"
+            :class="{ 'paused': displayPaused }"
             alt="Thermal Stream"
             @error="onThermalError"
           />
@@ -95,6 +108,11 @@
             <el-icon :size="40"><HotWater /></el-icon>
             <span>{{ sensorStatus.thermal?.enabled ? '未连接' : '已禁用' }}</span>
             <span v-if="sensorStatus.thermal?.enabled && !sensorStatus.thermal?.connected" class="sub-text">请检查PIX Connect</span>
+          </div>
+          <!-- 暂停遮罩 -->
+          <div v-if="displayPaused && sensorStatus.thermal?.enabled && sensorStatus.thermal?.connected" class="pause-overlay">
+            <el-icon :size="30"><VideoPause /></el-icon>
+            <span>录制中</span>
           </div>
         </div>
         <!-- 温度信息 -->
@@ -129,7 +147,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { VideoCamera, HotWater } from '@element-plus/icons-vue'
+import { VideoCamera, HotWater, VideoPause } from '@element-plus/icons-vue'
 import VibrationWaveform from './VibrationWaveform.vue'
 
 const props = defineProps({
@@ -144,6 +162,14 @@ const props = defineProps({
   streamKey: {
     type: Number,
     default: 0
+  },
+  displayPaused: {
+    type: Boolean,
+    default: false
+  },
+  lastFrames: {
+    type: Object,
+    default: () => ({ CH1: null, CH2: null, thermal: null })
   }
 })
 
@@ -258,6 +284,27 @@ const vibrationWaveform = computed(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.video-stream.paused {
+  filter: brightness(0.6);
+}
+
+.pause-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .video-placeholder {

@@ -20,18 +20,47 @@ router = APIRouter(prefix="/slm", tags=["SLM"])
 _slm_instance: Optional[SLMAcquisition] = None
 
 # 获取SLM采集实例
-def get_acquisition() -> SLMAcquisition:
+def get_acquisition(create_if_none: bool = True) -> Optional[SLMAcquisition]:
+    """获取SLM采集实例
+    
+    Args:
+        create_if_none: 如果实例不存在，是否创建新实例
+    """
     global _slm_instance
-    if _slm_instance is None:
+    if _slm_instance is None and create_if_none:
         _slm_instance = SLMAcquisition(use_mock=False)
     return _slm_instance
+
+def get_acquisition_status_safe() -> dict:
+    """安全地获取采集状态（即使实例不存在）"""
+    global _slm_instance
+    if _slm_instance is None:
+        return {
+            "is_running": False,
+            "health": {
+                "status": "power_off",
+                "status_code": -1,
+                "status_labels": [],
+                "laser_system": {"status": "unknown", "message": "未检测"},
+                "powder_system": {"status": "unknown", "message": "未检测"},
+                "gas_system": {"status": "unknown", "message": "未检测"}
+            },
+            "sensor_status": {
+                "camera_ch1": {"enabled": True, "connected": False},
+                "camera_ch2": {"enabled": True, "connected": False},
+                "thermal": {"enabled": True, "connected": False},
+                "vibration": {"enabled": True, "connected": False, "com_port": ""}
+            },
+            "frame_number": 0,
+            "statistics": {"fps": 0, "total_frames": 0, "duration": 0}
+        }
+    return _slm_instance.get_status()
 
 
 @router.get("/status")
 async def get_slm_status():
     """获取SLM采集系统状态"""
-    acquisition = get_acquisition()
-    return acquisition.get_status()
+    return get_acquisition_status_safe()
 
 
 @router.post("/start")
@@ -185,7 +214,7 @@ async def update_health_status(
     status_code: int = 0,
     labels: Optional[List[str]] = None
 ):
-    """更新设备健康状态（供模型调用）"""
+    """更新设备健康状态（供模型调用或前端刷新）"""
     acquisition = get_acquisition()
     acquisition.update_health_status(status_code, labels or [])
     
@@ -197,30 +226,55 @@ async def update_health_status(
     }
 
 
+@router.get("/health/status")
+async def get_health_status():
+    """获取当前设备健康状态"""
+    acquisition = get_acquisition(create_if_none=False)
+    if acquisition is None:
+        return {
+            "success": True,
+            "health": {
+                "status": "power_off",
+                "status_code": -1,
+                "status_labels": [],
+                "laser_system": {"status": "unknown", "message": "未检测"},
+                "powder_system": {"status": "unknown", "message": "未检测"},
+                "gas_system": {"status": "unknown", "message": "未检测"}
+            },
+            "is_running": False
+        }
+    return {
+        "success": True,
+        "health": acquisition._health_state.to_dict(),
+        "is_running": acquisition.is_running
+    }
+
+
 # ========== 视频录制与诊断 ==========
 
-@router.post("/video/setup")
-async def setup_video_recorder(save_dir: str = "./recordings"):
-    """设置视频录制器"""
+@router.post("/capture/setup")
+async def setup_image_capture(save_dir: str = "E:/SmartAM_recordings"):
+    """设置图像采集器"""
     try:
         acquisition = get_acquisition()
-        success = acquisition.setup_video_recorder(save_dir)
+        success = acquisition.setup_image_capture(save_dir)
         return {
             "success": success,
-            "save_directory": acquisition._video_recorder.get_save_directory() if acquisition._video_recorder else ""
+            "save_directory": str(acquisition._image_capture.save_dir) if acquisition._image_capture else save_dir
         }
     except Exception as e:
         return {"success": False, "message": str(e)}
 
 
-@router.post("/video/enable")
-async def enable_video_recording(enabled: bool = True):
-    """启用/禁用视频录制"""
+@router.post("/capture/enable")
+async def enable_image_capture(enabled: bool = True):
+    """启用/禁用图像采集（随采集自动启动）"""
     try:
         acquisition = get_acquisition()
-        acquisition.set_video_recording_enabled(enabled)
+        result = acquisition.set_image_capture_enabled(enabled)
         return {
-            "success": True,
+            "success": result.get('success', True),
+            "message": result.get('message', ''),
             "enabled": enabled,
             "is_running": acquisition.is_running
         }
@@ -228,53 +282,62 @@ async def enable_video_recording(enabled: bool = True):
         return {"success": False, "message": str(e)}
 
 
-@router.post("/video/interval")
-async def set_video_recording_interval(interval_seconds: int = 30):
-    """设置视频录制间隔（10-60秒）"""
+@router.post("/capture/start")
+async def start_image_capture():
+    """开始图像采集（手动控制）"""
     try:
         acquisition = get_acquisition()
-        acquisition.set_video_recording_interval(interval_seconds)
+        result = acquisition.start_image_capture()
+        return result
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/capture/stop")
+async def stop_image_capture():
+    """停止图像采集"""
+    try:
+        acquisition = get_acquisition()
+        result = acquisition.stop_image_capture()
+        return result
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/capture/threshold")
+async def set_capture_threshold(threshold: float = 0.1):
+    """设置振动触发阈值"""
+    try:
+        acquisition = get_acquisition()
+        acquisition.set_capture_threshold(threshold)
         return {
             "success": True,
-            "interval_seconds": interval_seconds
+            "threshold": threshold
         }
     except Exception as e:
         return {"success": False, "message": str(e)}
 
 
-@router.post("/video/directory")
-async def set_video_save_directory(save_dir: str):
-    """设置视频保存目录"""
+@router.post("/capture/directory")
+async def set_capture_save_directory(save_dir: str):
+    """设置图像保存目录"""
     try:
         acquisition = get_acquisition()
-        success = acquisition.set_video_save_directory(save_dir)
-        return {
-            "success": success,
-            "save_directory": acquisition._video_recorder.get_save_directory() if acquisition._video_recorder else save_dir
-        }
+        result = acquisition.set_capture_save_directory(save_dir)
+        return result
     except Exception as e:
-        return {"success": False, "message": str(e)}
+        return {"success": False, "message": str(e), "path": ""}
 
 
-@router.get("/video/status")
-async def get_video_recorder_status():
-    """获取视频录制器状态"""
+@router.get("/capture/status")
+async def get_image_capture_status():
+    """获取图像采集器状态"""
     try:
         acquisition = get_acquisition()
-        status = acquisition.get_video_recorder_status()
+        status = acquisition.get_image_capture_status()
         return {"success": True, **status}
     except Exception as e:
         return {"success": False, "message": str(e)}
-
-
-@router.get("/video/history")
-async def get_video_recording_history(limit: int = 50):
-    """获取视频录制历史"""
-    try:
-        acquisition = get_acquisition()
-        history = acquisition.get_video_recording_history(limit)
-        return {"success": True, "history": history, "count": len(history)}
-    except Exception as e:
         return {"success": False, "message": str(e)}
 
 
@@ -434,11 +497,12 @@ async def slm_data_websocket(websocket: WebSocket):
 
 async def video_stream_generator(channel: str, quality: int = 85):
     """视频流生成器"""
-    acquisition = get_acquisition()
-    
     while True:
         try:
-            if acquisition.camera_manager:
+            # 每次循环获取当前实例（可能为None）
+            acquisition = get_acquisition(create_if_none=False)
+            
+            if acquisition and acquisition.camera_manager:
                 jpeg = acquisition.camera_manager.get_frame_jpeg(channel, quality)
                 if jpeg:
                     yield (
@@ -447,6 +511,10 @@ async def video_stream_generator(channel: str, quality: int = 85):
                         b"Content-Length: " + str(len(jpeg)).encode() + b"\r\n"
                         b"\r\n" + jpeg + b"\r\n"
                     )
+            else:
+                # 无可用摄像头，等待
+                await asyncio.sleep(0.5)
+                continue
             
             await asyncio.sleep(0.033)  # ~30 FPS
             
@@ -475,11 +543,12 @@ async def camera_stream(channel: str, quality: int = 85):
 
 async def thermal_stream_generator(quality: int = 85):
     """热像视频流生成器"""
-    acquisition = get_acquisition()
-    
     while True:
         try:
-            if acquisition.thermal_camera:
+            # 每次循环获取当前实例（可能为None）
+            acquisition = get_acquisition(create_if_none=False)
+            
+            if acquisition and acquisition.thermal_camera:
                 thermal_image = acquisition.thermal_camera.generate_thermal_image(640, 480)
                 if thermal_image is not None:
                     import cv2
@@ -492,6 +561,10 @@ async def thermal_stream_generator(quality: int = 85):
                             b"Content-Length: " + str(len(jpeg_bytes)).encode() + b"\r\n"
                             b"\r\n" + jpeg_bytes + b"\r\n"
                         )
+            else:
+                # 无可用热像仪，返回空白帧或等待
+                await asyncio.sleep(0.5)
+                continue
             
             await asyncio.sleep(0.1)  # 10 FPS for thermal
             

@@ -152,9 +152,9 @@ class SLMAcquisition:
         # 健康状态
         self._health_state = SLMHealthState()
         
-        # 视频录制器
-        self._video_recorder: Optional[Any] = None
-        self._video_recorder_enabled = False
+        # 图像采集器（振动触发）
+        self._image_capture: Optional[Any] = None
+        self._image_capture_enabled = False
         
         # 视频诊断引擎
         self._diagnosis_engine: Optional[Any] = None
@@ -224,6 +224,10 @@ class SLMAcquisition:
                     self.thermal_camera = MockThermalCamera()
                     self.thermal_camera.connect()
         
+        # 初始化图像采集器（如果尚未初始化）
+        if self._image_capture is None:
+            self.setup_image_capture()
+        
         print("[SLMAcquisition] 初始化完成")
         return True
     
@@ -258,37 +262,98 @@ class SLMAcquisition:
         self._health_state.status_labels = ['系统健康']
         print("[SLMAcquisition] 健康状态已更新为: HEALTHY (状态码: 0)")
         
-        # 启动视频录制（如果启用）
-        if self._video_recorder_enabled and self._video_recorder:
-            self._video_recorder.start_recording()
+        # 启动图像采集（如果启用且采集器已初始化）
+        if self._image_capture_enabled and self._image_capture is not None:
+            try:
+                self._image_capture.start_capture()
+                print("[SLMAcquisition] 振动触发图像采集已启动")
+            except Exception as e:
+                print(f"[SLMAcquisition] 启动图像采集失败: {e}")
     
     def stop(self):
-        """停止数据采集"""
-        print("[SLMAcquisition] 停止数据采集")
+        """停止数据采集 - 立即响应，后台释放资源"""
+        print("[SLMAcquisition] 停止数据采集...")
+        
+        # 1. 立即设置停止标志和状态（确保前端立即知道已停止）
         self._停止标志.set()
+        self.is_running = False
         
-        if self._采集线程 and self._采集线程.is_alive():
-            self._采集线程.join(timeout=2.0)
-        
-        # 停止视频录制
-        if self._video_recorder:
-            self._video_recorder.stop_recording()
-        
-        # 停止传感器
-        if self.camera_manager:
-            self.camera_manager.disconnect()
-        if self.vibration_sensor:
-            self.vibration_sensor.disconnect()
-        if self.thermal_camera:
-            self.thermal_camera.disconnect()
-        
-        # 重置健康状态为未开机
+        # 2. 立即重置健康状态为未开机
         self._health_state.status = SLMHealthStatus.POWER_OFF
         self._health_state.status_code = -1
         self._health_state.status_labels = []
-        print("[SLMAcquisition] 健康状态已重置为: POWER_OFF (状态码: -1)")
+        self._health_state.laser_system = {'status': 'unknown', 'message': '未检测'}
+        self._health_state.powder_system = {'status': 'unknown', 'message': '未检测'}
+        self._health_state.gas_system = {'status': 'unknown', 'message': '未检测'}
+        print("[SLMAcquisition] 状态已重置为: POWER_OFF (状态码: -1)")
         
-        self.is_running = False
+        # 3. 在后台线程中释放资源（避免阻塞主线程）
+        import threading
+        cleanup_thread = threading.Thread(target=self._cleanup_resources, daemon=True)
+        cleanup_thread.start()
+    
+    def _cleanup_resources(self):
+        """后台清理资源 - 不阻塞主线程"""
+        print("[SLMAcquisition] 后台清理资源...")
+        
+        # 等待采集线程结束（短暂等待）
+        if self._采集线程 and self._采集线程.is_alive():
+            self._采集线程.join(timeout=1.0)
+            if self._采集线程.is_alive():
+                print("[SLMAcquisition] 警告: 采集线程未在1秒内结束")
+        
+        # 停止图像采集（使用超时保护，避免阻塞）
+        if self._image_capture is not None:
+            try:
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(self._image_capture.stop_capture)
+                    future.result(timeout=5.0)  # 最多等待5秒
+                print("[SLMAcquisition] 图像采集已停止")
+            except concurrent.futures.TimeoutError:
+                print("[SLMAcquisition] 警告: 停止图像采集超时，将继续清理其他资源")
+            except Exception as e:
+                print(f"[SLMAcquisition] 停止图像采集失败: {e}")
+        
+        # 停止传感器（每个都隔离异常和超时）
+        if self.camera_manager:
+            try:
+                print("[SLMAcquisition] 断开摄像头...")
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(self.camera_manager.disconnect)
+                    future.result(timeout=3.0)
+            except Exception as e:
+                print(f"[SLMAcquisition] 断开摄像头失败或超时: {e}")
+        
+        if self.vibration_sensor:
+            try:
+                print("[SLMAcquisition] 断开振动传感器...")
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(self.vibration_sensor.disconnect)
+                    future.result(timeout=2.0)
+            except Exception as e:
+                print(f"[SLMAcquisition] 断开振动传感器失败或超时: {e}")
+        
+        if self.thermal_camera:
+            try:
+                print("[SLMAcquisition] 断开热像仪...")
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(self.thermal_camera.disconnect)
+                    future.result(timeout=2.0)
+            except Exception as e:
+                print(f"[SLMAcquisition] 断开热像仪失败或超时: {e}")
+        
+        # 清理数据缓冲区
+        with self._数据锁:
+            self._latest_packet = None
+            self._vibration_buffer_x = []
+            self._vibration_buffer_y = []
+            self._vibration_buffer_z = []
+        
+        print("[SLMAcquisition] 资源清理完成")
     
     def _采集循环(self):
         """主采集循环"""
@@ -347,13 +412,13 @@ class SLMAcquisition:
         
         # 3. 红外热像数据
         if self.thermal_camera and self.thermal_enabled:
-            thermal_data = self.thermal_camera.get_data()
+            thermal_data = self.thermal_camera.read_data()
             if thermal_data:
                 packet.thermal = {
-                    'temp_max': thermal_data.max_temp,
-                    'temp_min': thermal_data.min_temp,
-                    'temp_avg': thermal_data.avg_temp,
-                    'melt_pool_temp': getattr(thermal_data, 'melt_pool_temp', 0)
+                    'temp_max': thermal_data.temp_max,
+                    'temp_min': thermal_data.temp_min,
+                    'temp_avg': thermal_data.temp_avg,
+                    'temp_center': thermal_data.temp_center
                 }
         
         # 4. 振动数据
@@ -361,18 +426,18 @@ class SLMAcquisition:
             vib_data = self.vibration_sensor.read_data()
             if vib_data:
                 packet.vibration = {
-                    'x': vib_data.x,
-                    'y': vib_data.y,
-                    'z': vib_data.z,
-                    'amplitude': vib_data.amplitude,
+                    'x': vib_data.vx,
+                    'y': vib_data.vy,
+                    'z': vib_data.vz,
+                    'amplitude': vib_data.magnitude,
                     'timestamp': vib_data.timestamp
                 }
                 
                 # 更新波形缓冲区
                 with self._波形锁:
-                    self._vibration_buffer_x.append(vib_data.x)
-                    self._vibration_buffer_y.append(vib_data.y)
-                    self._vibration_buffer_z.append(vib_data.z)
+                    self._vibration_buffer_x.append(vib_data.vx)
+                    self._vibration_buffer_y.append(vib_data.vy)
+                    self._vibration_buffer_z.append(vib_data.vz)
                     
                     # 限制缓冲区大小
                     if len(self._vibration_buffer_x) > self._最大波形点数:
@@ -386,6 +451,14 @@ class SLMAcquisition:
                     'z': self._vibration_buffer_z[-100:] if len(self._vibration_buffer_z) > 100 else self._vibration_buffer_z,
                     'sample_count': len(self._vibration_buffer_x)
                 }
+                
+                # 更新图像采集器的振动数据（用于触发采集）
+                if self._image_capture is not None:
+                    try:
+                        self._image_capture.update_vibration(vib_data.vx, vib_data.vy, vib_data.vz)
+                    except Exception as e:
+                        # 避免振动处理错误影响主采集循环
+                        pass
         
         # 5. 统计数据
         packet.statistics = {
@@ -536,14 +609,14 @@ class SLMAcquisition:
         if callback in self._ws_callbacks:
             self._ws_callbacks.remove(callback)
     
-    # ========== 视频录制与诊断方法 ==========
+    # ========== 图像采集与诊断方法 ==========
     
-    def setup_video_recorder(self, save_dir: str = None) -> bool:
-        """设置视频录制器"""
+    def setup_image_capture(self, save_dir: str = None) -> bool:
+        """设置图像采集器（振动触发）"""
         try:
-            from .video_recorder import VideoRecorder
+            from .image_capture import VibrationTriggeredCapture
             
-            self._video_recorder = VideoRecorder(save_dir=save_dir or "./recordings")
+            self._image_capture = VibrationTriggeredCapture(save_dir=save_dir)
             
             # 注册帧获取回调
             def get_ch1_frame():
@@ -557,64 +630,76 @@ class SLMAcquisition:
                 return None
             
             def get_ch3_frame():
-                if self.thermal_camera and hasattr(self.thermal_camera, 'get_latest_frame'):
-                    return self.thermal_camera.get_latest_frame()
+                if self.thermal_camera and hasattr(self.thermal_camera, 'generate_thermal_image'):
+                    return self.thermal_camera.generate_thermal_image(640, 480)
                 return None
             
-            self._video_recorder.register_frame_callback('CH1', get_ch1_frame)
-            self._video_recorder.register_frame_callback('CH2', get_ch2_frame)
-            self._video_recorder.register_frame_callback('CH3', get_ch3_frame)
+            self._image_capture.register_frame_callback('CH1', get_ch1_frame)
+            self._image_capture.register_frame_callback('CH2', get_ch2_frame)
+            self._image_capture.register_frame_callback('CH3', get_ch3_frame)
             
-            print(f"[SLMAcquisition] 视频录制器已设置，保存目录: {self._video_recorder.get_save_directory()}")
+            print(f"[SLMAcquisition] 图像采集器已设置，保存目录: {self._image_capture.save_dir}")
             return True
         except Exception as e:
-            print(f"[SLMAcquisition] 设置视频录制器失败: {e}")
+            print(f"[SLMAcquisition] 设置图像采集器失败: {e}")
             return False
     
-    def set_video_recording_enabled(self, enabled: bool):
-        """启用/禁用视频录制"""
-        self._video_recorder_enabled = enabled
-        print(f"[SLMAcquisition] 视频录制已{'启用' if enabled else '禁用'}")
+    def set_image_capture_enabled(self, enabled: bool) -> dict:
+        """启用/禁用图像采集"""
+        self._image_capture_enabled = enabled
+        print(f"[SLMAcquisition] 图像采集已{'启用' if enabled else '禁用'}")
         
-        if self.is_running and self._video_recorder:
+        if self.is_running and self._image_capture:
             if enabled:
-                self._video_recorder.start_recording()
+                result = self._image_capture.start_capture()
+                if not result['success']:
+                    self._image_capture_enabled = False
+                return result
             else:
-                self._video_recorder.stop_recording()
+                return self._image_capture.stop_capture()
+        
+        return {'success': True, 'message': '设置已保存'}
     
-    def set_video_recording_interval(self, interval_seconds: int):
-        """设置视频录制间隔"""
-        if self._video_recorder:
-            self._video_recorder.set_interval(interval_seconds)
+    def start_image_capture(self) -> Dict:
+        """开始图像采集"""
+        if self._image_capture:
+            return self._image_capture.start_capture()
+        return {"success": False, "message": "采集器未初始化"}
     
-    def set_video_save_directory(self, save_dir: str) -> bool:
-        """设置视频保存目录"""
-        if self._video_recorder:
-            return self._video_recorder.set_save_directory(save_dir)
-        return False
+    def stop_image_capture(self) -> Dict:
+        """停止图像采集"""
+        if self._image_capture:
+            return self._image_capture.stop_capture()
+        return {"success": False, "message": "采集器未初始化"}
     
-    def get_video_recorder_status(self) -> Dict:
-        """获取视频录制器状态"""
-        if self._video_recorder:
+    def set_capture_threshold(self, threshold: float):
+        """设置振动阈值"""
+        if self._image_capture:
+            self._image_capture.set_threshold(threshold)
+    
+    def set_capture_save_directory(self, save_dir: str) -> dict:
+        """设置图像保存目录"""
+        if self._image_capture:
+            return self._image_capture.set_save_directory(save_dir)
+        return {'success': False, 'message': '采集器未初始化', 'path': ''}
+    
+    def get_image_capture_status(self) -> Dict:
+        """获取图像采集器状态"""
+        if self._image_capture:
             return {
-                'enabled': self._video_recorder_enabled,
-                **self._video_recorder.get_status()
+                'enabled': self._image_capture_enabled,
+                **self._image_capture.get_status()
             }
+        # 采集器未初始化时返回默认配置
         return {
             'enabled': False,
-            'is_recording': False,
-            'save_directory': '',
-            'interval_seconds': 30,
-            'clip_duration': 5,
-            'fps': 10,
-            'history_count': 0
+            'is_capturing': False,
+            'state': 'idle',
+            'save_directory': 'E:/SmartAM_recordings',
+            'threshold': 0.1,
+            'layer_count': 0,
+            'total_captures': 0
         }
-    
-    def get_video_recording_history(self) -> List[Dict]:
-        """获取视频录制历史"""
-        if self._video_recorder:
-            return self._video_recorder.get_recording_history()
-        return []
     
     def setup_diagnosis_engine(self, model_path: str = None, frame_count: int = 50) -> bool:
         """设置视频诊断引擎"""
