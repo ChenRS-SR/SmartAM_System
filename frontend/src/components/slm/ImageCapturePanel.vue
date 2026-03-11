@@ -114,6 +114,14 @@
           </div>
         </el-form-item>
         
+        <!-- 图像清晰度 -->
+        <el-form-item label="图像清晰度">
+          <div class="resolution-info">
+            <el-tag size="small" type="info">640 x 480</el-tag>
+            <span class="resolution-hint">与视频流保持一致，JPEG质量85%</span>
+          </div>
+        </el-form-item>
+        
         <!-- 振动阈值 -->
         <el-form-item label="振动阈值">
           <el-slider 
@@ -267,7 +275,7 @@ const emit = defineEmits(['capture-triggered'])
 
 // 配置
 const config = reactive({
-  saveDir: 'E:/SmartAM_recordings',
+  saveDir: 'F:/SmartAM_recordings',
   threshold: 0.1,
   debounceTime: 0.5
 })
@@ -581,6 +589,17 @@ onUnmounted(() => {
 
 .directory-hint {
   margin-top: 8px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.resolution-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.resolution-hint {
   font-size: 12px;
   color: #64748b;
 }

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频流测试 - SmartAM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .status.loading {
+            background: #f59e0b;
+            color: #000;
+        }
+        .status.success {
+            background: #10b981;
+            color: #fff;
+        }
+        .status.error {
+            background: #ef4444;
+            color: #fff;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .video-panel {
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        .panel-header {
+            padding: 15px;
+            background: #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-title {
+            font-weight: 600;
+            color: #00d4ff;
+        }
+        .panel-status {
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 10px;
+        }
+        .panel-status.connected {
+            background: #10b981;
+            color: #fff;
+        }
+        .panel-status.disconnected {
+            background: #64748b;
+            color: #fff;
+        }
+        .video-container {
+            position: relative;
+            aspect-ratio: 4/3;
+            background: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-container .placeholder {
+            text-align: center;
+            color: #64748b;
+        }
+        .video-container .placeholder svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 10px;
+            fill: #64748b;
+        }
+        .controls {
+            max-width: 1400px;
+            margin: 30px auto;
+            text-align: center;
+        }
+        .btn {
+            padding: 12px 30px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #00d4ff;
+            color: #0f172a;
+        }
+        .btn-primary:hover {
+            background: #00b8db;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        .logs {
+            max-width: 1400px;
+            margin: 30px auto;
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .logs .log-entry {
+            margin: 5px 0;
+            padding: 3px 0;
+            border-bottom: 1px solid #334155;
+        }
+        .logs .log-time {
+            color: #64748b;
+        }
+        .logs .log-info {
+            color: #00d4ff;
+        }
+        .logs .log-error {
+            color: #ef4444;
+        }
+        .logs .log-success {
+            color: #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 视频流测试页面</h1>
+        <p>直接测试CH1/CH2/CH3视频流，验证视频文件模式是否正常工作</p>
+        <div id="status" class="status loading">⏳ 等待启动...</div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-primary" onclick="startAcquisition()">▶️ 开始采集</button>
+        <button class="btn btn-danger" onclick="stopAcquisition()">⏹️ 停止采集</button>
+        <button class="btn btn-primary" onclick="refreshVideos()">🔄 刷新视频</button>
+    </div>
+
+    <div class="video-grid">
+        <div class="video-panel">
+            <div class="panel-header">
+                <span class="panel-title">CH1 主摄像头</span>
+                <span id="status-ch1" class="panel-status disconnected">未连接</span>
+            </div>
+            <div class="video-container" id="container-ch1">
+                <div class="placeholder">
+                    <svg viewBox="0 0 24 24"><path d="M15 8v8H5V8h10m1-2H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4V7c0-.55-.45-1-1-1z"/></svg>
+                    <div>点击"开始采集"启动视频</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="video-panel">
+            <div class="panel-header">
+                <span class="panel-title">CH2 副摄像头</span>
+                <span id="status-ch2" class="panel-status disconnected">未连接</span>
+            </div>
+            <div class="video-container" id="container-ch2">
+                <div class="placeholder">
+                    <svg viewBox="0 0 24 24"><path d="M15 8v8H5V8h10m1-2H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4V7c0-.55-.45-1-1-1z"/></svg>
+                    <div>点击"开始采集"启动视频</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="video-panel">
+            <div class="panel-header">
+                <span class="panel-title">CH3 红外/第三通道</span>
+                <span id="status-ch3" class="panel-status disconnected">未连接</span>
+            </div>
+            <div class="video-container" id="container-ch3">
+                <div class="placeholder">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    <div>点击"开始采集"启动视频</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="logs" id="logs">
+        <div class="log-entry"><span class="log-time">[系统]</span> 页面加载完成，等待操作...</div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/slm';
+        let isRunning = false;
+
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type}">${message}</span>`;
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        async function startAcquisition() {
+            log('正在启动采集...', 'info');
+            
+            try {
+                // 先停止
+                await fetch(`${API_BASE}/stop`, { method: 'POST' });
+                await new Promise(r => setTimeout(r, 1000));
+                
+                // 启动
+                const response = await fetch(`${API_BASE}/start?use_mock=true`, { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    isRunning = true;
+                    document.getElementById('status').className = 'status success';
+                    document.getElementById('status').textContent = '✅ 采集中';
+                    log('采集启动成功: ' + result.message, 'success');
+                    
+                    // 启动视频流
+                    setTimeout(startVideoStreams, 2000);
+                } else {
+                    log('采集启动失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                log('启动异常: ' + e.message, 'error');
+            }
+        }
+
+        async function stopAcquisition() {
+            log('正在停止采集...', 'info');
+            
+            try {
+                await fetch(`${API_BASE}/stop`, { method: 'POST' });
+                isRunning = false;
+                document.getElementById('status').className = 'status loading';
+                document.getElementById('status').textContent = '⏳ 已停止';
+                log('采集已停止', 'success');
+                
+                // 停止视频流
+                stopVideoStreams();
+            } catch (e) {
+                log('停止异常: ' + e.message, 'error');
+            }
+        }
+
+        function startVideoStreams() {
+            log('启动视频流...', 'info');
+            
+            // CH1
+            const ch1Container = document.getElementById('container-ch1');
+            ch1Container.innerHTML = `<img src="${API_BASE}/stream/camera/CH1?t=${Date.now()}" onload="onVideoLoad('ch1')" onerror="onVideoError('ch1')">`;
+            document.getElementById('status-ch1').className = 'panel-status connected';
+            document.getElementById('status-ch1').textContent = '连接中...';
+            
+            // CH2
+            const ch2Container = document.getElementById('container-ch2');
+            ch2Container.innerHTML = `<img src="${API_BASE}/stream/camera/CH2?t=${Date.now()}" onload="onVideoLoad('ch2')" onerror="onVideoError('ch2')">`;
+            document.getElementById('status-ch2').className = 'panel-status connected';
+            document.getElementById('status-ch2').textContent = '连接中...';
+            
+            // CH3 (thermal)
+            const ch3Container = document.getElementById('container-ch3');
+            ch3Container.innerHTML = `<img src="${API_BASE}/stream/thermal?t=${Date.now()}" onload="onVideoLoad('ch3')" onerror="onVideoError('ch3')">`;
+            document.getElementById('status-ch3').className = 'panel-status connected';
+            document.getElementById('status-ch3').textContent = '连接中...';
+        }
+
+        function stopVideoStreams() {
+            ['ch1', 'ch2', 'ch3'].forEach(ch => {
+                const container = document.getElementById(`container-${ch}`);
+                container.innerHTML = `
+                    <div class="placeholder">
+                        <svg viewBox="0 0 24 24"><path d="M15 8v8H5V8h10m1-2H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4V7c0-.55-.45-1-1-1z"/></svg>
+                        <div>点击"开始采集"启动视频</div>
+                    </div>
+                `;
+                document.getElementById(`status-${ch}`).className = 'panel-status disconnected';
+                document.getElementById(`status-${ch}`).textContent = '未连接';
+            });
+        }
+
+        function onVideoLoad(channel) {
+            log(`${channel.toUpperCase()} 视频流加载成功`, 'success');
+            document.getElementById(`status-${channel}`).textContent = '已连接';
+        }
+
+        function onVideoError(channel) {
+            log(`${channel.toUpperCase()} 视频流加载失败`, 'error');
+            document.getElementById(`status-${channel}`).className = 'panel-status disconnected';
+            document.getElementById(`status-${channel}`).textContent = '连接失败';
+        }
+
+        function refreshVideos() {
+            if (isRunning) {
+                log('刷新视频流...', 'info');
+                stopVideoStreams();
+                setTimeout(startVideoStreams, 500);
+            } else {
+                log('请先启动采集', 'error');
+            }
+        }
+
+        // 页面加载时检查状态
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/status`);
+                const result = await response.json();
+                if (result.is_running) {
+                    isRunning = true;
+                    document.getElementById('status').className = 'status success';
+                    document.getElementById('status').textContent = '✅ 采集中';
+                    log('检测到采集正在运行，自动启动视频流', 'info');
+                    startVideoStreams();
+                }
+            } catch (e) {
+                log('状态检查失败: ' + e.message, 'error');
+            }
+        }
+
+        // 页面加载完成后检查状态
+        window.onload = () => {
+            setTimeout(checkStatus, 1000);
+        };
+    </script>
+</body>
+</html>

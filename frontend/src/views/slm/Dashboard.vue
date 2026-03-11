@@ -702,10 +702,25 @@ const fetchBackendHealthStatus = async () => {
   }
 }
 
+// 获取视频文件模式配置
+const fetchVideoFileModeConfig = async () => {
+  try {
+    const response = await axios.get('/api/slm/video_file_mode/config')
+    if (response.data.success && response.data.enabled) {
+      // 如果视频文件模式已启用，自动切换到模拟模式
+      settings.use_mock = true
+      console.log('[Dashboard] 检测到视频文件模式已启用，自动切换到模拟模式')
+    }
+  } catch (error) {
+    console.error('[Dashboard] 获取视频文件模式配置失败:', error)
+  }
+}
+
 onMounted(() => {
   fetchStatus()
   fetchComPorts()
   fetchCameras()
+  fetchVideoFileModeConfig()  // 获取视频文件模式配置
   
   if (isRunning.value) {
     connectWebSocket()

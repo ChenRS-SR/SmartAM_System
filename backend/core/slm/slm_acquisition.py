@@ -13,11 +13,13 @@ from typing import Optional, Dict, List, Callable, Any
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 import numpy as np
 
 from .vibration_sensor import VibrationSensor, MockVibrationSensor, VibrationData
 from .thermal_camera import ThermalCamera, MockThermalCamera, ThermalData
 from .camera_manager import CameraManager, MockCameraManager, CameraFrame
+from .video_file_camera import VideoFileCameraManager
 
 
 class SLMHealthStatus(Enum):
@@ -121,6 +123,14 @@ class SLMAcquisition:
         self.vibration_com_port = "COM5"
         self.vibration_baudrate = 9600
         
+        # 视频文件模拟配置
+        self._video_file_mode = False
+        self._video_files: Dict[str, str] = {}
+        self._video_correction_enabled = True
+        
+        # 应用全局视频文件配置（如果有）
+        self._apply_global_video_file_config()
+        
         # 状态
         self.is_running = False
         self.frame_number = 0
@@ -181,12 +191,25 @@ class SLMAcquisition:
         
         print(f"[SLMAcquisition] 初始化传感器 (模拟模式: {self.use_mock})...")
         
+        # 应用全局视频文件配置（如果有）
+        self._apply_global_video_file_config()
+        
         # 创建传感器实例
         if self.use_mock:
-            self.camera_manager = MockCameraManager(
-                ch1_index=camera_ch1_index,
-                ch2_index=camera_ch2_index
-            )
+            # 检查是否使用视频文件模式
+            if self._video_file_mode and self._video_files:
+                print(f"[SLMAcquisition] 使用视频文件模拟模式: {self._video_files}")
+                fps = _global_video_file_config.get('fps', 30)
+                self.camera_manager = VideoFileCameraManager(
+                    video_files=self._video_files,
+                    fps=fps,
+                    enable_correction=self._video_correction_enabled
+                )
+            else:
+                self.camera_manager = MockCameraManager(
+                    ch1_index=camera_ch1_index,
+                    ch2_index=camera_ch2_index
+                )
             self.vibration_sensor = MockVibrationSensor(com_port=vibration_com)
             self.thermal_camera = MockThermalCamera()
         else:
@@ -200,7 +223,8 @@ class SLMAcquisition:
         # 连接传感器
         success = True
         
-        if self.camera_ch1_enabled or self.camera_ch2_enabled:
+        # 连接摄像头（视频文件模式也需要连接）
+        if self.camera_manager is not None:
             if not self.camera_manager.connect():
                 print("[SLMAcquisition] 摄像头连接失败，将使用模拟数据")
                 if not self.use_mock:
@@ -474,18 +498,30 @@ class SLMAcquisition:
     
     def _获取传感器状态(self) -> Dict:
         """获取传感器状态"""
+        # 检查摄像头连接状态
+        camera_connected = False
+        if self.camera_manager is not None and hasattr(self.camera_manager, 'is_connected'):
+            camera_connected = self.camera_manager.is_connected
+        
+        # 检查VideoFileCameraManager是否有CH3视频
+        ch3_connected = camera_connected
+        if camera_connected and hasattr(self.camera_manager, 'video_files'):
+            ch3_connected = 'CH3' in self.camera_manager.video_files
+        elif self.thermal_camera is not None and hasattr(self.thermal_camera, 'is_connected'):
+            ch3_connected = self.thermal_camera.is_connected
+        
         return {
             'camera_ch1': {
                 'enabled': self.camera_ch1_enabled,
-                'connected': self.camera_manager is not None and self.camera_manager.is_connected if hasattr(self.camera_manager, 'is_connected') else False
+                'connected': camera_connected
             },
             'camera_ch2': {
                 'enabled': self.camera_ch2_enabled,
-                'connected': self.camera_manager is not None and self.camera_manager.is_connected if hasattr(self.camera_manager, 'is_connected') else False
+                'connected': camera_connected
             },
             'thermal': {
                 'enabled': self.thermal_enabled,
-                'connected': self.thermal_camera is not None and self.thermal_camera.is_connected if hasattr(self.thermal_camera, 'is_connected') else False
+                'connected': ch3_connected
             },
             'vibration': {
                 'enabled': self.vibration_enabled,
@@ -695,7 +731,7 @@ class SLMAcquisition:
             'enabled': False,
             'is_capturing': False,
             'state': 'idle',
-            'save_directory': 'E:/SmartAM_recordings',
+            'save_directory': 'F:/SmartAM_recordings',
             'threshold': 0.1,
             'layer_count': 0,
             'total_captures': 0
@@ -755,13 +791,145 @@ class SLMAcquisition:
         }
 
 
+    def set_video_file_mode(self, video_files: Dict[str, str], enable_correction: bool = True) -> bool:
+        """设置视频文件模拟模式（会保存到全局配置）
+        
+        Args:
+            video_files: 视频文件路径字典，如 {'CH1': 'path/to/ch1.mp4', ...}
+            enable_correction: 是否启用畸变矫正
+            
+        Returns:
+            是否设置成功
+        """
+        global _global_video_file_config
+        
+        try:
+            # 验证视频文件是否存在
+            for channel, path in video_files.items():
+                if not Path(path).exists():
+                    print(f"[SLMAcquisition] 视频文件不存在: {path}")
+                    return False
+            
+            # 保存到全局配置
+            _global_video_file_config['video_files'] = video_files
+            _global_video_file_config['correction_enabled'] = enable_correction
+            _global_video_file_config['enabled'] = len(video_files) > 0
+            
+            # 同时更新当前实例
+            self._video_files = video_files
+            self._video_correction_enabled = enable_correction
+            self._video_file_mode = len(video_files) > 0
+            
+            print(f"[SLMAcquisition] 视频文件模式已设置: {video_files}, 矫正: {enable_correction}")
+            return True
+            
+        except Exception as e:
+            print(f"[SLMAcquisition] 设置视频文件模式失败: {e}")
+            return False
+    
+    def set_video_file_fps(self, fps: int) -> bool:
+        """设置视频文件播放帧率
+        
+        Args:
+            fps: 播放帧率 (1-60)
+            
+        Returns:
+            是否设置成功
+        """
+        try:
+            fps = max(1, min(60, int(fps)))
+            
+            # 保存到全局配置
+            global _global_video_file_config
+            _global_video_file_config['fps'] = fps
+            
+            # 如果当前是视频文件模式，立即应用
+            if self._video_file_mode and self.camera_manager:
+                if hasattr(self.camera_manager, 'set_fps'):
+                    self.camera_manager.set_fps(fps)
+                    print(f"[SLMAcquisition] 视频文件 FPS 设置为: {fps}")
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"[SLMAcquisition] 设置 FPS 失败: {e}")
+            return False
+    
+    def get_video_file_mode_config(self) -> Dict:
+        """获取视频文件模式配置"""
+        global _global_video_file_config
+        return {
+            'enabled': _global_video_file_config['enabled'],
+            'video_files': _global_video_file_config['video_files'],
+            'correction_enabled': _global_video_file_config['correction_enabled'],
+            'fps': _global_video_file_config.get('fps', 30)
+        }
+    
+    def disable_video_file_mode(self):
+        """禁用视频文件模式，恢复普通模拟"""
+        global _global_video_file_config
+        _global_video_file_config['enabled'] = False
+        _global_video_file_config['video_files'] = {}
+        
+        self._video_file_mode = False
+        self._video_files = {}
+        print("[SLMAcquisition] 视频文件模式已禁用")
+    
+    def _apply_global_video_file_config(self):
+        """应用全局视频文件配置到当前实例"""
+        global _global_video_file_config
+        if _global_video_file_config['enabled']:
+            self._video_files = _global_video_file_config['video_files']
+            self._video_correction_enabled = _global_video_file_config['correction_enabled']
+            self._video_file_mode = True
+            print(f"[SLMAcquisition] 已应用全局视频文件配置: {self._video_files}")
+
+
 # 全局实例
 _slm_acquisition_instance: Optional[SLMAcquisition] = None
 
+# 视频文件模式全局配置（跨实例保留）
+_global_video_file_config = {
+    'video_files': {},
+    'correction_enabled': True,
+    'enabled': False,
+    'fps': 30  # 默认播放帧率
+}
 
-def get_slm_acquisition(use_mock: bool = False) -> SLMAcquisition:
-    """获取SLM采集实例（单例）"""
+
+def get_slm_acquisition(use_mock: bool = False, check_mode: bool = True) -> SLMAcquisition:
+    """获取SLM采集实例（单例）
+    
+    Args:
+        use_mock: 是否使用模拟模式
+        check_mode: 是否检查use_mock模式匹配（视频流等只读操作应设为False）
+    
+    如果 use_mock 参数与当前实例不同且check_mode为True，会自动重置实例
+    """
     global _slm_acquisition_instance
+    
+    # 如果实例不存在，创建新实例
     if _slm_acquisition_instance is None:
         _slm_acquisition_instance = SLMAcquisition(use_mock=use_mock)
+        return _slm_acquisition_instance
+    
+    # 如果 use_mock 参数改变且需要检查模式，则重置实例
+    if check_mode and _slm_acquisition_instance.use_mock != use_mock:
+        print(f"[SLMAcquisition] 模式切换: use_mock={_slm_acquisition_instance.use_mock} -> {use_mock}")
+        reset_slm_acquisition()
+        _slm_acquisition_instance = SLMAcquisition(use_mock=use_mock)
+    
     return _slm_acquisition_instance
+
+
+def reset_slm_acquisition():
+    """重置SLM采集实例（用于重新初始化）"""
+    global _slm_acquisition_instance
+    if _slm_acquisition_instance is not None:
+        try:
+            _slm_acquisition_instance.stop()
+        except:
+            pass
+        _slm_acquisition_instance = None
+        print("[SLMAcquisition] 实例已重置")

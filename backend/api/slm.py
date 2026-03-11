@@ -12,29 +12,28 @@ from typing import Optional, List
 import json
 import time
 
-from core.slm import get_slm_acquisition, SLMAcquisition
+from core.slm import get_slm_acquisition, reset_slm_acquisition, SLMAcquisition
 
 router = APIRouter(prefix="/slm", tags=["SLM"])
 
-# 全局SLM采集实例
-_slm_instance: Optional[SLMAcquisition] = None
-
-# 获取SLM采集实例
-def get_acquisition(create_if_none: bool = True) -> Optional[SLMAcquisition]:
+# 获取SLM采集实例（使用slm_acquisition模块的单例）
+def get_acquisition(create_if_none: bool = True, use_mock: bool = False, check_mode: bool = False) -> Optional[SLMAcquisition]:
     """获取SLM采集实例
     
     Args:
         create_if_none: 如果实例不存在，是否创建新实例
+        use_mock: 是否使用模拟模式（仅在创建新实例时有效）
+        check_mode: 是否检查use_mock模式匹配（默认False，避免只读操作触发重置）
     """
-    global _slm_instance
-    if _slm_instance is None and create_if_none:
-        _slm_instance = SLMAcquisition(use_mock=False)
-    return _slm_instance
+    acquisition = get_slm_acquisition(use_mock=use_mock, check_mode=check_mode)
+    if acquisition is None and not create_if_none:
+        return None
+    return acquisition
 
 def get_acquisition_status_safe() -> dict:
     """安全地获取采集状态（即使实例不存在）"""
-    global _slm_instance
-    if _slm_instance is None:
+    acquisition = get_acquisition(create_if_none=False)
+    if acquisition is None:
         return {
             "is_running": False,
             "health": {
@@ -54,7 +53,7 @@ def get_acquisition_status_safe() -> dict:
             "frame_number": 0,
             "statistics": {"fps": 0, "total_frames": 0, "duration": 0}
         }
-    return _slm_instance.get_status()
+    return acquisition.get_status()
 
 
 @router.get("/status")
@@ -72,34 +71,31 @@ async def start_acquisition(
     use_mock: bool = False
 ):
     """启动SLM数据采集"""
-    global _slm_instance
-    
     print(f"[API] 收到启动请求: CH1={camera_ch1_index}, CH2={camera_ch2_index}, COM={vibration_com}, mock={use_mock}")
     
+    # 获取当前实例
+    acquisition = get_acquisition(create_if_none=False)
+    
     # 如果实例已存在且正在运行，先停止
-    if _slm_instance and _slm_instance.is_running:
+    if acquisition and acquisition.is_running:
         print("[API] 采集已在运行中，拒绝启动")
         return {"success": False, "message": "采集已在运行中"}
     
-    # 如果实例存在但已停止，先清理
-    if _slm_instance:
+    # 如果实例存在但已停止，重置实例
+    if acquisition:
         print("[API] 清理已停止的旧实例...")
-        try:
-            _slm_instance.stop()
-        except:
-            pass
-        _slm_instance = None
+        reset_slm_acquisition()
         # 等待资源完全释放
         import time
         time.sleep(1.0)
     
     # 创建新实例（支持切换模拟/真实模式）
     print("[API] 创建新采集实例...")
-    _slm_instance = SLMAcquisition(use_mock=use_mock)
+    acquisition = get_slm_acquisition(use_mock=use_mock)
     
     # 初始化
     print("[API] 初始化传感器...")
-    success = _slm_instance.initialize(
+    success = acquisition.initialize(
         camera_ch1_index=camera_ch1_index,
         camera_ch2_index=camera_ch2_index,
         vibration_com=vibration_com,
@@ -108,12 +104,12 @@ async def start_acquisition(
     
     if not success:
         print("[API] 初始化失败")
-        _slm_instance = None
+        reset_slm_acquisition()
         return {"success": False, "message": "初始化失败，请检查硬件连接"}
     
     # 启动
     print("[API] 启动采集...")
-    _slm_instance.start()
+    acquisition.start()
     
     print("[API] 采集启动成功")
     return {
@@ -132,16 +128,16 @@ async def start_acquisition(
 @router.get("/stop")  # 也支持GET，方便浏览器测试
 async def stop_acquisition():
     """停止SLM数据采集并释放资源"""
-    global _slm_instance
-    if _slm_instance:
+    acquisition = get_acquisition(create_if_none=False)
+    if acquisition:
         try:
-            _slm_instance.stop()
+            acquisition.stop()
             print("[API] 采集已停止，资源已释放")
         except Exception as e:
             print(f"[API] 停止采集时出错: {e}")
         finally:
             # 清理全局实例，下次会重新创建
-            _slm_instance = None
+            reset_slm_acquisition()
     return {"success": True, "message": "采集已停止"}
 
 
@@ -253,7 +249,7 @@ async def get_health_status():
 # ========== 视频录制与诊断 ==========
 
 @router.post("/capture/setup")
-async def setup_image_capture(save_dir: str = "E:/SmartAM_recordings"):
+async def setup_image_capture(save_dir: str = "F:/SmartAM_recordings"):
     """设置图像采集器"""
     try:
         acquisition = get_acquisition()
@@ -338,6 +334,242 @@ async def get_image_capture_status():
         return {"success": True, **status}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+
+@router.get("/capture/correction_info")
+async def get_correction_info():
+    """获取畸变矫正信息"""
+    try:
+        import sys
+        from pathlib import Path
+        # 添加backend到路径
+        backend_path = str(Path(__file__).parent.parent)
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        
+        from core.slm.distortion_corrector import get_distortion_corrector
+        corrector = get_distortion_corrector()
+        info = corrector.get_calibration_info()
+        
+        return {"success": True, **info}
+    except Exception as e:
+        print(f"[API] 获取矫正信息失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/capture/correction/enable")
+async def set_correction_enabled(enabled: bool = True):
+    """设置畸变矫正启用状态"""
+    try:
+        acquisition = get_acquisition()
+        if acquisition._image_capture:
+            acquisition._image_capture.set_correction_enabled(enabled)
+            return {"success": True, "enabled": enabled}
+        else:
+            return {"success": False, "message": "图像采集器未初始化"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+# ========== 视频文件模拟 API ==========
+
+from fastapi import Body
+from typing import Dict
+
+@router.post("/video_file_mode/setup")
+async def setup_video_file_mode(
+    video_files: Dict[str, str] = Body(...),
+    enable_correction: bool = Body(True)
+):
+    """设置视频文件模拟模式
+    
+    Args:
+        video_files: 视频文件路径字典，如 {'CH1': 'path/to/ch1.mp4', ...}
+        enable_correction: 是否启用畸变矫正
+    """
+    try:
+        print(f"[API] 设置视频文件模式: {video_files}, 矫正: {enable_correction}")
+        
+        if not video_files:
+            return {"success": False, "message": "至少需要提供一个视频文件路径"}
+        
+        acquisition = get_acquisition()
+        
+        # 设置视频文件模式
+        success = acquisition.set_video_file_mode(video_files, enable_correction)
+        
+        return {
+            "success": success,
+            "video_files": video_files,
+            "correction_enabled": enable_correction
+        }
+    except Exception as e:
+        print(f"[API] 设置视频文件模式失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": str(e)}
+
+
+@router.get("/video_file_mode/config")
+async def get_video_file_mode_config():
+    """获取视频文件模拟模式配置"""
+    try:
+        acquisition = get_acquisition()
+        config = acquisition.get_video_file_mode_config()
+        return {"success": True, **config}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/video_file_mode/disable")
+async def disable_video_file_mode():
+    """禁用视频文件模拟模式"""
+    try:
+        acquisition = get_acquisition()
+        acquisition.disable_video_file_mode()
+        return {"success": True, "message": "视频文件模式已禁用"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/video_file_mode/fps")
+async def set_video_file_fps(fps: int = 30):
+    """设置视频文件播放帧率
+    
+    Args:
+        fps: 播放帧率 (1-60)，默认 30
+    """
+    try:
+        acquisition = get_acquisition(create_if_none=False)
+        if acquisition is None:
+            return {"success": False, "message": "采集实例不存在，请先配置视频文件"}
+        
+        success = acquisition.set_video_file_fps(fps)
+        if success:
+            return {"success": True, "fps": fps, "message": f"播放帧率已设置为 {fps} FPS"}
+        else:
+            return {"success": False, "message": "设置失败，当前不是视频文件模式或采集未启动"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.get("/video_file_mode/scan")
+async def scan_video_files():
+    """自动扫描 simulation_record 文件夹中的视频文件"""
+    try:
+        from pathlib import Path
+        
+        # 获取项目根目录
+        project_root = Path(__file__).parent.parent.parent
+        simulation_dir = project_root / "simulation_record"
+        
+        print(f"[API] 扫描视频文件目录: {simulation_dir}")
+        
+        if not simulation_dir.exists():
+            return {
+                "success": False,
+                "message": f"目录不存在: {simulation_dir}",
+                "videos": {}
+            }
+        
+        # 扫描视频文件
+        videos = {}
+        video_extensions = ['.mp4', '.avi', '.mov', '.mkv']
+        
+        for ext in video_extensions:
+            for video_file in simulation_dir.glob(f"*{ext}"):
+                filename = video_file.name
+                # 匹配 CH1, CH2, CH3
+                for ch in ['CH1', 'CH2', 'CH3']:
+                    if filename.startswith(ch + "_"):
+                        videos[ch] = {
+                            "path": str(video_file),
+                            "filename": filename
+                        }
+                        print(f"[API] 找到 {ch} 视频: {filename}")
+                        break
+        
+        return {
+            "success": True,
+            "videos": videos,
+            "directory": str(simulation_dir)
+        }
+    except Exception as e:
+        print(f"[API] 扫描视频文件失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/capture/correction/set_path")
+async def set_calibration_path(path: str = Body(..., embed=True)):
+    """设置标定文件路径"""
+    try:
+        import sys
+        from pathlib import Path
+        # 添加backend到路径
+        backend_path = str(Path(__file__).parent.parent)
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        
+        from core.slm.distortion_corrector import reset_corrector, get_distortion_corrector, DistortionCorrector
+        
+        # 验证路径是否存在
+        path_obj = Path(path)
+        if not path_obj.exists():
+            return {"success": False, "message": f"文件不存在: {path}"}
+        
+        # 重置并创建新的矫正器（使用指定路径）
+        reset_corrector()
+        # 创建全局实例，使用指定路径
+        import core.slm.distortion_corrector as dc
+        dc._corrector_instance = DistortionCorrector(calibration_file=path)
+        
+        corrector = get_distortion_corrector()
+        info = corrector.get_calibration_info()
+        
+        return {
+            "success": True,
+            "message": "标定文件路径已设置",
+            **info
+        }
+    except Exception as e:
+        print(f"[API] 设置标定文件路径失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/capture/correction/reload")
+async def reload_calibration():
+    """重新加载标定数据"""
+    try:
+        import sys
+        from pathlib import Path
+        # 添加backend到路径
+        backend_path = str(Path(__file__).parent.parent)
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        
+        from core.slm.distortion_corrector import reset_corrector, get_distortion_corrector
+        
+        # 重置并重新加载矫正器
+        reset_corrector()
+        corrector = get_distortion_corrector()
+        
+        info = corrector.get_calibration_info()
+        
+        return {
+            "success": True,
+            "message": "标定数据已重新加载",
+            **info
+        }
+    except Exception as e:
+        print(f"[API] 重新加载标定数据失败: {e}")
+        import traceback
+        traceback.print_exc()
         return {"success": False, "message": str(e)}
 
 
@@ -497,29 +729,53 @@ async def slm_data_websocket(websocket: WebSocket):
 
 async def video_stream_generator(channel: str, quality: int = 85):
     """视频流生成器"""
+    print(f"[VideoStream] {channel} 视频流生成器启动")
+    frame_count = 0
+    
     while True:
         try:
-            # 每次循环获取当前实例（可能为None）
-            acquisition = get_acquisition(create_if_none=False)
+            # 每次循环获取当前实例（可能为None，不检查模式避免重置实例）
+            acquisition = get_acquisition(create_if_none=False, check_mode=False)
             
-            if acquisition and acquisition.camera_manager:
-                jpeg = acquisition.camera_manager.get_frame_jpeg(channel, quality)
-                if jpeg:
-                    yield (
-                        b"--frame\r\n"
-                        b"Content-Type: image/jpeg\r\n"
-                        b"Content-Length: " + str(len(jpeg)).encode() + b"\r\n"
-                        b"\r\n" + jpeg + b"\r\n"
-                    )
-            else:
-                # 无可用摄像头，等待
+            if acquisition is None:
+                if frame_count == 0:
+                    print(f"[VideoStream] {channel} 采集实例不存在，等待...")
                 await asyncio.sleep(0.5)
+                continue
+            
+            if acquisition.camera_manager is None:
+                if frame_count == 0:
+                    print(f"[VideoStream] {channel} camera_manager不存在，等待...")
+                await asyncio.sleep(0.5)
+                continue
+            
+            # 尝试获取JPEG帧
+            jpeg = acquisition.camera_manager.get_frame_jpeg(channel, quality)
+            
+            if jpeg:
+                frame_count += 1
+                if frame_count <= 3:
+                    print(f"[VideoStream] {channel} 发送第{frame_count}帧，{len(jpeg)} bytes")
+                
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n"
+                    b"Content-Length: " + str(len(jpeg)).encode() + b"\r\n"
+                    b"\r\n" + jpeg + b"\r\n"
+                )
+            else:
+                # 没有获取到帧，可能是采集还没开始
+                if frame_count == 0:
+                    print(f"[VideoStream] {channel} 无可用帧，等待...")
+                await asyncio.sleep(0.1)
                 continue
             
             await asyncio.sleep(0.033)  # ~30 FPS
             
         except Exception as e:
-            print(f"[VideoStream] 错误: {e}")
+            print(f"[VideoStream] {channel} 错误: {e}")
+            import traceback
+            traceback.print_exc()
             await asyncio.sleep(0.1)
 
 
@@ -527,9 +783,9 @@ async def video_stream_generator(channel: str, quality: int = 85):
 async def camera_stream(channel: str, quality: int = 85):
     """
     摄像头视频流 (MJPEG)
-    channel: CH1 或 CH2
+    channel: CH1, CH2 或 CH3
     """
-    if channel not in ['CH1', 'CH2']:
+    if channel not in ['CH1', 'CH2', 'CH3']:
         return JSONResponse(
             status_code=400,
             content={"error": "Invalid channel. Use 'CH1' or 'CH2'."}
@@ -542,31 +798,52 @@ async def camera_stream(channel: str, quality: int = 85):
 
 
 async def thermal_stream_generator(quality: int = 85):
-    """热像视频流生成器"""
+    """热像视频流生成器（支持视频文件模式的CH3）"""
     while True:
         try:
             # 每次循环获取当前实例（可能为None）
             acquisition = get_acquisition(create_if_none=False)
             
-            if acquisition and acquisition.thermal_camera:
-                thermal_image = acquisition.thermal_camera.generate_thermal_image(640, 480)
-                if thermal_image is not None:
-                    import cv2
-                    ret, jpeg = cv2.imencode('.jpg', thermal_image, [cv2.IMWRITE_JPEG_QUALITY, quality])
-                    if ret:
-                        jpeg_bytes = jpeg.tobytes()
-                        yield (
-                            b"--frame\r\n"
-                            b"Content-Type: image/jpeg\r\n"
-                            b"Content-Length: " + str(len(jpeg_bytes)).encode() + b"\r\n"
-                            b"\r\n" + jpeg_bytes + b"\r\n"
-                        )
-            else:
-                # 无可用热像仪，返回空白帧或等待
+            if acquisition is None:
                 await asyncio.sleep(0.5)
                 continue
             
-            await asyncio.sleep(0.1)  # 10 FPS for thermal
+            jpeg_bytes = None
+            
+            # 1. 如果是视频文件模式且有CH3视频，从VideoFileCameraManager获取
+            if (hasattr(acquisition, 'camera_manager') and 
+                acquisition.camera_manager is not None and
+                hasattr(acquisition.camera_manager, 'get_frame_jpeg')):
+                try:
+                    jpeg_bytes = acquisition.camera_manager.get_frame_jpeg('CH3', quality)
+                except:
+                    pass
+            
+            # 2. 如果没有获取到帧，尝试从热像仪获取
+            if jpeg_bytes is None and acquisition.thermal_camera:
+                try:
+                    thermal_image = acquisition.thermal_camera.generate_thermal_image(640, 480)
+                    if thermal_image is not None:
+                        import cv2
+                        ret, jpeg = cv2.imencode('.jpg', thermal_image, [cv2.IMWRITE_JPEG_QUALITY, quality])
+                        if ret:
+                            jpeg_bytes = jpeg.tobytes()
+                except:
+                    pass
+            
+            # 3. 返回帧（如果有）
+            if jpeg_bytes:
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n"
+                    b"Content-Length: " + str(len(jpeg_bytes)).encode() + b"\r\n"
+                    b"\r\n" + jpeg_bytes + b"\r\n"
+                )
+            else:
+                await asyncio.sleep(0.1)
+                continue
+            
+            await asyncio.sleep(0.033)  # ~30 FPS
             
         except Exception as e:
             print(f"[ThermalStream] 错误: {e}")

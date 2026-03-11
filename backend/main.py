@@ -92,11 +92,45 @@ app.add_middleware(
 
 
 # ========== 静态文件服务 (必须在 API 路由之前) ==========
+# 获取项目根目录 - 使用绝对路径确保正确
+_file_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(_file_dir)
+print(f"[Main] 项目根目录: {project_root}")
+frontend_dist_path = os.path.join(project_root, "frontend", "dist")
+frontend_public_path = os.path.join(project_root, "frontend", "public")
+
+# 前端静态文件
+if os.path.exists(frontend_dist_path):
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
+    print(f"[Main] 前端静态文件服务已挂载: {frontend_dist_path}")
+else:
+    print(f"[Main] 警告: 前端静态文件目录不存在: {frontend_dist_path}")
+
+# public目录静态文件（用于测试页面等）
+if os.path.exists(frontend_public_path):
+    print(f"[Main] 正在挂载 /public -> {frontend_public_path}")
+    for f in os.listdir(frontend_public_path):
+        print(f"[Main]   发现文件: {f}")
+    app.mount("/public", StaticFiles(directory=frontend_public_path), name="public")
+    print(f"[Main] Public目录服务已挂载: {frontend_public_path}")
+else:
+    print(f"[Main] 警告: Public目录不存在: {frontend_public_path}")
+
 # 状态图片
 state_picture_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "state_picture")
 if os.path.exists(state_picture_path):
     app.mount("/state_picture", StaticFiles(directory=state_picture_path), name="state_picture")
     print(f"[Main] 状态图片服务已挂载: {state_picture_path}")
+
+
+# 视频测试页面
+@app.get("/video-test")
+async def video_test_page():
+    """视频流测试页面"""
+    test_page_path = os.path.join(project_root, "frontend", "public", "video-test.html")
+    if os.path.exists(test_page_path):
+        return FileResponse(test_page_path)
+    return {"error": "视频测试页面不存在", "path": test_page_path}
 
 
 # ========== API 路由注册 ==========
@@ -112,18 +146,17 @@ app.include_router(health_router)
 
 @app.get("/")
 async def root():
-    """系统状态检查"""
-    status = {
-        "status": "running",
-        "timestamp": datetime.now().isoformat(),
-        "service": "SmartAM_System Backend",
-        "daq_available": DAQ_AVAILABLE and daq is not None
-    }
-    
-    if daq:
-        status["camera"] = daq.get_camera_status()
-    
-    return status
+    """返回前端页面"""
+    frontend_index = os.path.join(project_root, "frontend", "dist", "index.html")
+    if os.path.exists(frontend_index):
+        return FileResponse(frontend_index)
+    else:
+        return {
+            "status": "running",
+            "timestamp": datetime.now().isoformat(),
+            "service": "SmartAM_System Backend",
+            "message": "Frontend not built"
+        }
 
 
 @app.get("/api/status")

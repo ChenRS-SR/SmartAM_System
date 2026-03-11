@@ -9,6 +9,11 @@
 3. 每两次触发为一层（before + after）
 4. 防抖处理避免重复触发
 5. 屏蔽长时间低振动状态
+
+图像质量配置：
+- 分辨率：由 CameraManager.display_size 决定（默认 640x480）
+- JPEG质量：85%（与视频流保持一致）
+- 格式：RGB采集 → BGR编码保存
 """
 
 import cv2
@@ -21,6 +26,8 @@ from typing import Dict, Optional, Callable, List
 from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
+
+from .distortion_corrector import get_distortion_corrector
 
 
 class CaptureTriggerState(Enum):
@@ -53,7 +60,7 @@ class VibrationTriggeredCapture:
     4. 第二次下降沿：保存 after 图像，完成一层
     
     目录结构：
-    E:/SmartAM_recordings/
+    F:/SmartAM_recordings/
         YYYYMMDD_HHMMSS/
             CH1/
                 Layer0_before_YYYYMMDD_HHMMSS.jpg
@@ -67,7 +74,7 @@ class VibrationTriggeredCapture:
     """
     
     # 默认保存目录
-    DEFAULT_SAVE_DIR = "E:/SmartAM_recordings"
+    DEFAULT_SAVE_DIR = "F:/SmartAM_recordings"
     
     def __init__(self, save_dir: str = None):
         self.save_dir = Path(save_dir or self.DEFAULT_SAVE_DIR)
@@ -111,6 +118,10 @@ class VibrationTriggeredCapture:
         # 锁
         self._lock = threading.Lock()
         
+        # 畸变矫正器
+        self._corrector = get_distortion_corrector()
+        self._correction_enabled = True  # 默认启用矫正
+        
         print(f"[ImageCapture] 初始化完成，保存目录: {self.save_dir}")
     
     def set_save_directory(self, save_dir: str) -> dict:
@@ -134,6 +145,24 @@ class VibrationTriggeredCapture:
         """设置振动阈值"""
         self.threshold = max(0.01, min(10.0, threshold))
         print(f"[ImageCapture] 振动阈值设置为: {self.threshold}")
+    
+    def set_correction_enabled(self, enabled: bool):
+        """设置畸变矫正启用状态"""
+        self._correction_enabled = enabled
+        print(f"[ImageCapture] 畸变矫正已{'启用' if enabled else '禁用'}")
+    
+    def is_correction_enabled(self) -> bool:
+        """获取畸变矫正启用状态"""
+        return self._correction_enabled
+    
+    def get_correction_info(self) -> Dict:
+        """获取畸变矫正信息"""
+        if self._corrector:
+            return {
+                'enabled': self._correction_enabled,
+                **self._corrector.get_calibration_info()
+            }
+        return {'enabled': False, 'channels': {}}
     
     def register_frame_callback(self, channel: str, callback: Callable[[], np.ndarray]):
         """注册帧获取回调"""
@@ -304,10 +333,21 @@ class VibrationTriggeredCapture:
         return None
     
     def _capture_images(self, trigger_type: str):
-        """采集所有通道的图像"""
+        """采集所有通道的图像（异步执行，不阻塞主循环）"""
         if not self.current_session_dir:
             return
         
+        # 在后台线程中执行图像保存，避免阻塞主采集循环
+        import threading
+        save_thread = threading.Thread(
+            target=self._save_images_async,
+            args=(trigger_type,),
+            daemon=True
+        )
+        save_thread.start()
+    
+    def _save_images_async(self, trigger_type: str):
+        """异步保存图像（在后台线程中执行）"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
         
         for channel in ['CH1', 'CH2', 'CH3']:
@@ -321,6 +361,15 @@ class VibrationTriggeredCapture:
                     print(f"[ImageCapture] {channel} 帧获取失败")
                     continue
                 
+                # 获取帧尺寸信息
+                h, w = frame.shape[:2]
+                
+                # 应用畸变矫正（如果启用且已标定）
+                if self._correction_enabled and self._corrector.is_channel_calibrated(channel):
+                    frame = self._corrector.correct_frame(frame, channel)
+                    if frame is not None:
+                        h, w = frame.shape[:2]
+                
                 # 构建文件名：Layer{层数}_{before|after}_时间戳.jpg
                 filename = f"Layer{self.layer_count}_{trigger_type}_{timestamp}.jpg"
                 filepath = self.current_session_dir / channel / filename
@@ -329,10 +378,13 @@ class VibrationTriggeredCapture:
                 if len(frame.shape) == 3 and frame.shape[2] == 3:
                     # 假设输入是RGB，转换为BGR
                     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                    cv2.imwrite(str(filepath), frame_bgr)
+                    # 使用与视频流相同的JPEG质量（85%）
+                    cv2.imwrite(str(filepath), frame_bgr, [cv2.IMWRITE_JPEG_QUALITY, 85])
                     self.total_captures += 1
                     
-                    print(f"[ImageCapture] 已保存 {channel}: {filename}")
+                    file_size = filepath.stat().st_size / 1024  # KB
+                    correction_info = "(已矫正)" if self._correction_enabled and self._corrector.is_channel_calibrated(channel) else ""
+                    print(f"[ImageCapture] 已保存 {channel}: {filename} ({w}x{h}, {file_size:.1f}KB) {correction_info}")
                     
                     # 通知采集完成
                     if self._capture_complete_callback:
