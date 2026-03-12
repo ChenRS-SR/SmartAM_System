@@ -26,12 +26,19 @@
         <!-- 自动扫描按钮 -->
         <el-form label-width="120px" size="default">
           <el-form-item>
+            <el-select v-model="scanFolder" style="width: 180px; margin-right: 10px;">
+              <el-option label="normal (默认)" value="normal" />
+              <el-option label="scene_underpower" value="scene_underpower" />
+              <el-option label="scene_overpower" value="scene_overpower" />
+              <el-option label="scene_underpower_critical" value="scene_underpower_critical" />
+              <el-option label="根目录" value="" />
+            </el-select>
             <el-button type="primary" @click="scanVideoFiles" :loading="scanning">
               <el-icon><Search /></el-icon>
               自动扫描视频文件
             </el-button>
             <span class="form-hint" style="margin-left: 10px;">
-              扫描 simulation_record 文件夹
+              扫描 simulation_record/{{ scanFolder || '' }} 文件夹
             </span>
           </el-form-item>
         </el-form>
@@ -93,7 +100,7 @@
               <span class="fps-value">{{ videoFileConfig.fps }} FPS</span>
             </div>
             <div class="form-hint">
-              控制视频播放速度 (1-60 FPS)，默认 30 FPS
+              控制视频播放速度 (1-60 FPS)，默认 10 FPS（匹配视频实际帧率）
             </div>
           </el-form-item>
           
@@ -232,7 +239,7 @@ const API_BASE = '/api/slm'
 // 视频文件配置
 const videoFileConfig = reactive({
   enableCorrection: true,
-  fps: 30
+  fps: 10  // 默认10fps，匹配视频实际帧率
 })
 
 // 扫描到的视频文件
@@ -263,6 +270,7 @@ const calibrationFilePath = ref('')
 const applying = ref(false)
 const disabling = ref(false)
 const scanning = ref(false)
+const scanFolder = ref('normal')  // 默认扫描 normal 文件夹
 const reloadingCalibration = ref(false)
 
 // 计算属性
@@ -290,7 +298,8 @@ async function scanVideoFiles() {
   scanning.value = true
   
   try {
-    const response = await fetch(`${API_BASE}/video_file_mode/scan`)
+    const folderParam = scanFolder.value ? `?folder=${scanFolder.value}` : ''
+    const response = await fetch(`${API_BASE}/video_file_mode/scan${folderParam}`)
     const result = await response.json()
     
     if (result.success) {
@@ -415,7 +424,7 @@ async function refreshConfig() {
       videoFileMode.correction_enabled = modeResult.correction_enabled
       videoFileMode.fps = modeResult.fps || 30
       // 同步到配置表单
-      videoFileConfig.fps = modeResult.fps || 30
+      videoFileConfig.fps = modeResult.fps || 10
     }
     
     // 获取畸变矫正信息

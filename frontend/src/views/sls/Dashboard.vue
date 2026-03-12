@@ -108,6 +108,9 @@
       </div>
     </el-card>
     
+    <!-- 激光功率闭环调控 -->
+    <RegulationControl ref="regulationControl" />
+    
     <!-- 日志输出 -->
     <el-card class="log-panel">
       <template #header>
@@ -130,6 +133,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import RegulationControl from '../../components/slm/RegulationControl.vue'
 
 const router = useRouter()
 
@@ -313,22 +317,30 @@ const fetchDeviceStatus = async () => {
 
 // 定时器
 let statusTimer = null
+let deviceStatusTimer = null
 
 onMounted(() => {
   addLog('SLS Dashboard 已加载', 'INFO')
   fetchStatus()
   fetchDeviceStatus()
   
-  // 定时刷新状态
+  // 定时刷新运行状态 (2秒一次，用于振动监测)
   statusTimer = setInterval(() => {
     fetchStatus()
+  }, 2000)
+  
+  // 定时刷新设备状态 (5秒一次，设备连接状态变化较慢)
+  deviceStatusTimer = setInterval(() => {
     fetchDeviceStatus()
-  }, 500)
+  }, 5000)
 })
 
 onUnmounted(() => {
   if (statusTimer) {
     clearInterval(statusTimer)
+  }
+  if (deviceStatusTimer) {
+    clearInterval(deviceStatusTimer)
   }
 })
 </script>

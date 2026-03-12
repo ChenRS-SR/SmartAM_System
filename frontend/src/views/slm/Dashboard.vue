@@ -38,7 +38,7 @@
       @refresh="refreshStatus"
     />
     
-    <!-- 实时数据显示 -->
+    <!-- 实时数据显示 (包含CH1/CH2/CH3视频) -->
     <div class="realtime-section">
       <RealTimeDisplay
         :sensor-status="sensorStatus"
@@ -46,6 +46,24 @@
         :stream-key="streamKey"
         :display-paused="displayPaused"
         :last-frames="lastFrames"
+      />
+    </div>
+    
+    <!-- 闭环调控和视频控制 (放在视频下方) -->
+    <div class="regulation-section">
+      <RegulationControl 
+        ref="regulationControl"
+        @video-source-changed="onVideoSourceChanged"
+      />
+    </div>
+    
+    <!-- 振动波形监测 (放在闭环调控下方) -->
+    <div class="vibration-section">
+      <VibrationWaveform 
+        :waveform-data="latestData.vibration_waveform"
+        :latest-vibration="latestData.vibration"
+        :enabled="sensorStatus.vibration?.enabled"
+        :connected="sensorStatus.vibration?.connected"
       />
     </div>
     
@@ -167,6 +185,8 @@ import SensorConnectionStatus from '../../components/slm/SensorConnectionStatus.
 import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
 import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
 import ImageCapturePanel from '../../components/slm/ImageCapturePanel.vue'
+import RegulationControl from '../../components/slm/RegulationControl.vue'
+import VibrationWaveform from '../../components/slm/VibrationWaveform.vue'
 
 // 状态
 const isRunning = ref(false)
@@ -233,6 +253,16 @@ const camerasLoading = ref(false)
 
 const availableComPorts = ref([])
 
+// RegulationControl 引用
+const regulationControl = ref(null)
+
+// 当前视频文件配置（用于检测变化）
+const currentVideoConfig = ref({
+  enabled: false,
+  videoFilesHash: '',
+  folder: ''
+})
+
 // 当设置对话框打开时自动检测硬件
 watch(showSettings, (val) => {
   if (val) {
@@ -242,9 +272,19 @@ watch(showSettings, (val) => {
   }
 })
 
-// WebSocket
-let ws = null
-let reconnectTimer = null
+// 视频源改变时的处理
+const onVideoSourceChanged = (sourceInfo) => {
+  console.log('[Dashboard] 视频源已改变:', sourceInfo)
+  // 强制刷新视频流
+  streamKey.value = Date.now()
+  
+  // 如果正在运行，更新传感器状态为已连接
+  if (sourceInfo.isPlaying) {
+    sensorStatus.camera_ch1.connected = true
+    sensorStatus.camera_ch2.connected = true
+    sensorStatus.thermal.connected = true
+  }
+}
 
 // 获取状态
 const fetchStatus = async () => {
@@ -562,10 +602,84 @@ const handleChangeComPort = async (port) => {
 }
 
 // 刷新状态
-const refreshStatus = () => {
+const refreshStatus = async () => {
   fetchStatus()
   fetchComPorts()
+  
+  // 检查视频文件模式配置是否变化
+  try {
+    const response = await axios.get('/api/slm/video_file_mode/config')
+    if (response.data.success) {
+      const config = response.data
+      // 生成视频文件配置的简单哈希（路径拼接）
+      const videoFilesStr = JSON.stringify(config.video_files || {})
+      
+      // 检测配置是否变化
+      const configChanged = (
+        config.enabled !== currentVideoConfig.value.enabled ||
+        videoFilesStr !== currentVideoConfig.value.videoFilesHash
+      )
+      
+      if (configChanged) {
+        console.log('[Dashboard] 检测到视频文件配置变化，需要重启采集')
+        // 更新当前配置
+        currentVideoConfig.value = {
+          enabled: config.enabled,
+          videoFilesHash: videoFilesStr,
+          folder: config.video_files ? Object.values(config.video_files)[0] : ''
+        }
+        
+        // 自动重启采集以应用新配置（无论是否正在运行）
+        ElMessage.info('检测到视频源变化，正在重启采集...')
+        await restartAcquisitionWithNewVideoConfig()
+      }
+    }
+  } catch (error) {
+    console.error('[Dashboard] 检查视频文件配置失败:', error)
+  }
+  
+  // 强制刷新视频流（更新streamKey使URL变化，防止缓存）
+  streamKey.value = Date.now()
+  // 刷新闭环调控组件状态
+  if (regulationControl.value && regulationControl.value.refresh) {
+    regulationControl.value.refresh()
+  }
   ElMessage.success('状态已刷新')
+}
+
+// 使用新视频配置重启采集
+const restartAcquisitionWithNewVideoConfig = async () => {
+  try {
+    // 1. 如果正在运行，停止当前采集
+    if (isRunning.value) {
+      await axios.post('/api/slm/stop')
+      isRunning.value = false
+      closeWebSocket()
+      // 等待资源释放
+      await new Promise(resolve => setTimeout(resolve, 1500))
+    }
+    
+    // 2. 重新启动采集（使用视频文件模式）
+    const response = await axios.post('/api/slm/start', null, {
+      params: {
+        camera_ch1_index: settings.camera_ch1_index,
+        camera_ch2_index: settings.camera_ch2_index,
+        vibration_com: settings.vibration_com,
+        use_mock: true  // 视频文件模式使用模拟模式
+      }
+    })
+    
+    if (response.data.success) {
+      isRunning.value = true
+      streamKey.value = Date.now()
+      connectWebSocket()
+      console.log('[Dashboard] 采集已使用新视频配置重启')
+      ElMessage.success('视频源已更新')
+    }
+  } catch (error) {
+    console.error('[Dashboard] 重启采集失败:', error)
+    ElMessage.error('重启采集失败: ' + (error.response?.data?.message || error.message))
+  }
 }
 
 // 保存设置
@@ -706,15 +820,29 @@ const fetchBackendHealthStatus = async () => {
 const fetchVideoFileModeConfig = async () => {
   try {
     const response = await axios.get('/api/slm/video_file_mode/config')
-    if (response.data.success && response.data.enabled) {
-      // 如果视频文件模式已启用，自动切换到模拟模式
-      settings.use_mock = true
-      console.log('[Dashboard] 检测到视频文件模式已启用，自动切换到模拟模式')
+    if (response.data.success) {
+      const config = response.data
+      // 保存当前配置
+      currentVideoConfig.value = {
+        enabled: config.enabled,
+        videoFilesHash: JSON.stringify(config.video_files || {}),
+        folder: config.video_files ? Object.values(config.video_files)[0] : ''
+      }
+      
+      if (config.enabled) {
+        // 如果视频文件模式已启用，自动切换到模拟模式
+        settings.use_mock = true
+        console.log('[Dashboard] 检测到视频文件模式已启用，自动切换到模拟模式')
+      }
     }
   } catch (error) {
     console.error('[Dashboard] 获取视频文件模式配置失败:', error)
   }
 }
+
+// WebSocket
+let ws = null
+let reconnectTimer = null
 
 onMounted(() => {
   fetchStatus()

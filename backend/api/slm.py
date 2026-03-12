@@ -456,14 +456,23 @@ async def set_video_file_fps(fps: int = 30):
 
 
 @router.get("/video_file_mode/scan")
-async def scan_video_files():
-    """自动扫描 simulation_record 文件夹中的视频文件"""
+async def scan_video_files(folder: str = "normal"):
+    """自动扫描 simulation_record 文件夹中的视频文件
+    
+    Args:
+        folder: 子文件夹名称，默认为 "normal"
+    """
     try:
         from pathlib import Path
         
         # 获取项目根目录
         project_root = Path(__file__).parent.parent.parent
-        simulation_dir = project_root / "simulation_record"
+        
+        # 默认扫描 normal 文件夹
+        if folder:
+            simulation_dir = project_root / "simulation_record" / folder
+        else:
+            simulation_dir = project_root / "simulation_record"
         
         print(f"[API] 扫描视频文件目录: {simulation_dir}")
         
@@ -483,7 +492,7 @@ async def scan_video_files():
                 filename = video_file.name
                 # 匹配 CH1, CH2, CH3
                 for ch in ['CH1', 'CH2', 'CH3']:
-                    if filename.startswith(ch + "_"):
+                    if filename.startswith(ch + "_") or filename.startswith(ch.lower() + "_") or filename.startswith(f"ch{ch[-1]}_"):
                         videos[ch] = {
                             "path": str(video_file),
                             "filename": filename
@@ -494,12 +503,298 @@ async def scan_video_files():
         return {
             "success": True,
             "videos": videos,
-            "directory": str(simulation_dir)
+            "directory": str(simulation_dir),
+            "folder": folder
         }
     except Exception as e:
         print(f"[API] 扫描视频文件失败: {e}")
         import traceback
         traceback.print_exc()
+        return {"success": False, "message": str(e)}
+
+
+# ========== 双模式视频播放 API ==========
+
+@router.post("/video_file_mode/preprocess")
+async def preprocess_videos(
+    folder: str = Body("normal"),
+    fps: int = Body(10),
+    force: bool = Body(False)
+):
+    """预处理视频文件
+    
+    提前应用畸变矫正和视角调整，生成优化后的视频
+    后续播放时使用预处理视频，无需实时计算
+    
+    Args:
+        folder: 场景文件夹名称 (normal, scene_underpower, scene_overpower)
+        fps: 输出帧率
+        force: 是否强制重新处理
+    """
+    try:
+        from pathlib import Path
+        import subprocess
+        import sys
+        
+        project_root = Path(__file__).parent.parent.parent
+        script_path = project_root / "scripts" / "preprocess_videos.py"
+        
+        if not script_path.exists():
+            return {
+                "success": False,
+                "message": f"预处理脚本不存在: {script_path}"
+            }
+        
+        # 运行预处理脚本
+        cmd = [
+            sys.executable,
+            str(script_path),
+            folder,
+            "--fps", str(fps)
+        ]
+        
+        if force:
+            cmd.append("--force")
+        
+        print(f"[API] 执行预处理: {' '.join(cmd)}")
+        
+        # 异步执行
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        stdout, stderr = await process.communicate()
+        
+        if process.returncode == 0:
+            return {
+                "success": True,
+                "message": f"视频预处理完成",
+                "folder": folder,
+                "fps": fps,
+                "output": stdout.decode('utf-8', errors='ignore')
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"预处理失败: {stderr.decode('utf-8', errors='ignore')}",
+                "folder": folder
+            }
+            
+    except Exception as e:
+        print(f"[API] 预处理视频失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": str(e)}
+
+
+@router.get("/video_file_mode/preprocess/status")
+async def get_preprocess_status(folder: str = "normal"):
+    """获取预处理状态"""
+    try:
+        from pathlib import Path
+        
+        project_root = Path(__file__).parent.parent.parent
+        processed_dir = project_root / "simulation_record" / f"{folder}_processed"
+        original_dir = project_root / "simulation_record" / folder
+        
+        # 检查预处理文件夹
+        is_processed = processed_dir.exists()
+        
+        # 检查各通道视频
+        channels = {}
+        for ch in ['CH1', 'CH2', 'CH3']:
+            processed_file = processed_dir / f"{ch}_processed.mp4"
+            original_files = list(original_dir.glob(f"{ch}*.mp4")) + list(original_dir.glob(f"{ch.lower()}*.mp4"))
+            
+            channels[ch] = {
+                "processed": processed_file.exists(),
+                "processed_path": str(processed_file) if processed_file.exists() else None,
+                "original_exists": len(original_files) > 0,
+                "original_path": str(original_files[0]) if original_files else None
+            }
+        
+        return {
+            "success": True,
+            "folder": folder,
+            "is_processed": is_processed,
+            "processed_dir": str(processed_dir),
+            "channels": channels,
+            "recommendation": "preprocessed" if all(c["processed"] for c in channels.values() if c["original_exists"]) else "realtime"
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/video_file_mode/dual_mode/setup")
+async def setup_dual_mode_player(
+    mode: str = Body("preprocessed"),  # "preprocessed" 或 "realtime"
+    folder: str = Body("normal"),
+    fps: int = Body(10),
+    enable_correction: bool = Body(False),
+    video_files: Optional[Dict[str, str]] = Body(None)
+):
+    """设置双模式视频播放器
+    
+    模式1 - preprocessed (推荐):
+        - 使用 preprocess_videos.py 生成的视频
+        - 流畅播放，零实时计算
+        - 适合正式演示
+    
+    模式2 - realtime:
+        - 实时畸变矫正和视角调整
+        - 可调参数，适合调试和标定
+    
+    Args:
+        mode: 播放模式 ("preprocessed" 或 "realtime")
+        folder: 场景文件夹（preprocessed模式使用）
+        fps: 播放帧率
+        enable_correction: 实时模式是否启用矫正
+        video_files: 视频文件路径（realtime模式使用）
+    """
+    try:
+        import sys
+        from pathlib import Path
+        backend_path = str(Path(__file__).parent.parent)
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        
+        from core.slm.dual_mode_player import init_player, get_player
+        
+        if mode == "preprocessed":
+            # 预处理模式
+            player = init_player('preprocessed', scene_name=folder, fps=fps)
+        else:
+            # 实时模式
+            if not video_files:
+                # 自动扫描
+                scan_result = await scan_video_files(folder)
+                video_files = {
+                    ch: info["path"] 
+                    for ch, info in scan_result.get("videos", {}).items()
+                }
+            
+            player = init_player(
+                'realtime',
+                video_files=video_files,
+                fps=fps,
+                enable_correction=enable_correction
+            )
+        
+        return {
+            "success": True,
+            "mode": mode,
+            "folder": folder,
+            "fps": fps,
+            "channels": list(player.video_files.keys()) if player else []
+        }
+        
+    except Exception as e:
+        print(f"[API] 设置双模式播放器失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": str(e)}
+
+
+@router.get("/video_file_mode/dual_mode/status")
+async def get_dual_mode_status():
+    """获取双模式播放器状态"""
+    try:
+        import sys
+        from pathlib import Path
+        backend_path = str(Path(__file__).parent.parent)
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        
+        from core.slm.dual_mode_player import get_player
+        
+        player = get_player()
+        
+        if player is None:
+            return {
+                "success": True,
+                "initialized": False,
+                "message": "播放器未初始化"
+            }
+        
+        return {
+            "success": True,
+            "initialized": True,
+            "mode": player.config.mode,
+            "fps": player.config.fps,
+            "is_playing": player.is_playing,
+            "channels": list(player.video_files.keys()),
+            "enable_correction": player.config.enable_correction if player.config.mode == 'realtime' else None
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/video_file_mode/dual_mode/play")
+async def dual_mode_play():
+    """开始播放"""
+    try:
+        import sys
+        from pathlib import Path
+        backend_path = str(Path(__file__).parent.parent)
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        
+        from core.slm.dual_mode_player import get_player
+        
+        player = get_player()
+        if player is None:
+            return {"success": False, "message": "播放器未初始化"}
+        
+        player.play()
+        return {"success": True, "message": "开始播放"}
+        
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/video_file_mode/dual_mode/pause")
+async def dual_mode_pause():
+    """暂停播放"""
+    try:
+        import sys
+        from pathlib import Path
+        backend_path = str(Path(__file__).parent.parent)
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        
+        from core.slm.dual_mode_player import get_player
+        
+        player = get_player()
+        if player is None:
+            return {"success": False, "message": "播放器未初始化"}
+        
+        player.pause()
+        return {"success": True, "message": "已暂停"}
+        
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@router.post("/video_file_mode/dual_mode/stop")
+async def dual_mode_stop():
+    """停止播放"""
+    try:
+        import sys
+        from pathlib import Path
+        backend_path = str(Path(__file__).parent.parent)
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        
+        from core.slm.dual_mode_player import stop_player
+        
+        stop_player()
+        return {"success": True, "message": "已停止"}
+        
+    except Exception as e:
         return {"success": False, "message": str(e)}
 
 
@@ -727,31 +1022,57 @@ async def slm_data_websocket(websocket: WebSocket):
 
 # ========== 视频流接口 ==========
 
+# 预先导入播放器模块（避免循环导入）
+_video_player_imported = False
+_dual_mode_player = None
+_simple_video_player = None
+
+def _ensure_video_players_imported():
+    """确保视频播放器模块已导入"""
+    global _video_player_imported, _dual_mode_player, _simple_video_player
+    
+    if not _video_player_imported:
+        import sys
+        from pathlib import Path
+        backend_path = str(Path(__file__).parent.parent)
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        
+        try:
+            from core.slm.dual_mode_player import get_player
+            _dual_mode_player = get_player
+        except ImportError:
+            _dual_mode_player = None
+        
+        try:
+            from core.slm.simple_video_player import get_video_player
+            _simple_video_player = get_video_player
+        except ImportError:
+            _simple_video_player = None
+        
+        _video_player_imported = True
+
+
 async def video_stream_generator(channel: str, quality: int = 85):
-    """视频流生成器"""
+    """视频流生成器 - 使用采集系统的视频文件模式"""
     print(f"[VideoStream] {channel} 视频流生成器启动")
     frame_count = 0
     
     while True:
         try:
-            # 每次循环获取当前实例（可能为None，不检查模式避免重置实例）
+            jpeg = None
+            fps = 10
+            
+            # 使用采集系统的 camera_manager（支持视频文件模式）
             acquisition = get_acquisition(create_if_none=False, check_mode=False)
             
-            if acquisition is None:
-                if frame_count == 0:
-                    print(f"[VideoStream] {channel} 采集实例不存在，等待...")
+            if acquisition is None or acquisition.camera_manager is None:
                 await asyncio.sleep(0.5)
                 continue
             
-            if acquisition.camera_manager is None:
-                if frame_count == 0:
-                    print(f"[VideoStream] {channel} camera_manager不存在，等待...")
-                await asyncio.sleep(0.5)
-                continue
-            
-            # 尝试获取JPEG帧
             jpeg = acquisition.camera_manager.get_frame_jpeg(channel, quality)
             
+            # 发送帧
             if jpeg:
                 frame_count += 1
                 if frame_count <= 3:
@@ -763,19 +1084,14 @@ async def video_stream_generator(channel: str, quality: int = 85):
                     b"Content-Length: " + str(len(jpeg)).encode() + b"\r\n"
                     b"\r\n" + jpeg + b"\r\n"
                 )
+                
+                # 控制帧率
+                await asyncio.sleep(1.0 / fps)
             else:
-                # 没有获取到帧，可能是采集还没开始
-                if frame_count == 0:
-                    print(f"[VideoStream] {channel} 无可用帧，等待...")
                 await asyncio.sleep(0.1)
-                continue
-            
-            await asyncio.sleep(0.033)  # ~30 FPS
             
         except Exception as e:
             print(f"[VideoStream] {channel} 错误: {e}")
-            import traceback
-            traceback.print_exc()
             await asyncio.sleep(0.1)
 
 

@@ -1,0 +1,108 @@
+{
+  "scenes": [
+    {
+      "id": "scene_normal",
+      "name": "正常模式: 标准参数打印",
+      "description": "激光功率120W标准打印，无异常（CH2快1帧，CH3慢5帧）",
+      "folder": "normal",
+      "videos": {
+        "ch1": "ch1_normal.mp4",
+        "ch2": "ch2_normal.mp4",
+        "ch3": "ch3_normal.mp4"
+      },
+      "sync": {
+        "ch1": { "startFrame": 70, "endFrame": 535 },
+        "ch2": { "startFrame": 69, "endFrame": 534, "offset": -1 },
+        "ch3": { "startFrame": 75, "endFrame": 540, "offset": 5 }
+      },
+      "timeline": {
+        "totalFrames": 465,
+        "fps": 10,
+        "duration": 46.5,
+        "startLayer": 1,
+        "layers": {},
+        "faultFrame": null,
+        "diagnosisFrame": null,
+        "regulationFrame": null
+      },
+      "parameters": {
+        "faultPower": null,
+        "standardPower": 120,
+        "abnormalType": null,
+        "reason": null,
+        "recoverable": null,
+        "faultLayers": 0,
+        "recoverLayers": 0
+      }
+    },
+    {
+      "id": "scene_overpower",
+      "name": "场景1: 激光功率过高（可恢复）",
+      "description": "功率调至300W，5层后调回标准值可恢复",
+      "folder": "scene_overpower",
+      "videos": {
+        "ch1": "CH1_segment029_20260310_180512.mp4",
+        "ch2": "CH2_segment029_20260310_180512.mp4",
+        "ch3": "CH3_segment029_20260310_180512.mp4"
+      },
+      "timeline": {
+        "totalFrames": 3600,
+        "fps": 10,
+        "startLayer": 115,
+        "layers": {
+          "115": { "name": "故障注入层", "ch1Range": [185, 253], "ch2Range": [184, 252], "ch3Range": [193, 261], "fault": true, "power": 55 },
+          "116": { "name": "异常持续", "ch1Range": [267, 329], "ch2Range": [266, 328], "ch3Range": [275, 337], "power": 55 },
+          "117": { "name": "异常持续", "ch1Range": [347, 409], "ch2Range": [346, 408], "ch3Range": [355, 417], "power": 55 },
+          "118": { "name": "异常持续", "ch1Range": [428, 489], "ch2Range": [427, 488], "ch3Range": [436, 497], "power": 55 },
+          "119": { "name": "异常持续", "ch1Range": [510, 572], "ch2Range": [509, 571], "ch3Range": [518, 580], "power": 55 },
+          "120": { "name": "闭环调控开始", "ch1Range": [589, 659], "ch2Range": [588, 658], "ch3Range": [597, 667], "regulation": true, "power": 120 },
+          "121": { "name": "恢复中", "ch1Range": [672, 733], "ch2Range": [671, 732], "ch3Range": [680, 741], "power": 120 },
+          "122": { "name": "恢复中", "ch1Range": [747, 813], "ch2Range": [746, 812], "ch3Range": [755, 821], "power": 120 },
+          "123": { "name": "恢复中", "ch1Range": [830, 890], "ch2Range": [829, 889], "ch3Range": [838, 898], "power": 120 },
+          "124": { "name": "恢复中", "ch1Range": [909, 972], "ch2Range": [908, 971], "ch3Range": [917, 980], "power": 120 },
+          "125": { "name": "恢复中", "ch1Range": [989, 1061], "ch2Range": [988, 1060], "ch3Range": [997, 1069], "power": 120 },
+          "126": { "name": "完全恢复", "ch1Range": [1072, 1132], "ch2Range": [1071, 1131], "ch3Range": [1080, 1140], "recovered": true, "power": 120 }
+        },
+        "faultFrame": 185,
+        "diagnosisFrame": 589,
+        "regulationFrame": 589,
+        "recoveredFrame": 1072
+      },
+      "parameters": {
+        "faultPower": 55,
+        "standardPower": 120,
+        "abnormalType": "激光功率过低",
+        "reason": "功率55W低于标准54%，导致未完全熔化",
+        "recoverable": true,
+        "faultLayers": 5,
+        "recoverLayers": 6
+      }
+    },
+    {
+      "id": "scene_underpower_critical",
+      "name": "场景3: 激光功率过低（不可恢复）",
+      "description": "功率调至55W持续4-5层，造成不可逆缺陷",
+      "folder": "scene_underpower_critical",
+      "videos": {
+        "ch1": "ch1_main.mp4",
+        "ch2": "ch2_side.mp4",
+        "ch3": "ch3_thermal.mp4"
+      },
+      "timeline": {
+        "totalFrames": 3600,
+        "fps": 30,
+        "faultFrame": 1800,
+        "diagnosisFrame": 1803,
+        "regulationFrame": 1806
+      },
+      "parameters": {
+        "faultPower": 55,
+        "standardPower": 120,
+        "abnormalType": "激光功率过低（临界）",
+        "reason": "功率55W持续4-5层，已造成不可逆缺陷",
+        "recoverable": false,
+        "recoverLayers": null
+      }
+    }
+  ]
+}

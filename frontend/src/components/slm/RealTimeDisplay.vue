@@ -133,22 +133,12 @@
       </div>
     </div>
     
-    <!-- 振动波形图 -->
-    <div class="vibration-section">
-      <VibrationWaveform 
-        :waveform-data="vibrationWaveform"
-        :latest-vibration="latestData?.vibration"
-        :enabled="sensorStatus.vibration?.enabled"
-        :connected="sensorStatus.vibration?.connected"
-      />
-    </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { VideoCamera, HotWater, VideoPause } from '@element-plus/icons-vue'
-import VibrationWaveform from './VibrationWaveform.vue'
 
 const props = defineProps({
   sensorStatus: {
@@ -173,7 +163,7 @@ const props = defineProps({
   }
 })
 
-// 视频流URL - 添加streamKey强制刷新
+// 视频流URL - 使用SLM视频流接口
 const ch1StreamUrl = computed(() => `/api/slm/stream/camera/CH1?t=${props.streamKey}`)
 const ch2StreamUrl = computed(() => `/api/slm/stream/camera/CH2?t=${props.streamKey}`)
 const thermalStreamUrl = computed(() => `/api/slm/stream/thermal?t=${props.streamKey}`)
@@ -182,10 +172,7 @@ const onCh1Error = () => console.error('CH1视频流错误')
 const onCh2Error = () => console.error('CH2视频流错误')
 const onThermalError = () => console.error('热像视频流错误')
 
-// 振动波形数据
-const vibrationWaveform = computed(() => {
-  return props.latestData?.vibration_waveform || { x: [], y: [], z: [], sample_count: 0 }
-})
+
 </script>
 
 <style scoped>

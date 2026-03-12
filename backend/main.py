@@ -122,6 +122,12 @@ if os.path.exists(state_picture_path):
     app.mount("/state_picture", StaticFiles(directory=state_picture_path), name="state_picture")
     print(f"[Main] 状态图片服务已挂载: {state_picture_path}")
 
+# 挂载模拟视频文件夹
+simulation_record_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "simulation_record")
+if os.path.exists(simulation_record_path):
+    app.mount("/simulation_record", StaticFiles(directory=simulation_record_path), name="simulation_record")
+    print(f"[Main] 模拟视频服务已挂载: {simulation_record_path}")
+
 
 # 视频测试页面
 @app.get("/video-test")

@@ -1,22 +1,22 @@
 """
-SLM (选择性激光熔化) 数据采集模块
-====================================
-提供SLM设备的数据采集、传感器管理和健康状态监控功能
+SLM 核心模块
+============
+提供SLM设备的数据采集、视频播放和调控功能
+
+导出:
+- SLMAcquisition: 主采集类
+- VideoPlayerManager: 统一视频播放器管理器
+- get_slm_acquisition: 获取采集实例
+- reset_slm_acquisition: 重置采集实例
 """
 
 from .slm_acquisition import SLMAcquisition, get_slm_acquisition, reset_slm_acquisition
-from .vibration_sensor import VibrationSensor, MockVibrationSensor
-from .thermal_camera import ThermalCamera, MockThermalCamera
-from .camera_manager import CameraManager, MockCameraManager
+from .video_player_manager import get_player_manager, reset_player_manager
 
 __all__ = [
     'SLMAcquisition',
     'get_slm_acquisition',
     'reset_slm_acquisition',
-    'VibrationSensor',
-    'MockVibrationSensor',
-    'ThermalCamera',
-    'MockThermalCamera',
-    'CameraManager',
-    'MockCameraManager',
+    'get_player_manager',
+    'reset_player_manager',
 ]

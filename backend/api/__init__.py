@@ -42,6 +42,14 @@ except ImportError as e:
     SLM_AVAILABLE = False
     print(f"[API] SLM模块导入失败: {e}")
 
+# 导入新的SLM视频路由
+try:
+    from .slm_video import router as slm_video_router
+    SLM_VIDEO_AVAILABLE = True
+except ImportError as e:
+    SLM_VIDEO_AVAILABLE = False
+    print(f"[API] SLM视频模块导入失败: {e}")
+
 router.include_router(auth_router, prefix="/auth", tags=["认证"])
 router.include_router(device_type_router, tags=["设备类型"])
 router.include_router(system_router, prefix="/system", tags=["系统配置"])
@@ -60,6 +68,10 @@ if SLS_AVAILABLE:
 if SLM_AVAILABLE:
     router.include_router(slm_router)
     print("[API] SLM路由已注册: /api/slm/*")
+
+if SLM_VIDEO_AVAILABLE:
+    router.include_router(slm_video_router)
+    print("[API] SLM视频路由已注册: /api/slm/video/*")
 
 # 健康检查
 @router.get("/health")
