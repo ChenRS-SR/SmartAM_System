@@ -1,0 +1,21 @@
+{
+  "rois": {
+    "pool_center": {
+      "name": "熔池中心",
+      "type": "rectangle",
+      "coords": [
+        320,
+        240,
+        100,
+        100
+      ],
+      "description": "熔池中心区域"
+    }
+  },
+  "features": [
+    "mean",
+    "std",
+    "max"
+  ],
+  "update_mode": "layer"
+}

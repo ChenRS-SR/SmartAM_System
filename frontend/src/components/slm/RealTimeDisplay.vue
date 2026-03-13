@@ -47,6 +47,23 @@
             <el-icon :size="30"><VideoPause /></el-icon>
             <span>录制中</span>
           </div>
+          <!-- ROI覆盖层 -->
+          <template v-if="showROI && sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected">
+            <div 
+              v-for="roi in roiList" 
+              :key="roi.id"
+              class="roi-overlay"
+              :style="getROIStyle(roi)"
+            />
+            <div 
+              v-for="roi in roiList" 
+              :key="`label-${roi.id}`"
+              class="roi-label"
+              :style="getROILabelStyle(roi)"
+            >
+              {{ roi.name }}
+            </div>
+          </template>
         </div>
       </div>
       
@@ -79,6 +96,23 @@
             <el-icon :size="30"><VideoPause /></el-icon>
             <span>录制中</span>
           </div>
+          <!-- ROI覆盖层 -->
+          <template v-if="showROI && sensorStatus.camera_ch2?.enabled && sensorStatus.camera_ch2?.connected">
+            <div 
+              v-for="roi in roiList" 
+              :key="roi.id"
+              class="roi-overlay"
+              :style="getROIStyle(roi)"
+            />
+            <div 
+              v-for="roi in roiList" 
+              :key="`label-${roi.id}`"
+              class="roi-label"
+              :style="getROILabelStyle(roi)"
+            >
+              {{ roi.name }}
+            </div>
+          </template>
         </div>
       </div>
       
@@ -114,6 +148,23 @@
             <el-icon :size="30"><VideoPause /></el-icon>
             <span>录制中</span>
           </div>
+          <!-- ROI覆盖层 -->
+          <template v-if="showROI && sensorStatus.thermal?.enabled && sensorStatus.thermal?.connected">
+            <div 
+              v-for="roi in roiList" 
+              :key="roi.id"
+              class="roi-overlay"
+              :style="getROIStyle(roi)"
+            />
+            <div 
+              v-for="roi in roiList" 
+              :key="`label-${roi.id}`"
+              class="roi-label"
+              :style="getROILabelStyle(roi)"
+            >
+              {{ roi.name }}
+            </div>
+          </template>
         </div>
         <!-- 温度信息 -->
         <div v-if="sensorStatus.thermal?.enabled && sensorStatus.thermal?.connected && latestData?.thermal" class="thermal-info">
@@ -139,6 +190,7 @@
 <script setup>
 import { computed } from 'vue'
 import { VideoCamera, HotWater, VideoPause } from '@element-plus/icons-vue'
+import { useROIStore } from '../../stores/roiStore'
 
 const props = defineProps({
   sensorStatus: {
@@ -157,11 +209,19 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  // 视频容器尺寸（用于计算ROI位置）
+  videoSize: {
+    type: Object,
+    default: () => ({ width: 640, height: 480 })
+  },
   lastFrames: {
     type: Object,
     default: () => ({ CH1: null, CH2: null, thermal: null })
   }
 })
+
+// Store
+const roiStore = useROIStore()
 
 // 视频流URL - 使用SLM视频流接口
 const ch1StreamUrl = computed(() => `/api/slm/stream/camera/CH1?t=${props.streamKey}`)
@@ -171,6 +231,65 @@ const thermalStreamUrl = computed(() => `/api/slm/stream/thermal?t=${props.strea
 const onCh1Error = () => console.error('CH1视频流错误')
 const onCh2Error = () => console.error('CH2视频流错误')
 const onThermalError = () => console.error('热像视频流错误')
+
+// ROI显示
+const showROI = computed(() => roiStore.showROIOnVideo)
+const roiList = computed(() => roiStore.roiList)
+
+// 计算ROI样式（将ROI坐标转换为CSS样式）
+function getROIStyle(roi) {
+  const coords = roi.coords || []
+  const videoW = props.videoSize.width
+  const videoH = props.videoSize.height
+  
+  if (roi.type === 'rectangle' && coords.length >= 4) {
+    // 矩形: [x, y, width, height]
+    const [x, y, w, h] = coords
+    return {
+      left: `${(x / videoW) * 100}%`,
+      top: `${(y / videoH) * 100}%`,
+      width: `${(w / videoW) * 100}%`,
+      height: `${(h / videoH) * 100}%`,
+      border: '2px solid #ef4444',
+      position: 'absolute',
+      pointerEvents: 'none',
+      zIndex: 10
+    }
+  } else if (roi.type === 'circle' && coords.length >= 3) {
+    // 圆形: [cx, cy, radius]
+    const [cx, cy, r] = coords
+    return {
+      left: `${((cx - r) / videoW) * 100}%`,
+      top: `${((cy - r) / videoH) * 100}%`,
+      width: `${((r * 2) / videoW) * 100}%`,
+      height: `${((r * 2) / videoH) * 100}%`,
+      border: '2px solid #ef4444',
+      borderRadius: '50%',
+      position: 'absolute',
+      pointerEvents: 'none',
+      zIndex: 10
+    }
+  }
+  return {}
+}
+
+// ROI标签样式
+function getROILabelStyle(roi) {
+  const style = getROIStyle(roi)
+  return {
+    left: style.left,
+    top: `calc(${style.top} - 20px)`,
+    position: 'absolute',
+    background: '#ef4444',
+    color: 'white',
+    fontSize: '10px',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    pointerEvents: 'none',
+    zIndex: 11,
+    whiteSpace: 'nowrap'
+  }
+}
 
 
 </script>
@@ -317,6 +436,26 @@ const onThermalError = () => console.error('热像视频流错误')
 
 .video-placeholder.error .sub-text {
   color: #f87171;
+}
+
+/* ROI覆盖层 */
+.roi-overlay {
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.5), 0 0 10px rgba(239, 68, 68, 0.3);
+  animation: roi-pulse 2s ease-in-out infinite;
+}
+
+@keyframes roi-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.5), 0 0 10px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.7), 0 0 15px rgba(239, 68, 68, 0.5);
+  }
+}
+
+.roi-label {
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* 热像温度信息 */

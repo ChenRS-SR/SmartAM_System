@@ -225,6 +225,22 @@
         />
       </div>
     </el-card>
+    
+    <!-- ROI区域配置 -->
+    <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
+      <template #header>
+        <div class="card-header">
+          <el-icon size="20"><Crop /></el-icon>
+          <span>ROI区域配置</span>
+          <el-tag v-if="roiConfigured" type="success" size="small" effect="dark">已配置</el-tag>
+        </div>
+      </template>
+      
+      <ROIConfigPanel 
+        @config-loaded="onROIConfigLoaded"
+        @config-cleared="onROIConfigCleared"
+      />
+    </el-card>
   </div>
 </template>
 
@@ -232,6 +248,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { VideoCamera, Search, Check, Refresh, Crop } from '@element-plus/icons-vue'
+import ROIConfigPanel from '../../components/slm/ROIConfigPanel.vue'
 
 // API 基础地址
 const API_BASE = '/api/slm'
@@ -273,6 +290,9 @@ const scanning = ref(false)
 const scanFolder = ref('normal')  // 默认扫描 normal 文件夹
 const reloadingCalibration = ref(false)
 
+// ROI配置状态
+const roiConfigured = ref(false)
+
 // 计算属性
 const hasValidVideoFiles = computed(() => {
   return scannedVideos.CH1 || scannedVideos.CH2 || scannedVideos.CH3
@@ -292,6 +312,16 @@ const channelDetails = computed(() => {
     output_size: info.output_size ? `${info.output_size[0]} x ${info.output_size[1]}` : '-'
   }))
 })
+
+// ROI配置回调
+function onROIConfigLoaded(config) {
+  roiConfigured.value = true
+  ElMessage.success('ROI配置已加载')
+}
+
+function onROIConfigCleared() {
+  roiConfigured.value = false
+}
 
 // 扫描视频文件
 async function scanVideoFiles() {

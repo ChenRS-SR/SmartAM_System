@@ -54,10 +54,21 @@
       <RegulationControl 
         ref="regulationControl"
         @video-source-changed="onVideoSourceChanged"
+        @layer-changed="onLayerChanged"
       />
     </div>
     
-    <!-- 振动波形监测 (放在闭环调控下方) -->
+    <!-- 区域特征曲线 (放在闭环调控下方) -->
+    <div class="feature-curve-section">
+      <FeatureCurvePanel
+        :current-layer="currentLayerInfo.number"
+        :is-layer-start="currentLayerInfo.isStart"
+        :is-layer-end="currentLayerInfo.isEnd"
+        :is-running="isRunning"
+      />
+    </div>
+    
+    <!-- 振动波形监测 (放在特征曲线下方) -->
     <div class="vibration-section">
       <VibrationWaveform 
         :waveform-data="latestData.vibration_waveform"
@@ -186,6 +197,7 @@ import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
 import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
 import ImageCapturePanel from '../../components/slm/ImageCapturePanel.vue'
 import RegulationControl from '../../components/slm/RegulationControl.vue'
+import FeatureCurvePanel from '../../components/slm/FeatureCurvePanel.vue'
 import VibrationWaveform from '../../components/slm/VibrationWaveform.vue'
 
 // 状态
@@ -256,6 +268,13 @@ const availableComPorts = ref([])
 // RegulationControl 引用
 const regulationControl = ref(null)
 
+// 当前层信息（用于特征曲线）
+const currentLayerInfo = ref({
+  number: 0,
+  isStart: false,
+  isEnd: false
+})
+
 // 当前视频文件配置（用于检测变化）
 const currentVideoConfig = ref({
   enabled: false,
@@ -284,6 +303,12 @@ const onVideoSourceChanged = (sourceInfo) => {
     sensorStatus.camera_ch2.connected = true
     sensorStatus.thermal.connected = true
   }
+}
+
+// 层变化时的处理
+const onLayerChanged = (layerInfo) => {
+  currentLayerInfo.value = layerInfo
+  console.log('[Dashboard] 层变化:', layerInfo)
 }
 
 // 获取状态

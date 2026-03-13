@@ -1,0 +1,122 @@
+{
+  "rois": {
+    "global": {
+      "name": "全局",
+      "type": "rectangle",
+      "coords": [
+        20,
+        20,
+        600,
+        440
+      ],
+      "description": "全局区域"
+    },
+    "model_1": {
+      "name": "零件1",
+      "type": "rectangle",
+      "coords": [
+        45,
+        45,
+        98,
+        105
+      ],
+      "description": "零件1区域"
+    },
+    "model_2": {
+      "name": "零件2",
+      "type": "rectangle",
+      "coords": [
+        178,
+        45,
+        98,
+        105
+      ],
+      "description": "零件2区域"
+    },
+    "model_3": {
+      "name": "零件3",
+      "type": "rectangle",
+      "coords": [
+        353,
+        45,
+        98,
+        105
+      ],
+      "description": "零件3区域"
+    },
+    "model_4": {
+      "name": "零件4",
+      "type": "rectangle",
+      "coords": [
+        481,
+        45,
+        98,
+        105
+      ],
+      "description": "零件4区域"
+    },
+    "model_5": {
+      "name": "零件5",
+      "type": "rectangle",
+      "coords": [
+        41,
+        325,
+        98,
+        105
+      ],
+      "description": "零件5区域"
+    },
+    "model_6": {
+      "name": "零件6",
+      "type": "rectangle",
+      "coords": [
+        178,
+        325,
+        98,
+        105
+      ],
+      "description": "零件6区域"
+    },
+    "model_7": {
+      "name": "零件7",
+      "type": "rectangle",
+      "coords": [
+        353,
+        325,
+        98,
+        105
+      ],
+      "description": "零件7区域"
+    },
+    "model_8": {
+      "name": "零件8",
+      "type": "rectangle",
+      "coords": [
+        481,
+        325,
+        98,
+        105
+      ],
+      "description": "零件8区域"
+    },
+    "pool_center": {
+      "name": "熔池中心",
+      "type": "rectangle",
+      "coords": [
+        270,
+        190,
+        100,
+        100
+      ],
+      "description": "熔池中心区域"
+    }
+  },
+  "features": [
+    "mean",
+    "std",
+    "max",
+    "min",
+    "median"
+  ],
+  "update_mode": "layer"
+}

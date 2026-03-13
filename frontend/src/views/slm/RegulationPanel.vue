@@ -478,26 +478,17 @@ const onVideoTimeUpdate = () => {
 
 // 同步其他通道
 const syncOtherChannels = () => {
-  if (!currentScene.value?.sync) return
-  
-  const sync = currentScene.value.sync
+  // 视频已经预处理对齐，直接同步CH1时间即可
   const ch1Time = videoCh1.value?.currentTime || 0
-  const currentFps = fps.value
   
-  // CH2同步
-  if (videoCh2.value && sync.ch2?.offset !== undefined) {
-    const targetTime = ch1Time + sync.ch2.offset / currentFps
-    if (Math.abs(videoCh2.value.currentTime - targetTime) > 0.1) {
-      videoCh2.value.currentTime = targetTime
-    }
+  // CH2同步 - 与CH1完全一致
+  if (videoCh2.value && Math.abs(videoCh2.value.currentTime - ch1Time) > 0.05) {
+    videoCh2.value.currentTime = ch1Time
   }
   
-  // CH3同步
-  if (videoCh3.value && sync.ch3?.offset !== undefined) {
-    const targetTime = ch1Time + sync.ch3.offset / currentFps
-    if (Math.abs(videoCh3.value.currentTime - targetTime) > 0.1) {
-      videoCh3.value.currentTime = targetTime
-    }
+  // CH3同步 - 与CH1完全一致
+  if (videoCh3.value && Math.abs(videoCh3.value.currentTime - ch1Time) > 0.05) {
+    videoCh3.value.currentTime = ch1Time
   }
 }
 
@@ -581,18 +572,10 @@ const togglePlay = () => {
     videoCh2.value?.pause()
     videoCh3.value?.pause()
   } else {
-    // 先同步时间再播放
-    if (currentScene.value?.sync) {
-      const ch1Time = videoCh1.value.currentTime
-      const currentFps = fps.value
-      
-      if (videoCh2.value && currentScene.value.sync.ch2?.offset !== undefined) {
-        videoCh2.value.currentTime = ch1Time + currentScene.value.sync.ch2.offset / currentFps
-      }
-      if (videoCh3.value && currentScene.value.sync.ch3?.offset !== undefined) {
-        videoCh3.value.currentTime = ch1Time + currentScene.value.sync.ch3.offset / currentFps
-      }
-    }
+    // 视频已经预处理对齐，直接同步CH1时间
+    const ch1Time = videoCh1.value.currentTime
+    if (videoCh2.value) videoCh2.value.currentTime = ch1Time
+    if (videoCh3.value) videoCh3.value.currentTime = ch1Time
     
     videoCh1.value.play()
     videoCh2.value?.play()
@@ -611,50 +594,12 @@ const changeSpeed = (speed) => {
 const seekFrame = (frame) => {
   currentFrame.value = frame
   const currentFps = fps.value
+  const ch1Time = frame / currentFps
   
-  // 根据同步信息计算各通道的时间
-  if (currentScene.value?.sync) {
-    // 使用sync配置计算偏移
-    const sync = currentScene.value.sync
-    const ch1Time = frame / currentFps
-    
-    if (videoCh1.value) videoCh1.value.currentTime = ch1Time
-    
-    // CH2和CH3根据sync偏移计算
-    if (sync.ch2?.offset !== undefined && videoCh2.value) {
-      videoCh2.value.currentTime = Math.max(0, ch1Time + sync.ch2.offset / currentFps)
-    } else if (videoCh2.value) {
-      videoCh2.value.currentTime = ch1Time
-    }
-    
-    if (sync.ch3?.offset !== undefined && videoCh3.value) {
-      videoCh3.value.currentTime = Math.max(0, ch1Time + sync.ch3.offset / currentFps)
-    } else if (videoCh3.value) {
-      videoCh3.value.currentTime = ch1Time
-    }
-  } else if (currentScene.value?.timeline?.layers && currentScene.value.timeline.layers['115']) {
-    // 使用CH1作为基准
-    const ch1Time = frame / currentFps
-    if (videoCh1.value) videoCh1.value.currentTime = ch1Time
-    
-    // CH2和CH3根据同步偏移计算
-    const layer115 = currentScene.value.timeline.layers['115']
-    const ch1Start = layer115.ch1Range[0] / currentFps
-    const ch2Start = layer115.ch2Range[0] / currentFps
-    const ch3Start = layer115.ch3Range[0] / currentFps
-    
-    const ch2Offset = ch2Start - ch1Start
-    const ch3Offset = ch3Start - ch1Start
-    
-    if (videoCh2.value) videoCh2.value.currentTime = Math.max(0, ch1Time + ch2Offset)
-    if (videoCh3.value) videoCh3.value.currentTime = Math.max(0, ch1Time + ch3Offset)
-  } else {
-    // 简单同步
-    const time = frame / fps
-    if (videoCh1.value) videoCh1.value.currentTime = time
-    if (videoCh2.value) videoCh2.value.currentTime = time
-    if (videoCh3.value) videoCh3.value.currentTime = time
-  }
+  // 视频已经预处理对齐，三个通道使用相同时间
+  if (videoCh1.value) videoCh1.value.currentTime = ch1Time
+  if (videoCh2.value) videoCh2.value.currentTime = ch1Time
+  if (videoCh3.value) videoCh3.value.currentTime = ch1Time
 }
 
 const prevFrame = () => seekFrame(Math.max(0, currentFrame.value - 1))

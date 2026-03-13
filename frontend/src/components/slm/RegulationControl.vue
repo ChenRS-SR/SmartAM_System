@@ -109,6 +109,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
+const emit = defineEmits(['layer-changed'])
+
 // ==================== 视频裁剪偏移配置 ====================
 const VIDEO_OFFSET_SECONDS = 2 + 7/30
 const VIDEO_FPS = 30
@@ -429,9 +431,24 @@ function startTimeTracking() {
     
     const targetDisplayLayer = completedCycles.value * totalLayers.value + (videoLayer - firstLayer + 1)
     
-    if (videoLayer !== currentLayer.value) {
+    // 检测层变化
+    const layerChanged = videoLayer !== currentLayer.value
+    
+    if (layerChanged) {
+      // 检测是层开始还是层结束
+      const isLayerStart = videoLayer > currentLayer.value || (currentLayer.value === 126 && videoLayer === 113) || (currentLayer.value === 5 && videoLayer === 1)
+      const isLayerEnd = videoLayer < currentLayer.value || (videoLayer === 126) || (videoLayer === 5 && detectedScene.value === 'normal')
+      
       currentLayer.value = videoLayer
       updateStatusByLayer(videoLayer)
+      
+      // 触发层变化事件
+      emit('layer-changed', {
+        number: targetDisplayLayer,
+        videoLayer: videoLayer,
+        isStart: isLayerStart,
+        isEnd: isLayerEnd
+      })
     }
     
     displayLayer.value = targetDisplayLayer
