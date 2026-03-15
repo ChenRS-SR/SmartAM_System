@@ -108,3 +108,13 @@ diagnose_octoprint.py
 test_printer_api.py
 test_websocket.py
 *.spec
+
+# Video files in root directory
+/*.mp4
+/*.MP4
+/*.avi
+/*.AVI
+/*.mov
+/*.MOV
+/*.mkv
+/*.MKV

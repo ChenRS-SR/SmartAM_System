@@ -1,16 +1,31 @@
 """
-打印机控制 API
+打印机控制 API (FDM 专用)
 - 连接/断开打印机
 - 获取打印状态
 - 发送 G-code 指令
+
+注意：此 API 仅在 FDM 模式下可用
 """
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+import logging
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _check_fdm_mode():
+    """检查当前是否为 FDM 模式"""
+    from core.device_manager import get_device_manager
+    manager = get_device_manager()
+    if manager.current_type.value != "fdm":
+        raise HTTPException(
+            status_code=503, 
+            detail=f"打印机 API 仅在 FDM 模式下可用，当前模式: {manager.current_type.value}"
+        )
 
 
 class PrinterCommand(BaseModel):
@@ -46,6 +61,20 @@ async def disconnect_printer():
 @router.get("/status", response_model=PrinterStatus)
 async def get_printer_status():
     """获取打印机当前状态（从 OctoPrint）"""
+    # 检查是否为 FDM 模式
+    try:
+        _check_fdm_mode()
+    except HTTPException:
+        # 非 FDM 模式返回空状态
+        return PrinterStatus(
+            connected=False,
+            printing=False,
+            progress=0.0,
+            nozzle_temp=0.0,
+            bed_temp=0.0,
+            position={"x": 0, "y": 0, "z": 0}
+        )
+    
     from main import daq
     
     if not daq:
@@ -97,11 +126,32 @@ def _get_api_key_from_env():
 
 @router.get("/temperature")
 async def get_printer_temperature():
-    """获取打印机当前温度（实时从 OctoPrint 获取）"""
+    """获取打印机当前温度（实时从 OctoPrint 获取，支持模拟模式）"""
+    # 检查是否为 FDM 模式
+    _check_fdm_mode()
+    
     from main import daq
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")
+    
+    # 检查 OctoPrint 模拟模式
+    if getattr(daq, '_octoprint_simulation_active', False) and daq._octoprint_simulator:
+        status = daq._octoprint_simulator.get_printer_status()
+        temp = status.get("temperature", {})
+        return {
+            "success": True,
+            "simulation": True,
+            "timestamp": datetime.now().isoformat(),
+            "nozzle": {
+                "actual": temp.get("tool0", {}).get("actual", 0),
+                "target": temp.get("tool0", {}).get("target", 0)
+            },
+            "bed": {
+                "actual": temp.get("bed", {}).get("actual", 0),
+                "target": temp.get("bed", {}).get("target", 0)
+            }
+        }
     
     # 获取 API Key
     api_key = daq.config.octoprint_api_key
@@ -166,6 +216,27 @@ async def get_printer_temperature():
                 "bed": {"actual": 0, "target": 0}
             }
     except requests.exceptions.ConnectionError:
+        # 连接失败且启用了自动回退
+        if getattr(daq, 'config', None) and getattr(daq.config, 'octoprint_simulation_auto_fallback', False):
+            logging.warning("[Temperature] OctoPrint 连接失败，自动启用模拟模式")
+            daq._enable_octoprint_simulation()
+            status = daq._octoprint_simulator.get_printer_status()
+            temp = status.get("temperature", {})
+            return {
+                "success": True,
+                "simulation": True,
+                "auto_fallback": True,
+                "timestamp": datetime.now().isoformat(),
+                "nozzle": {
+                    "actual": temp.get("tool0", {}).get("actual", 0),
+                    "target": temp.get("tool0", {}).get("target", 0)
+                },
+                "bed": {
+                    "actual": temp.get("bed", {}).get("actual", 0),
+                    "target": temp.get("bed", {}).get("target", 0)
+                }
+            }
+        
         return {
             "success": False,
             "error": f"无法连接到 OctoPrint ({daq.config.octoprint_url})，请检查 OctoPrint 是否运行",
@@ -232,13 +303,26 @@ async def stop_print():
 
 @router.get("/test")
 async def test_printer_connection():
-    """测试 OctoPrint 连接"""
+    """测试 OctoPrint 连接（支持模拟模式）"""
     from main import daq
     
     if not daq:
         return {
             "success": False,
             "error": "DAQ 系统未初始化"
+        }
+    
+    # 检查 OctoPrint 模拟模式
+    if getattr(daq, '_octoprint_simulation_active', False) and daq._octoprint_simulator:
+        return {
+            "success": True,
+            "simulation": True,
+            "message": "OctoPrint 模拟模式运行中",
+            "octoprint_url": "simulation",
+            "temperature": {
+                "nozzle_actual": daq._octoprint_simulator._current_temps.get("hotend", 200),
+                "bed_actual": daq._octoprint_simulator._current_temps.get("bed", 60)
+            }
         }
     
     # 获取 API Key
@@ -305,6 +389,22 @@ async def test_printer_connection():
                 "response": response.text[:200]
             }
     except requests.exceptions.ConnectionError:
+        # 连接失败且启用了自动回退
+        if getattr(daq, 'config', None) and getattr(daq.config, 'octoprint_simulation_auto_fallback', False):
+            logging.warning("[Test] OctoPrint 连接失败，自动启用模拟模式")
+            daq._enable_octoprint_simulation()
+            return {
+                "success": True,
+                "simulation": True,
+                "auto_fallback": True,
+                "message": "OctoPrint 连接失败，已自动切换到模拟模式",
+                "octoprint_url": "simulation",
+                "temperature": {
+                    "nozzle_actual": 200,
+                    "bed_actual": 60
+                }
+            }
+        
         return {
             "success": False,
             "error": f"无法连接到 OctoPrint ({daq.config.octoprint_url})",

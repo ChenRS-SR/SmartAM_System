@@ -467,6 +467,53 @@ class ClosedLoopController:
         # 控制日志
         self.control_log: List[Dict] = []
         
+        # 设备健康状态回调（用于更新SLM设备健康状态）
+        self._health_status_callback: Optional[Callable[[int, List[str]], None]] = None
+        
+        # 当前诊断状态码（用于跟踪状态变化）
+        self._current_diagnosis_code: int = 0
+        self._diagnosis_history: deque = deque(maxlen=10)  # 最近10次诊断结果
+    
+    def set_health_status_callback(self, callback: Callable[[int, List[str]], None]):
+        """
+        设置设备健康状态回调函数
+        
+        Args:
+            callback: 回调函数，参数为 (status_code: int, labels: List[str])
+                     status_code: -1=未开机, 0=健康, 1=刮刀磨损, 2=激光异常, 3=气体异常, 4=复合故障
+        """
+        self._health_status_callback = callback
+        print(f"[ClosedLoopController] 健康状态回调已设置")
+    
+    def _update_health_status(self, status_code: int, labels: List[str] = None):
+        """
+        更新设备健康状态
+        
+        根据闭环调控的诊断结果，更新SLM设备健康状态码
+        目前只诊断激光功率异常（状态码2）和正常（状态码0）
+        """
+        labels = labels or []
+        
+        # 记录诊断历史
+        self._diagnosis_history.append({
+            'status_code': status_code,
+            'labels': labels,
+            'timestamp': time.time()
+        })
+        
+        # 如果状态发生变化，触发回调
+        if status_code != self._current_diagnosis_code:
+            self._current_diagnosis_code = status_code
+            
+            if self._health_status_callback:
+                try:
+                    self._health_status_callback(status_code, labels)
+                    print(f"[ClosedLoopController] 健康状态已更新: 状态码={status_code}, 标签={labels}")
+                except Exception as e:
+                    print(f"[ClosedLoopController] 更新健康状态失败: {e}")
+            else:
+                print(f"[ClosedLoopController] 健康状态变化: 状态码={status_code}, 标签={labels} (未设置回调)")
+        
     def process_prediction(self, predictions: Dict[ParameterType, Tuple[ParameterState, float]]):
         """
         处理新的预测结果
@@ -485,11 +532,54 @@ class ClosedLoopController:
                 timestamp=current_time
             )
             self.buffers[param].add_prediction(pred)
+        
+        # 根据预测结果更新设备健康状态
+        self._update_diagnosis_status(predictions)
             
         # 检查是否需要执行控制
         if current_time - self.last_control_time >= self.config.control_interval:
             self._evaluate_and_control()
             self.last_control_time = current_time
+    
+    def _update_diagnosis_status(self, predictions: Dict[ParameterType, Tuple[ParameterState, float]]):
+        """
+        根据预测结果更新诊断状态
+        
+        目前只诊断激光功率异常：
+        - 如果激光功率状态为 LOW 或 HIGH，返回状态码 2（激光异常）
+        - 如果激光功率状态为 NORMAL，返回状态码 0（健康）
+        
+        Args:
+            predictions: {参数类型: (状态, 置信度)}
+        """
+        # 检查激光功率状态（这里假设激光功率对应 HOTEND_TEMP 或其他参数）
+        # 实际使用时，可能需要根据具体的参数映射关系调整
+        
+        laser_related_params = [
+            ParameterType.HOTEND_TEMP,  # 热端温度与激光功率相关
+            # 可以添加其他与激光相关的参数
+        ]
+        
+        has_laser_fault = False
+        fault_labels = []
+        
+        for param in laser_related_params:
+            if param in predictions:
+                state, confidence = predictions[param]
+                if state != ParameterState.NORMAL and confidence >= self.config.threshold_on:
+                    has_laser_fault = True
+                    fault_labels.append(f"{param.value}_{state.name}")
+        
+        # 根据诊断结果设置状态码
+        if has_laser_fault:
+            status_code = 2  # 激光异常
+            labels = ["激光功率异常"] + fault_labels
+        else:
+            status_code = 0  # 健康
+            labels = ["系统正常"]
+        
+        # 更新健康状态
+        self._update_health_status(status_code, labels)
     
     def _evaluate_and_control(self):
         """评估状态并执行控制"""
@@ -580,6 +670,11 @@ class ClosedLoopController:
             },
             "z_offset_detail": self.octoprint.get_z_offset_status(),  # Z-offset详细状态
             "recent_controls": self.control_log[-10:],  # 最近10条控制记录
+            "diagnosis": {
+                "current_status_code": self._current_diagnosis_code,
+                "status_labels": self._diagnosis_history[-1]['labels'] if self._diagnosis_history else [],
+                "history": list(self._diagnosis_history)
+            }
         }
         return status
     
@@ -590,6 +685,10 @@ class ClosedLoopController:
         for trig in self.triggers.values():
             trig.reset()
         self.control_log.clear()
+        self._current_diagnosis_code = 0
+        self._diagnosis_history.clear()
+        # 重置时更新健康状态为正常
+        self._update_health_status(0, ["系统重置"])
 
 # 便捷函数：创建默认配置
 def create_default_config() -> ClosedLoopConfig:

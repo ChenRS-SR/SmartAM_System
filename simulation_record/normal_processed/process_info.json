@@ -1,0 +1,10 @@
+{
+  "scene": "normal",
+  "fps": 10,
+  "calibration_used": true,
+  "channels": {
+    "CH1": "D:\\College\\Python_project\\4Project\\SmartAM_System\\simulation_record\\normal_processed\\CH1_processed.mp4",
+    "CH2": "D:\\College\\Python_project\\4Project\\SmartAM_System\\simulation_record\\normal_processed\\CH2_processed.mp4",
+    "CH3": "D:\\College\\Python_project\\4Project\\SmartAM_System\\simulation_record\\normal_processed\\CH3_processed.mp4"
+  }
+}

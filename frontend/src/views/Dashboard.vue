@@ -88,27 +88,14 @@
             </div>
           </template>
           <div class="video-container">
-            <img 
-              v-show="videoConnected"
-              :src="streamUrl" 
+            <!-- 模拟视频流 Canvas -->
+            <canvas
+              ref="mockCanvas"
               class="video-stream"
-              alt="视频流"
-              @load="videoConnected = true"
-              @error="handleVideoError"
+              :width="canvasWidth"
+              :height="canvasHeight"
             />
-            <div v-if="!videoConnected" class="video-error">
-              <el-icon size="48" color="#666"><VideoCamera /></el-icon>
-              <span>{{ videoError || '视频流加载中...' }}</span>
-              <el-button 
-                v-if="videoError" 
-                type="primary" 
-                size="small"
-                @click="reconnectVideo"
-              >
-                <el-icon><Refresh /></el-icon>
-                重新连接
-              </el-button>
-            </div>
+            <div class="mock-label">[MOCK MODE] 模拟视频流</div>
           </div>
         </el-card>
         
@@ -145,35 +132,143 @@ import ControlPanel from '../components/ControlPanel.vue'
 import PrintFileManager from '../components/PrintFileManager.vue'
 
 const store = useDataStore()
-
-// 调试：监视 acquisition 数据变化
-watch(() => store.sensorData.acquisition, (newVal, oldVal) => {
-  console.log('[Dashboard Watch] acquisition changed:', {
-    from: oldVal,
-    to: newVal
-  })
-}, { deep: true })
-
-// 调试：监视 printer.position 变化
-watch(() => store.sensorData.printer?.position, (newVal, oldVal) => {
-  console.log('[Dashboard Watch] printer.position changed:', {
-    from: oldVal,
-    to: newVal
-  })
-}, { deep: true })
-
 const { gridCols, isMobile } = useResponsive()
 const { handlePredictionAlert, handlePrintEvent } = useNotification()
 
-// 当前温度
-const currentTemps = ref({
-  nozzle: 0,
-  nozzleTarget: 0,
-  bed: 0,
-  bedTarget: 0
+// ========== 模拟视频流 ==========
+const mockCanvas = ref(null)
+let mockAnimationId = null
+const currentStream = ref('combined')
+
+const canvasWidth = computed(() => currentStream.value === 'combined' ? 960 : 640)
+const canvasHeight = computed(() => currentStream.value === 'combined' ? 540 : 480)
+
+const startMockAnimation = () => {
+  if (!mockCanvas.value) {
+    console.warn('[Mock] Canvas not ready')
+    return
+  }
+  
+  stopMockAnimation()
+  const ctx = mockCanvas.value.getContext('2d')
+  const type = currentStream.value
+  
+  console.log('[Mock] Starting animation:', type)
+  
+  const animate = () => {
+    const t = Date.now() / 1000
+    const w = canvasWidth.value
+    const h = canvasHeight.value
+    
+    // 背景
+    ctx.fillStyle = '#1a1a2e'
+    ctx.fillRect(0, 0, w, h)
+    
+    // 网格
+    ctx.strokeStyle = '#333'
+    ctx.lineWidth = 1
+    for (let i = 0; i < w; i += 40) {
+      ctx.beginPath()
+      ctx.moveTo(i, 0)
+      ctx.lineTo(i, h)
+      ctx.stroke()
+    }
+    for (let i = 0; i < h; i += 40) {
+      ctx.beginPath()
+      ctx.moveTo(0, i)
+      ctx.lineTo(w, i)
+      ctx.stroke()
+    }
+    
+    // 根据类型绘制
+    if (type === 'ids') {
+      // IDS 视角
+      const x = w / 2 + Math.sin(t) * 50
+      const y = h / 2 + Math.cos(t * 0.7) * 30
+      
+      ctx.fillStyle = '#ff6b6b'
+      ctx.beginPath()
+      ctx.arc(x, y, 20, 0, Math.PI * 2)
+      ctx.fill()
+      
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, 40)
+      gradient.addColorStop(0, 'rgba(255, 100, 100, 0.6)')
+      gradient.addColorStop(1, 'rgba(255, 100, 100, 0)')
+      ctx.fillStyle = gradient
+      ctx.beginPath()
+      ctx.arc(x, y, 40, 0, Math.PI * 2)
+      ctx.fill()
+    } else if (type === 'side') {
+      // 旁轴视角
+      const x = w / 2 + Math.sin(t * 0.5) * 100
+      const nozzleY = h / 3
+      
+      ctx.strokeStyle = '#666'
+      ctx.lineWidth = 3
+      ctx.strokeRect(w / 4, h / 6, w / 2, h * 0.6)
+      
+      ctx.fillStyle = '#4ecdc4'
+      ctx.fillRect(w / 2 - 30, h * 0.6, 60, 80)
+      
+      ctx.fillStyle = '#ff6b6b'
+      ctx.fillRect(x - 15, nozzleY - 20, 30, 40)
+    } else {
+      // 组合画面
+      ctx.strokeStyle = '#00d4ff'
+      ctx.strokeRect(10, 10, w / 2 - 20, h - 20)
+      ctx.fillStyle = '#00d4ff'
+      ctx.font = '14px Arial'
+      ctx.fillText('[MOCK] IDS', 20, 35)
+      
+      ctx.strokeStyle = '#00ff88'
+      ctx.strokeRect(w / 2 + 10, 10, w / 2 - 20, h - 20)
+      ctx.fillStyle = '#00ff88'
+      ctx.fillText('[MOCK] Side', w / 2 + 20, 35)
+      
+      ctx.fillStyle = '#fff'
+      ctx.font = 'bold 24px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText('SIMULATION MODE', w / 2, h / 2)
+      ctx.font = '16px Arial'
+      ctx.fillText('No Backend Required', w / 2, h / 2 + 30)
+    }
+    
+    // 标识
+    ctx.textAlign = 'left'
+    ctx.fillStyle = '#00ff00'
+    ctx.font = 'bold 16px Arial'
+    ctx.fillText(`[MOCK] ${type.toUpperCase()}`, 10, 25)
+    ctx.fillStyle = '#aaa'
+    ctx.font = '12px Arial'
+    ctx.fillText('Frontend Only Mode', 10, 45)
+    ctx.fillText(`FPS: ${(Math.random() * 2 + 28).toFixed(1)}`, 10, 65)
+    
+    mockAnimationId = requestAnimationFrame(animate)
+  }
+  
+  animate()
+}
+
+const stopMockAnimation = () => {
+  if (mockAnimationId) {
+    cancelAnimationFrame(mockAnimationId)
+    mockAnimationId = null
+  }
+}
+
+// 监听流类型变化
+watch(currentStream, () => {
+  setTimeout(startMockAnimation, 50)
 })
 
-// 获取实时温度
+// ========== 温度数据 ==========
+const currentTemps = ref({
+  nozzle: 200,
+  nozzleTarget: 200,
+  bed: 60,
+  bedTarget: 60
+})
+
 const fetchTemperature = async () => {
   try {
     const res = await printerApi.getTemperature()
@@ -190,84 +285,12 @@ const fetchTemperature = async () => {
   }
 }
 
-// 视频流连接状态
-const videoConnected = ref(false)
-const videoError = ref('')
-const videoRetryCount = ref(0)
-const MAX_RETRY = 3
+let tempInterval = null
 
-// 处理视频加载错误
-const handleVideoError = () => {
-  videoConnected.value = false
-  videoRetryCount.value++
-  
-  if (videoRetryCount.value >= MAX_RETRY) {
-    videoError.value = '视频流连接失败，请检查后端服务'
-  } else {
-    videoError.value = `连接失败，正在重试 (${videoRetryCount.value}/${MAX_RETRY})...`
-    setTimeout(reconnectVideo, 2000)
-  }
-}
+// ========== 视频流状态 ==========
+const videoConnected = ref(true)
 
-// 重新连接视频流
-const reconnectVideo = () => {
-  videoConnected.value = false
-  videoError.value = ''
-  videoRetryCount.value = 0
-  // 强制刷新图片源（添加时间戳）
-  const streamType = currentStream.value
-  currentStream.value = ''
-  setTimeout(() => {
-    currentStream.value = streamType
-  }, 100)
-}
-
-// 监听预测变化，触发告警
-watch(() => store.latestData.prediction, (newVal, oldVal) => {
-  if (newVal?.available && newVal !== oldVal) {
-    handlePredictionAlert(newVal)
-  }
-}, { deep: true })
-
-// 监听打印状态变化
-watch(() => store.latestData.printer.state, (newState, oldState) => {
-  if (newState !== oldState) {
-    const eventMap = {
-      'Printing': 'PrintStarted',
-      'Operational': oldState === 'Printing' ? 'PrintDone' : null,
-      'Paused': 'PrintPaused'
-    }
-    const eventType = eventMap[newState]
-    if (eventType) {
-      handlePrintEvent(eventType, {
-        filename: store.latestData.printer.filename,
-        progress: store.latestData.printer.progress
-      })
-    }
-  }
-})
-
-const currentStream = ref('combined')
-const streamTimestamp = ref(Date.now())
-
-const streamUrl = computed(() => {
-  const urls = {
-    'combined': '/video_feed',
-    'ids': '/video_feed/ids',
-    'side': '/video_feed/side'
-  }
-  const baseUrl = urls[currentStream.value]
-  return baseUrl ? `${baseUrl}?t=${streamTimestamp.value}` : ''
-})
-
-// 监听流类型变化，重置连接状态
-watch(currentStream, () => {
-  videoConnected.value = false
-  videoError.value = ''
-  videoRetryCount.value = 0
-  streamTimestamp.value = Date.now()
-})
-
+// ========== 计算属性 ==========
 const statusColor = computed(() => {
   const state = store.latestData.printer.state
   if (state === 'Operational') return 'rgba(0, 255, 136, 0.2)'
@@ -282,7 +305,6 @@ const statusTextColor = computed(() => {
   return '#ffc107'
 })
 
-// 打印状态文本
 const printStatusText = computed(() => {
   const state = store.latestData.printer.state
   if (state === 'Printing') return '正在打印'
@@ -292,34 +314,16 @@ const printStatusText = computed(() => {
   return state || '未知'
 })
 
-// 剩余时间文本
 const printTimeLeft = computed(() => {
   const seconds = store.latestData.printer.print_time_left
   if (!seconds || seconds <= 0) return ''
-  
   const hours = Math.floor(seconds / 3600)
   const mins = Math.floor((seconds % 3600) / 60)
-  
-  if (hours > 0) {
-    return `剩余 ${hours}小时${mins}分钟`
-  } else {
-    return `剩余 ${mins}分钟`
-  }
+  return hours > 0 ? `剩余 ${hours}小时${mins}分钟` : `剩余 ${mins}分钟`
 })
 
-// 采集状态文本（包含详细区间信息）
 const acquisitionStateText = computed(() => {
-  // 直接从 store 获取原始数据
   const acq = store.sensorData.acquisition
-  
-  // 调试输出（每3秒一次）
-  const now = Date.now()
-  if (!window._lastAcqLog || now - window._lastAcqLog > 3000) {
-    console.log('[Dashboard] acquisition raw:', store.sensorData.acquisition)
-    console.log('[Dashboard] acquisition latestData:', store.latestData.acquisition)
-    window._lastAcqLog = now
-  }
-  
   if (!acq) return '未连接'
   const state = acq.state
   if (state !== 'running') {
@@ -327,108 +331,58 @@ const acquisitionStateText = computed(() => {
     if (state === 'idle') return '未开始'
     return state || '未知'
   }
-  
-  // 采集中：显示详细区间
   const z = acq.current_z || 0
   const mode = acq.param_mode || 'fixed'
-  
   if (mode === 'tower') {
-    if (z < 5.0) {
-      return '开始0-5mm'
-    } else if (z < 5.5) {
-      return '5-5.5静默区'
-    } else if (z < 9.5) {
-      return '5.5-9.5记录区'
-    } else if (z < 10.0) {
-      return '9.5-10等待区'
-    } else {
-      // 计算当前是第几段
-      const segment = Math.floor((z - 5) / 5) + 2  // 第2段开始
-      const inSegment = (z - 5) % 5
-      if (inSegment < 0.5) {
-        return `${segment}段静默区`
-      } else if (inSegment < 4.5) {
-        return `${segment}段记录区`
-      } else {
-        return `${segment}段等待区`
-      }
-    }
+    if (z < 5.0) return '开始0-5mm'
+    if (z < 5.5) return '5-5.5静默区'
+    if (z < 9.5) return '5.5-9.5记录区'
+    const segment = Math.floor((z - 5) / 5) + 2
+    return `${segment}段记录区`
   }
-  
   return '采集中'
 })
 
-// 采集状态颜色
-const acquisitionStateColor = computed(() => {
-  // 直接使用原始数据
+const acquisitionInfo = computed(() => {
   const acq = store.sensorData.acquisition
-  if (!acq) return 'rgba(128, 128, 128, 0.2)'
-  const state = acq.state
+  if (!acq || acq.state !== 'running') return ''
+  return `Z: ${(acq.current_z || 0).toFixed(2)}mm | 帧: ${acq.frame_count || 0}`
+})
+
+const acquisitionStateColor = computed(() => {
+  const state = store.sensorData.acquisition?.state
   if (state === 'running') return 'rgba(0, 255, 136, 0.3)'
   if (state === 'paused') return 'rgba(255, 193, 7, 0.3)'
-  return 'rgba(128, 128, 128, 0.2)'
+  return 'rgba(128, 128, 128, 0.3)'
 })
 
-// 采集信息（帧数/时长）
-const acquisitionInfo = computed(() => {
-  // 直接使用原始数据
-  const acq = store.sensorData.acquisition
-  if (!acq || !acq.state || acq.state === 'idle') return ''
-  const frames = acq.frame_count || 0
-  const duration = acq.duration || 0
-  const mins = Math.floor(duration / 60)
-  const secs = Math.floor(duration % 60)
-  return `${frames}帧 / ${mins}分${secs}秒`
-})
-
-// 当前Z高度（优先从 printer.position 获取）
 const currentZHeight = computed(() => {
-  // 优先从原始数据获取
-  const printerZ = store.sensorData.printer?.position?.z
-  
-  if (printerZ !== undefined && printerZ !== null && !isNaN(printerZ) && printerZ > 0) {
-    return 'Z: ' + Number(printerZ).toFixed(2)
-  }
-  // 回退到 acquisition.current_z
-  const acqZ = store.sensorData.acquisition?.current_z
-  
-  if (acqZ !== undefined && acqZ !== null && !isNaN(acqZ) && acqZ > 0) {
-    return 'Z: ' + Number(acqZ).toFixed(2)
-  }
-  return 'Z: 0.00'
+  const z = store.sensorData.acquisition?.current_z
+  return z ? z.toFixed(2) : '0.00'
 })
 
-// 打印参数文本
 const printParamsText = computed(() => {
-  // 直接使用原始数据
-  const acq = store.sensorData.acquisition
-  if (!acq) return '未连接'
-  const params = acq.current_params || {}
-  const fr = params.flow_rate || 0
-  const v = params.feed_rate || 0
-  const th = params.target_hotend || 0
-  const z_off = params.z_offset || 0
-  return `FR:${fr}% V:${v}% T:${th}°C z_off:${z_off.toFixed(2)}mm`
+  const params = store.sensorData.acquisition?.current_params
+  if (!params) return ''
+  return `F:${params.flow_rate || 0}% E:${params.feed_rate || 0}% T:${params.target_hotend || 0}°C`
 })
 
-// 当前采集区间信息（调试用）
-const segmentInfo = computed(() => {
-  const segment = store.sensorData.acquisition?.current_segment
-  if (!segment) return ''
-  return `塔${segment.tower_id} 区间${segment.segment_idx}/${segment.segment_total} (${segment.height_range})`
-})
-
-// 定时刷新温度
-let tempInterval = null
+// ========== 生命周期 ==========
 onMounted(() => {
   fetchTemperature()
   tempInterval = setInterval(fetchTemperature, 5000)
+  
+  // 启动模拟视频流
+  setTimeout(() => {
+    console.log('[Dashboard] 启动模拟视频流')
+    videoConnected.value = true
+    startMockAnimation()
+  }, 100)
 })
 
 onUnmounted(() => {
-  if (tempInterval) {
-    clearInterval(tempInterval)
-  }
+  if (tempInterval) clearInterval(tempInterval)
+  stopMockAnimation()
 })
 </script>
 
@@ -478,27 +432,28 @@ onUnmounted(() => {
 .video-container {
   width: 100%;
   aspect-ratio: 16/9;
-  background: #000;
+  background: #1a1a2e;
   border-radius: 8px;
   overflow: hidden;
+  position: relative;
 }
 
 .video-stream {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  display: block;
 }
 
-.video-error {
+.mock-label {
   position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: #666;
-  background: rgba(0, 0, 0, 0.5);
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 255, 0, 0.8);
+  color: #000;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
 }
 
 .side-section {
