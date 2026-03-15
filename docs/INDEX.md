@@ -5,48 +5,60 @@
 | 文档 | 内容 | 状态 |
 |------|------|------|
 | [README.md](../README.md) | 项目总览和快速开始 | ✅ 最新 |
-| [DEVELOPMENT_ROADMAP.md](../DEVELOPMENT_ROADMAP.md) | 开发路线图和进度 | ✅ 最新 |
-| [TODO.md](../TODO.md) | **明天实验室工作清单** | ✅ 最新 |
+| [CHANGELOG.md](../CHANGELOG.md) | 版本更新记录 | ✅ 最新 |
+| [QUICK_START.md](../QUICK_START.md) | 快速开始指南 | ✅ 最新 |
+| [START_GUIDE.md](../START_GUIDE.md) | 启动方式详解 | ✅ 最新 |
 
-## 🧪 测试文档
+## 🏭 工艺文档
 
-| 文档 | 内容 | 用途 |
+| 工艺 | 文档 | 内容 |
 |------|------|------|
-| [LAB_TEST_PLAN.md](LAB_TEST_PLAN.md) | 实验室测试计划 | 明天测试用 |
-| [TESTING_GUIDE.md](TESTING_GUIDE.md) | 测试手册和问题排查 | 开发参考 |
+| **FDM** | [FDM_README.md](../README.md) | 熔融沉积成型监控 |
+| **SLM** | [SLM设备连接指南](#) | 选择性激光熔化设备连接 |
+| **SLS** | [SLS设备连接指南](#) | 选择性激光烧结设备连接 |
 
 ## 🔧 技术文档
 
 | 文档 | 内容 | 状态 |
 |------|------|------|
-| [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) | 项目结构和代码说明 | ✅ 完整 |
-| [PACNET_INTEGRATION.md](PACNET_INTEGRATION.md) | PacNet集成说明 | ✅ 完整 |
+| [项目结构.md](项目结构.md) | 项目结构和代码说明 | ✅ 完整 |
+| [测试指南.md](测试指南.md) | 测试手册和问题排查 | ✅ 完整 |
+| [模拟模式使用指南.md](模拟模式使用指南.md) | 模拟模式配置说明 | ✅ 完整 |
+| [启动脚本说明与FDM验证指南.md](启动脚本说明与FDM验证指南.md) | 启动脚本使用说明 | ✅ 完整 |
+| [调控算法.md](调控算法.md) | 闭环调控算法说明 | ✅ 完整 |
+| [模型集成指南.md](模型集成指南.md) | PacNet模型集成 | ✅ 完整 |
 
 ## 📂 文档结构
 
 ```
 docs/
-├── INDEX.md              # 本文档 - 文档索引
-├── LAB_TEST_PLAN.md      # 实验室测试计划（明天用）
-├── TESTING_GUIDE.md      # 测试手册
-├── PROJECT_STRUCTURE.md  # 项目结构说明
-└── PACNET_INTEGRATION.md # PacNet集成说明
+├── INDEX.md                    # 本文档 - 文档索引
+├── 项目结构.md                  # 项目结构和代码说明
+├── 测试指南.md                  # 测试手册
+├── 模拟模式使用指南.md          # 模拟模式配置
+├── 启动脚本说明与FDM验证指南.md # 启动脚本使用
+├── 调控算法.md                  # 闭环调控算法
+├── 模型集成指南.md              # PacNet集成
+├── VIDEO_PREPROCESSING.md       # 视频预处理
+└── PROJECT_ISSUES_CHECKLIST.md  # 问题检查清单
 ```
 
 ## 🎯 推荐阅读顺序
 
 ### 第一次接触项目
 1. [../README.md](../README.md) - 了解项目是什么
-2. [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - 了解代码结构
-
-### 明天去实验室测试
-1. [../TODO.md](../TODO.md) - **必读，按步骤执行**
-2. [LAB_TEST_PLAN.md](LAB_TEST_PLAN.md) - 详细测试流程
-3. [TESTING_GUIDE.md](TESTING_GUIDE.md) - 遇到问题查阅
+2. [项目结构.md](项目结构.md) - 了解代码结构
+3. [QUICK_START.md](../QUICK_START.md) - 快速开始
 
 ### 开发调试
-1. [PACNET_INTEGRATION.md](PACNET_INTEGRATION.md) - PacNet相关
-2. [TESTING_GUIDE.md](TESTING_GUIDE.md) - 问题排查
+1. [START_GUIDE.md](../START_GUIDE.md) - 选择启动方式
+2. [模拟模式使用指南.md](模拟模式使用指南.md) - 配置模拟模式
+3. [测试指南.md](测试指南.md) - 问题排查
+
+### 添加新设备
+1. [项目结构.md](项目结构.md) - 了解模块组织
+2. 参考 `backend/core/sls/` 或 `backend/core/slm/` 实现
+3. [测试指南.md](测试指南.md) - 测试新设备
 
 ---
 
