@@ -1,346 +1,665 @@
 <template>
   <div class="sls-dashboard">
-    <div class="header">
-      <h1>SLS 粉末烧结监控系统</h1>
-      <el-button @click="backToDeviceSelect">切换设备</el-button>
-    </div>
-    
-    <!-- 状态概览 -->
-    <div class="status-cards">
-      <el-card class="status-card">
-        <template #header>
-          <span>采集状态</span>
-        </template>
-        <div class="status-content">
-          <el-tag :type="acquisitionStatus.type">{{ acquisitionStatus.text }}</el-tag>
-          <p>当前层数: {{ currentLayer }}</p>
-          <p>总周期: {{ totalCycles }}</p>
-        </div>
-      </el-card>
-      
-      <el-card class="status-card">
-        <template #header>
-          <span>振动监测</span>
-        </template>
-        <div class="status-content">
-          <div class="vibration-value" :class="vibrationClass">
-            {{ vibrationMagnitude.toFixed(3) }}
-          </div>
-          <p>检测状态: {{ powderState }}</p>
-        </div>
-      </el-card>
-      
-      <el-card class="status-card">
-        <template #header>
-          <span>设备状态</span>
-        </template>
-        <div class="device-list">
-          <div v-for="(status, name) in deviceStatus" :key="name" class="device-item">
-            <span>{{ deviceNames[name] }}:</span>
-            <el-tag :type="status.connected ? 'success' : 'danger'" size="small">
-              {{ status.connected ? '已连接' : '未连接' }}
-            </el-tag>
-          </div>
-        </div>
-      </el-card>
-    </div>
-    
-    <!-- 控制面板 -->
-    <el-card class="control-panel">
-      <template #header>
-        <span>采集控制</span>
-      </template>
-      
-      <div class="control-row">
-        <el-input-number v-model="startLayer" :min="0" label="起始层数" />
-        
+    <!-- 页面标题 -->
+    <div class="dashboard-header">
+      <h1 class="page-title">SLS 设备监控仪表盘</h1>
+      <div class="header-actions">
+        <!-- 模式指示器 -->
+        <el-tag 
+          :type="settings.use_mock ? 'warning' : 'success'" 
+          size="large" 
+          effect="dark"
+          class="mode-tag"
+        >
+          {{ settings.use_mock ? '🔶 模拟模式' : '🔷 真实硬件' }}
+        </el-tag>
+        <el-tag :type="isRunning ? 'success' : 'info'" size="large" effect="dark">
+          {{ isRunning ? '采集中' : '已停止' }}
+        </el-tag>
         <el-button 
-          type="primary" 
-          @click="startAcquisition" 
-          :disabled="isRunning"
+          :type="isRunning ? 'danger' : 'primary'"
+          @click="toggleAcquisition"
           :loading="starting"
         >
-          开始采集
+          {{ isRunning ? '停止采集' : '开始采集' }}
         </el-button>
-        
-        <el-button 
-          type="danger" 
-          @click="stopAcquisition" 
-          :disabled="!isRunning"
-        >
-          停止采集
+        <el-button @click="showSettings = true">
+          <el-icon><Setting /></el-icon>
+          设置
         </el-button>
+      </div>
+    </div>
+    
+    <!-- 传感器连接状态 -->
+    <SensorConnectionStatus
+      :sensor-status="sensorStatus"
+      @toggle-sensor="handleToggleSensor"
+      @change-com-port="handleChangeComPort"
+      @refresh="refreshStatus"
+    />
+    
+    <!-- 实时数据显示 (包含CH1/CH2/红外视频) -->
+    <div class="realtime-section">
+      <RealTimeDisplay
+        :sensor-status="sensorStatus"
+        :latest-data="latestData"
+        :stream-key="streamKey"
+        :display-paused="displayPaused"
+        :last-frames="lastFrames"
+      />
+    </div>
+    
+    <!-- 舵机控制面板 (SLS特有) -->
+    <div class="servo-section">
+      <ServoControlPanel
+        :is-running="isRunning"
+        :servo-status="servoStatus"
+        @servo-move="handleServoMove"
+        @servo-toggle="handleServoToggle"
+      />
+    </div>
+    
+    <!-- 振动波形监测 -->
+    <div class="vibration-section">
+      <VibrationWaveform 
+        :waveform-data="latestData.vibration_waveform"
+        :latest-vibration="latestData.vibration"
+        :enabled="sensorStatus.vibration?.enabled"
+        :connected="sensorStatus.vibration?.connected"
+      />
+    </div>
+    
+    <!-- 设备健康状态 -->
+    <div class="health-section">
+      <EquipmentHealthStatus
+        :health-data="healthData"
+        :is-running="isRunning"
+      />
+    </div>
+    
+    <!-- 振动触发图像采集 -->
+    <div class="capture-section">
+      <ImageCapturePanel
+        :is-running="isRunning"
+        :latest-data="latestData"
+        @capture-triggered="handleCaptureTriggered"
+      />
+    </div>
+    
+    <!-- 设置对话框 -->
+    <el-dialog
+      v-model="showSettings"
+      title="采集设置"
+      width="600px"
+      destroy-on-close
+    >
+      <el-form :model="settings" label-width="140px">
+        <!-- 摄像头设置 -->
+        <el-divider content-position="left">摄像头设置 (USB)</el-divider>
+        <el-form-item label="CH1主摄像头">
+          <el-select v-model="settings.camera_ch1_index" style="width: 200px" :loading="camerasLoading">
+            <el-option
+              v-for="cam in availableCameras"
+              :key="cam.index"
+              :label="`摄像头 ${cam.index} (${cam.resolution?.[0] || '?'}x${cam.resolution?.[1] || '?'})`"
+              :value="cam.index"
+            />
+            <el-option v-if="availableCameras.length === 0 && !camerasLoading" label="未检测到摄像头" :value="-1" disabled />
+            <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
+          </el-select>
+          <el-button type="primary" size="small" @click="fetchCameras" style="margin-left: 10px" :loading="camerasLoading">
+            <el-icon><Refresh /></el-icon> 刷新
+          </el-button>
+        </el-form-item>
+        <el-form-item label="CH2副摄像头">
+          <el-select v-model="settings.camera_ch2_index" style="width: 200px" :loading="camerasLoading">
+            <el-option
+              v-for="cam in availableCameras"
+              :key="cam.index"
+              :label="`摄像头 ${cam.index} (${cam.resolution?.[0] || '?'}x${cam.resolution?.[1] || '?'})`"
+              :value="cam.index"
+            />
+            <el-option v-if="availableCameras.length === 0 && !camerasLoading" label="未检测到摄像头" :value="-1" disabled />
+            <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
+          </el-select>
+        </el-form-item>
         
-        <el-button @click="resetState">重置状态</el-button>
-      </div>
-      
-      <div class="control-row">
-        <span>振动阈值:</span>
-        <el-slider v-model="threshold" :min="0.01" :max="1" :step="0.01" style="width: 200px" />
-        <el-input-number v-model="threshold" :min="0.01" :max="1" :step="0.01" size="small" />
-        <el-button size="small" @click="applyThreshold">应用</el-button>
-      </div>
-      
-      <div class="control-row">
-        <span>当前层数:</span>
-        <el-input-number v-model="currentLayer" :min="0" @change="setLayer" />
-      </div>
-    </el-card>
-    
-    <!-- 实时图像 -->
-    <el-card class="camera-panel">
-      <template #header>
-        <span>实时图像</span>
+        <!-- 红外热像仪 (SLS使用Fotric/IR8062) -->
+        <el-divider content-position="left">红外热像仪 (Fotric/IR8062)</el-divider>
+        <el-form-item label="热像仪类型">
+          <el-radio-group v-model="settings.thermal_type">
+            <el-radio label="fotric">Fotric 628CH</el-radio>
+            <el-radio label="ir8062">IR8062</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="设备索引">
+          <el-input-number v-model="settings.thermal_index" :min="0" :max="10" style="width: 120px" />
+          <span style="margin-left: 10px; color: #909399; font-size: 12px;">
+            多设备连接时的设备编号
+          </span>
+        </el-form-item>
+        
+        <!-- 振动传感器 -->
+        <el-divider content-position="left">振动传感器 (COM口)</el-divider>
+        <el-form-item label="COM端口">
+          <el-select v-model="settings.vibration_com" style="width: 200px">
+            <el-option
+              v-for="port in availableComPorts"
+              :key="port.device"
+              :label="`${port.device} - ${port.description}`"
+              :value="port.device"
+            />
+          </el-select>
+          <el-button type="primary" size="small" @click="fetchComPorts" style="margin-left: 10px">
+            <el-icon><Refresh /></el-icon> 刷新
+          </el-button>
+        </el-form-item>
+        
+        <!-- 舵机控制 (SLS特有) -->
+        <el-divider content-position="left">舵机控制 (挡板控制)</el-divider>
+        <el-form-item label="启用舵机">
+          <el-switch v-model="settings.servo_enabled" />
+          <span style="margin-left: 10px; color: #909399; font-size: 12px;">
+            控制红外摄像头保护挡板
+          </span>
+        </el-form-item>
+        <el-form-item label="舵机COM口" v-if="settings.servo_enabled">
+          <el-select v-model="settings.servo_com" style="width: 200px">
+            <el-option
+              v-for="port in availableComPorts"
+              :key="port.device"
+              :label="`${port.device} - ${port.description}`"
+              :value="port.device"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="舵机ID" v-if="settings.servo_enabled">
+          <el-input-number v-model="settings.servo_id" :min="1" :max="16" style="width: 120px" />
+        </el-form-item>
+        
+        <!-- 模拟模式 -->
+        <el-divider content-position="left">调试模式</el-divider>
+        <el-form-item label="使用模拟数据">
+          <el-switch v-model="settings.use_mock" />
+          <span style="margin-left: 10px; color: #909399; font-size: 12px;">
+            开启后无需连接真实硬件，用于界面测试
+          </span>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showSettings = false">取消</el-button>
+        <el-button type="primary" @click="saveSettings">保存</el-button>
       </template>
-      <div class="camera-grid">
-        <div class="camera-view">
-          <h4>主摄像头 (CH1)</h4>
-          <div class="camera-placeholder">摄像头画面</div>
-        </div>
-        <div class="camera-view">
-          <h4>副摄像头 (CH2)</h4>
-          <div class="camera-placeholder">摄像头画面</div>
-        </div>
-        <div class="camera-view">
-          <h4>热像仪 (CH3)</h4>
-          <div class="camera-placeholder">热像画面</div>
-        </div>
-      </div>
-    </el-card>
-    
-    <!-- 激光功率闭环调控 -->
-    <RegulationControl ref="regulationControl" />
-    
-    <!-- 日志输出 -->
-    <el-card class="log-panel">
-      <template #header>
-        <span>系统日志</span>
-        <el-button size="small" @click="clearLogs">清空</el-button>
-      </template>
-      <div class="log-content" ref="logContainer">
-        <div v-for="(log, index) in logs" :key="index" class="log-line">
-          <span class="log-time">{{ log.time }}</span>
-          <span :class="['log-level', log.level]">{{ log.level }}</span>
-          <span class="log-message">{{ log.message }}</span>
-        </div>
-      </div>
-    </el-card>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { Setting, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
-import RegulationControl from '../../components/slm/RegulationControl.vue'
 
-const router = useRouter()
-
-// API基础URL
-const API_BASE = 'http://localhost:8000/api/sls'
+import SensorConnectionStatus from '../../components/sls/SensorConnectionStatus.vue'
+import RealTimeDisplay from '../../components/sls/RealTimeDisplay.vue'
+import EquipmentHealthStatus from '../../components/sls/EquipmentHealthStatus.vue'
+import ImageCapturePanel from '../../components/sls/ImageCapturePanel.vue'
+import VibrationWaveform from '../../components/sls/VibrationWaveform.vue'
+import ServoControlPanel from '../../components/sls/ServoControlPanel.vue'
 
 // 状态
 const isRunning = ref(false)
 const starting = ref(false)
-const startLayer = ref(0)
-const currentLayer = ref(0)
-const totalCycles = ref(0)
-const vibrationMagnitude = ref(0)
-const powderState = ref('idle')
-const threshold = ref(0.05)
-const logs = ref([])
-
-// 设备状态
-const deviceStatus = ref({
-  vibration: { connected: false },
-  main_camera: { connected: false },
-  secondary_camera: { connected: false },
-  thermal: { connected: false }
+const showSettings = ref(false)
+const wsConnected = ref(false)
+const streamKey = ref(Date.now())
+const displayPaused = ref(false)
+const lastFrames = reactive({
+  CH1: null,
+  CH2: null,
+  thermal: null
 })
 
-const deviceNames = {
-  vibration: '振动传感器',
-  main_camera: '主摄像头',
-  secondary_camera: '副摄像头',
-  thermal: '热像仪'
-}
-
-// 计算属性
-const acquisitionStatus = computed(() => {
-  if (isRunning.value) {
-    return { type: 'success', text: '采集中' }
-  }
-  return { type: 'info', text: '未开始' }
+// 传感器状态
+const sensorStatus = reactive({
+  camera_ch1: { enabled: true, connected: false },
+  camera_ch2: { enabled: true, connected: false },
+  thermal: { enabled: true, connected: false, type: 'fotric' },
+  vibration: { enabled: true, connected: false, com_port: 'COM5' },
+  servo: { enabled: true, connected: false, com_port: 'COM16' }
 })
 
-const vibrationClass = computed(() => {
-  if (vibrationMagnitude.value > threshold.value) {
-    return 'high'
-  } else if (vibrationMagnitude.value > threshold.value * 0.5) {
-    return 'medium'
-  }
-  return 'low'
+// 舵机状态
+const servoStatus = reactive({
+  position: 1500,  // 当前位置
+  target: 1500,    // 目标位置
+  isOpen: false,   // 是否开启（挡板移开）
+  isMoving: false  // 是否正在运动
 })
 
-// 方法
-const addLog = (message, level = 'INFO') => {
-  const now = new Date()
-  const time = now.toLocaleTimeString()
-  logs.value.push({ time, level, message })
-  // 限制日志数量
-  if (logs.value.length > 100) {
-    logs.value.shift()
+// 最新数据
+const latestData = reactive({
+  timestamp: 0,
+  frame_number: 0,
+  camera_ch1: null,
+  camera_ch2: null,
+  thermal: null,
+  vibration: null,
+  vibration_waveform: { x: [], y: [], z: [], sample_count: 0 },
+  statistics: {},
+  health: {
+    status: 'power_off',
+    status_code: 0,
+    status_labels: [],
+    laser_system: { status: 'unknown', message: '未检测' },
+    powder_system: { status: 'unknown', message: '未检测' },
+    gas_system: { status: 'unknown', message: '未检测' }
   }
-}
+})
 
-const clearLogs = () => {
-  logs.value = []
-}
+// 健康数据
+const healthData = reactive({
+  status: 'power_off',
+  status_code: -1,
+  status_labels: [],
+  laser_system: { status: 'unknown', message: '未检测' },
+  powder_system: { status: 'unknown', message: '未检测' },
+  gas_system: { status: 'unknown', message: '未检测' }
+})
 
-const startAcquisition = async () => {
-  try {
-    starting.value = true
-    const response = await axios.post(`${API_BASE}/start`, {
-      layer: startLayer.value
-    })
-    
-    if (response.data.success) {
-      isRunning.value = true
-      currentLayer.value = startLayer.value
-      addLog(`采集已启动: ${response.data.message}`, 'SUCCESS')
-      ElMessage.success('采集已启动')
-    } else {
-      addLog(`启动失败: ${response.data.message}`, 'ERROR')
-      ElMessage.error(response.data.message)
-    }
-  } catch (error) {
-    addLog(`启动错误: ${error.message}`, 'ERROR')
-    ElMessage.error('启动失败')
-  } finally {
-    starting.value = false
-  }
-}
+// 设置
+const settings = reactive({
+  camera_ch1_index: 0,
+  camera_ch2_index: 1,
+  vibration_com: 'COM5',
+  thermal_type: 'fotric',  // fotric 或 ir8062
+  thermal_index: 0,
+  servo_enabled: true,
+  servo_com: 'COM16',
+  servo_id: 1,
+  use_mock: false
+})
 
-const stopAcquisition = async () => {
-  try {
-    await axios.post(`${API_BASE}/stop`)
-    isRunning.value = false
-    addLog('采集已停止', 'INFO')
-    ElMessage.success('采集已停止')
-  } catch (error) {
-    addLog(`停止错误: ${error.message}`, 'ERROR')
-    ElMessage.error('停止失败')
-  }
-}
+// 可用设备列表
+const availableCameras = ref([])
+const camerasLoading = ref(false)
+const availableComPorts = ref([])
 
-const setLayer = async () => {
-  try {
-    await axios.post(`${API_BASE}/control/layer`, {
-      layer: currentLayer.value
-    })
-    addLog(`层数设置为: ${currentLayer.value}`, 'INFO')
-  } catch (error) {
-    addLog(`设置层数错误: ${error.message}`, 'ERROR')
-  }
-}
-
-const applyThreshold = async () => {
-  try {
-    await axios.post(`${API_BASE}/control/threshold`, {
-      threshold: threshold.value
-    })
-    addLog(`振动阈值设置为: ${threshold.value}`, 'INFO')
-    ElMessage.success('阈值已应用')
-  } catch (error) {
-    addLog(`设置阈值错误: ${error.message}`, 'ERROR')
-  }
-}
-
-const backToDeviceSelect = async () => {
-  try {
-    // 停止当前设备
-    await axios.post('/api/device-type/stop')
-    // 清除设备类型
-    localStorage.removeItem('deviceType')
-    // 跳转
-    router.push('/')
-  } catch (error) {
-    console.error('切换设备失败:', error)
-    // 即使后端失败，也要跳转
-    localStorage.removeItem('deviceType')
-    router.push('/')
-  }
-}
-
-const resetState = async () => {
-  try {
-    await axios.post(`${API_BASE}/control/reset`)
-    addLog('状态机已重置', 'INFO')
-    ElMessage.success('状态已重置')
-  } catch (error) {
-    addLog(`重置错误: ${error.message}`, 'ERROR')
-  }
-}
+// WebSocket
+let ws = null
+let reconnectTimer = null
+let healthCheckTimer = null
+let lastBackendHealthCode = -1
 
 // 获取状态
 const fetchStatus = async () => {
   try {
-    const response = await axios.get(`${API_BASE}/status`)
-    const data = response.data
-    
-    isRunning.value = data.is_running
-    currentLayer.value = data.current_layer
-    totalCycles.value = data.stats?.total_cycles || 0
-    
-    if (data.vibration) {
-      vibrationMagnitude.value = data.vibration.magnitude || 0
-    }
-    
-    if (data.powder_detector) {
-      powderState.value = data.powder_detector.state || 'idle'
+    const response = await axios.get('/api/sls/status')
+    if (response.data) {
+      const wasRunning = isRunning.value
+      isRunning.value = response.data.is_running
+      Object.assign(sensorStatus, response.data.sensor_status || {})
+      
+      // 更新舵机状态
+      if (response.data.servo_status) {
+        Object.assign(servoStatus, response.data.servo_status)
+      }
+      
+      // 采集状态处理（同SLM）
+      if (isRunning.value && healthData.status_code === -1) {
+        healthData.status = 'healthy'
+        healthData.status_code = 0
+        healthData.status_labels = ['系统健康']
+        healthData.laser_system = { status: 'healthy', message: '健康' }
+        healthData.powder_system = { status: 'healthy', message: '健康' }
+        healthData.gas_system = { status: 'healthy', message: '健康' }
+        await updateHealthStatusOnBackend(0, ['系统健康'])
+      }
+      
+      if (wasRunning && !isRunning.value) {
+        healthData.status = 'power_off'
+        healthData.status_code = -1
+        healthData.status_labels = []
+        healthData.laser_system = { status: 'unknown', message: '未检测' }
+        healthData.powder_system = { status: 'unknown', message: '未检测' }
+        healthData.gas_system = { status: 'unknown', message: '未检测' }
+        lastBackendHealthCode = -1
+        closeWebSocket()
+      }
     }
   } catch (error) {
     console.error('获取状态失败:', error)
   }
 }
 
-// 获取设备状态
-const fetchDeviceStatus = async () => {
+// 通知后端更新健康状态
+const updateHealthStatusOnBackend = async (statusCode, labels) => {
   try {
-    const response = await axios.get(`${API_BASE}/status/devices`)
-    deviceStatus.value = response.data
+    await axios.post('/api/sls/health/status', null, {
+      params: {
+        status_code: statusCode,
+        labels: labels
+      }
+    })
   } catch (error) {
-    console.error('获取设备状态失败:', error)
+    console.error('更新后端健康状态失败:', error)
   }
 }
 
-// 定时器
-let statusTimer = null
-let deviceStatusTimer = null
+// 获取COM口列表
+const fetchComPorts = async () => {
+  try {
+    const response = await axios.get('/api/sls/com_ports')
+    if (response.data.success) {
+      availableComPorts.value = response.data.ports
+      // 自动检测振动传感器COM口
+      const ch340 = response.data.ports.find(p => 
+        p.description.includes('CH340') || p.description.includes('USB-SERIAL')
+      )
+      if (ch340 && !isRunning.value) {
+        settings.vibration_com = ch340.device
+      }
+      // 自动检测舵机COM口
+      const servoPort = response.data.ports.find(p => 
+        p.description.includes('舵机') || p.description.includes('Servo')
+      )
+      if (servoPort && !isRunning.value) {
+        settings.servo_com = servoPort.device
+      }
+    }
+  } catch (error) {
+    console.error('获取COM口失败:', error)
+  }
+}
+
+// 获取可用摄像头
+const fetchCameras = async () => {
+  camerasLoading.value = true
+  try {
+    const response = await axios.get('/api/sls/cameras')
+    if (response.data.success) {
+      availableCameras.value = response.data.cameras
+      const availableIndices = response.data.cameras.map(c => c.index)
+      if (!isRunning.value) {
+        if (response.data.cameras.length >= 2) {
+          settings.camera_ch1_index = response.data.cameras[0].index
+          settings.camera_ch2_index = response.data.cameras[1].index
+        } else if (response.data.cameras.length === 1) {
+          settings.camera_ch1_index = response.data.cameras[0].index
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取摄像头失败:', error)
+    ElMessage.error('摄像头检测失败')
+  } finally {
+    camerasLoading.value = false
+  }
+}
+
+// 舵机控制
+const handleServoMove = async (position) => {
+  try {
+    const response = await axios.post('/api/sls/servo/move', {
+      position: position,
+      duration: 100,
+      servo_id: settings.servo_id
+    })
+    if (response.data.success) {
+      servoStatus.position = position
+      servoStatus.isOpen = position > 2000
+      ElMessage.success(`舵机移动到 ${position}`)
+    }
+  } catch (error) {
+    ElMessage.error('舵机控制失败')
+  }
+}
+
+const handleServoToggle = async () => {
+  const targetPosition = servoStatus.isOpen ? 1500 : 2500
+  await handleServoMove(targetPosition)
+}
+
+// 开始/停止采集
+const toggleAcquisition = async () => {
+  if (starting.value) return
+  
+  if (isRunning.value) {
+    starting.value = true
+    try {
+      await axios.post('/api/sls/stop')
+      isRunning.value = false
+      streamKey.value = Date.now()
+      closeWebSocket()
+      ElMessage.success('采集已停止')
+    } catch (error) {
+      ElMessage.error('停止采集失败')
+    } finally {
+      starting.value = false
+    }
+  } else {
+    starting.value = true
+    try {
+      const response = await axios.post('/api/sls/start', null, {
+        params: {
+          camera_ch1_index: settings.camera_ch1_index,
+          camera_ch2_index: settings.camera_ch2_index,
+          vibration_com: settings.vibration_com,
+          thermal_type: settings.thermal_type,
+          thermal_index: settings.thermal_index,
+          servo_enabled: settings.servo_enabled,
+          servo_com: settings.servo_com,
+          servo_id: settings.servo_id,
+          use_mock: settings.use_mock
+        }
+      })
+      
+      if (response.data.success) {
+        isRunning.value = true
+        streamKey.value = Date.now()
+        connectWebSocket()
+        ElMessage.success('采集已启动')
+      } else {
+        ElMessage.error(response.data.message || '启动失败')
+      }
+    } catch (error) {
+      ElMessage.error('启动采集失败')
+    } finally {
+      starting.value = false
+    }
+  }
+}
+
+// WebSocket连接
+const connectWebSocket = () => {
+  const wsUrl = `ws://${window.location.host}/api/sls/ws/data`
+  try {
+    ws = new WebSocket(wsUrl)
+    ws.onopen = () => { wsConnected.value = true }
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        handleWebSocketData(data)
+      } catch (error) {
+        console.error('解析WebSocket数据失败:', error)
+      }
+    }
+    ws.onerror = () => { wsConnected.value = false }
+    ws.onclose = () => {
+      wsConnected.value = false
+      if (isRunning.value) {
+        reconnectTimer = setTimeout(() => connectWebSocket(), 3000)
+      }
+    }
+  } catch (error) {
+    console.error('连接WebSocket失败:', error)
+  }
+}
+
+const closeWebSocket = () => {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
+  if (ws) {
+    ws.close()
+    ws = null
+  }
+}
+
+// 处理WebSocket数据
+const handleWebSocketData = (data) => {
+  if (data.sensor_status) {
+    Object.assign(sensorStatus, data.sensor_status)
+  }
+  if (data.vibration) {
+    latestData.vibration = data.vibration
+  }
+  if (data.vibration_waveform) {
+    latestData.vibration_waveform = data.vibration_waveform
+  }
+  if (data.thermal) {
+    latestData.thermal = data.thermal
+  }
+  if (data.statistics) {
+    latestData.statistics = data.statistics
+  }
+  if (data.health) {
+    Object.assign(healthData, data.health)
+    Object.assign(latestData.health, data.health)
+  }
+  if (data.servo_status) {
+    Object.assign(servoStatus, data.servo_status)
+  }
+  latestData.timestamp = data.timestamp
+  latestData.frame_number = data.frame_number
+}
+
+// 切换传感器
+const handleToggleSensor = async (sensor, enabled) => {
+  try {
+    await axios.post(`/api/sls/sensor/${sensor}/enable?enabled=${enabled}`)
+    sensorStatus[sensor].enabled = enabled
+    ElMessage.success(`${sensor} 已${enabled ? '启用' : '禁用'}`)
+  } catch (error) {
+    ElMessage.error('切换传感器失败')
+    sensorStatus[sensor].enabled = !enabled
+  }
+}
+
+// 切换COM口
+const handleChangeComPort = async (port) => {
+  try {
+    await axios.post(`/api/sls/vibration/com_port?port=${port}`)
+    settings.vibration_com = port
+    ElMessage.success(`COM口已切换到 ${port}`)
+  } catch (error) {
+    ElMessage.error('切换COM口失败')
+  }
+}
+
+// 刷新状态
+const refreshStatus = async () => {
+  fetchStatus()
+  fetchComPorts()
+  streamKey.value = Date.now()
+  ElMessage.success('状态已刷新')
+}
+
+// 保存设置
+const saveSettings = async () => {
+  if (isRunning.value) {
+    ElMessage.warning('设置已更改，正在重启采集...')
+    try {
+      await axios.post('/api/sls/stop')
+      isRunning.value = false
+      closeWebSocket()
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      const response = await axios.post('/api/sls/start', null, {
+        params: {
+          camera_ch1_index: settings.camera_ch1_index,
+          camera_ch2_index: settings.camera_ch2_index,
+          vibration_com: settings.vibration_com,
+          thermal_type: settings.thermal_type,
+          thermal_index: settings.thermal_index,
+          servo_enabled: settings.servo_enabled,
+          servo_com: settings.servo_com,
+          servo_id: settings.servo_id,
+          use_mock: settings.use_mock
+        }
+      })
+      
+      if (response.data.success) {
+        isRunning.value = true
+        streamKey.value = Date.now()
+        connectWebSocket()
+        ElMessage.success('采集已重启')
+      }
+    } catch (error) {
+      ElMessage.error('重启采集失败')
+    }
+  } else {
+    ElMessage.success('设置已保存')
+  }
+  showSettings.value = false
+}
+
+// 图像采集触发
+const handleCaptureTriggered = (event) => {
+  if (event.type === 'after') {
+    ElMessage.success(`第 ${event.layer} 层采集完成`)
+  }
+}
+
+// 从后端获取健康状态
+const fetchBackendHealthStatus = async () => {
+  if (!isRunning.value) return
+  try {
+    const response = await axios.get('/api/sls/health/status')
+    if (response.data.success && response.data.health) {
+      const backendCode = response.data.health.status_code
+      if (backendCode !== lastBackendHealthCode) {
+        lastBackendHealthCode = backendCode
+        Object.assign(healthData, response.data.health)
+        if (backendCode > 0) {
+          const statusLabels = response.data.health.status_labels || ['异常']
+          ElMessage.warning(`检测到设备异常: ${statusLabels.join(', ')}`)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取后端健康状态失败:', error)
+  }
+}
+
+// 设置对话框打开时自动检测硬件
+watch(showSettings, (val) => {
+  if (val) {
+    fetchCameras()
+    fetchComPorts()
+  }
+})
 
 onMounted(() => {
-  addLog('SLS Dashboard 已加载', 'INFO')
   fetchStatus()
-  fetchDeviceStatus()
+  fetchComPorts()
+  fetchCameras()
   
-  // 定时刷新运行状态 (2秒一次，用于振动监测)
-  statusTimer = setInterval(() => {
-    fetchStatus()
-  }, 2000)
+  if (isRunning.value) {
+    connectWebSocket()
+  }
   
-  // 定时刷新设备状态 (5秒一次，设备连接状态变化较慢)
-  deviceStatusTimer = setInterval(() => {
-    fetchDeviceStatus()
-  }, 5000)
+  healthCheckTimer = setInterval(() => {
+    fetchBackendHealthStatus()
+  }, 3000)
 })
 
 onUnmounted(() => {
-  if (statusTimer) {
-    clearInterval(statusTimer)
-  }
-  if (deviceStatusTimer) {
-    clearInterval(deviceStatusTimer)
+  closeWebSocket()
+  if (healthCheckTimer) {
+    clearInterval(healthCheckTimer)
+    healthCheckTimer = null
   }
 })
 </script>
@@ -348,146 +667,59 @@ onUnmounted(() => {
 <style scoped>
 .sls-dashboard {
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
-.header {
+.dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.header h1 {
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #e2e8f0;
   margin: 0;
 }
 
-.status-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.status-card {
-  min-height: 150px;
-}
-
-.status-content {
-  text-align: center;
-}
-
-.vibration-value {
-  font-size: 48px;
-  font-weight: bold;
-  margin: 20px 0;
-}
-
-.vibration-value.low {
-  color: #67c23a;
-}
-
-.vibration-value.medium {
-  color: #e6a23c;
-}
-
-.vibration-value.high {
-  color: #f56c6c;
-}
-
-.device-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.device-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.control-panel {
-  margin-bottom: 20px;
-}
-
-.control-row {
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 15px;
+  gap: 12px;
 }
 
-.camera-panel {
-  margin-bottom: 20px;
-}
-
-.camera-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.camera-view h4 {
-  margin-bottom: 10px;
-}
-
-.camera-placeholder {
+.realtime-section,
+.servo-section,
+.vibration-section,
+.health-section,
+.capture-section {
   width: 100%;
-  height: 300px;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
 }
 
-.log-panel {
-  margin-bottom: 20px;
-}
-
-.log-content {
-  height: 200px;
-  overflow-y: auto;
-  background: #1a1a1a;
-  padding: 10px;
-  font-family: monospace;
-  font-size: 12px;
-}
-
-.log-line {
-  margin-bottom: 4px;
-}
-
-.log-time {
-  color: #888;
-  margin-right: 10px;
-}
-
-.log-level {
-  display: inline-block;
-  width: 60px;
-  margin-right: 10px;
-  font-weight: bold;
-}
-
-.log-level.INFO {
-  color: #409eff;
-}
-
-.log-level.SUCCESS {
-  color: #67c23a;
-}
-
-.log-level.WARNING {
-  color: #e6a23c;
-}
-
-.log-level.ERROR {
-  color: #f56c6c;
-}
-
-.log-message {
-  color: #ccc;
+@media (max-width: 768px) {
+  .sls-dashboard {
+    padding: 12px;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .page-title {
+    font-size: 20px;
+  }
+  
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
 }
 </style>
