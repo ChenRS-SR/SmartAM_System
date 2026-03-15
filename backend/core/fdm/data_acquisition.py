@@ -36,7 +36,7 @@ except ImportError:
 
 # 尝试导入其他硬件模块
 try:
-    from core.fotric_driver import FotricEnhancedDevice
+    from core.fdm.fotric_driver import FotricEnhancedDevice
     FOTRIC_AVAILABLE = True
 except ImportError:
     FOTRIC_AVAILABLE = False
@@ -66,14 +66,14 @@ except ImportError:
     logging.warning("振动传感器驱动不可用")
 
 try:
-    from core.coordinator import M114Coordinator
+    from core.fdm.coordinator import M114Coordinator
     M114_AVAILABLE = True
 except ImportError:
     M114_AVAILABLE = False
     logging.warning("M114协调器不可用")
 
 try:
-    from core.parameter_manager import ParameterManager, ParameterMode, STANDARD_TOWERS, HEIGHT_SEGMENTS
+    from core.fdm.parameter_manager import ParameterManager, ParameterMode, STANDARD_TOWERS, HEIGHT_SEGMENTS
     PARAM_MANAGER_AVAILABLE = True
 except ImportError:
     PARAM_MANAGER_AVAILABLE = False
@@ -1107,7 +1107,7 @@ class DataAcquisition:
                 self._param_manager.sync_config.silent_height_mm = self.config.silent_height_mm
                 
                 # 设置初始参数（标准塔模式下Z<5mm使用默认参数，不发送命令）
-                from core.parameter_manager import ParameterSet, STANDARD_TOWERS
+                from core.fdm.parameter_manager import ParameterSet, STANDARD_TOWERS
                 
                 if mode == ParameterMode.STANDARD_TOWER:
                     tower = STANDARD_TOWERS[self.config.current_tower - 1]
@@ -2276,6 +2276,14 @@ def get_acquisition(config: AcquisitionConfig = None) -> DataAcquisition:
         
         _acquisition_instance = DataAcquisition(config)
     return _acquisition_instance
+
+
+def reset_acquisition():
+    """重置采集实例"""
+    global _acquisition_instance
+    if _acquisition_instance:
+        _acquisition_instance.stop()
+        _acquisition_instance = None
 
 
 # 兼容别名（用于 main.py）

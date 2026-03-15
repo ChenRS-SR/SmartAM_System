@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 ✅ 完整的M114坐标提取解决方案
@@ -371,3 +371,24 @@ if __name__ == "__main__":
     
     # 如果需要连续监控，取消注释下一行
     # continuous_coordinate_monitoring()
+
+
+# ȫ��Э����ʵ��
+_coordinator_instance = None
+
+
+# 全局协调器实例
+_coordinator_instance = None
+
+def get_coordinator():
+    global _coordinator_instance
+    if _coordinator_instance is None:
+        _coordinator_instance = M114Coordinator()
+    return _coordinator_instance
+
+def reset_coordinator():
+    global _coordinator_instance
+    if _coordinator_instance:
+        _coordinator_instance.stop()
+        _coordinator_instance = None
+
