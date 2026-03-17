@@ -8,13 +8,26 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, Dict, List
 
-from core.data_acquisition import DataAcquisition, AcquisitionConfig, AcquisitionState, get_acquisition
+# 尝试导入 DAQ 系统
+try:
+    from core.data_acquisition import DataAcquisition, AcquisitionConfig, AcquisitionState, get_acquisition
+    DAQ_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"[API] DAQ 系统不可用: {e}")
+    DAQ_AVAILABLE = False
+    DataAcquisition = None
+    AcquisitionConfig = None
+    AcquisitionState = None
+    get_acquisition = None
 
 router = APIRouter(tags=["acquisition"])
 
 # 使用 core.data_acquisition 中的单例，确保与 main.py 的 WebSocket 使用同一实例
 def get_acquisition_instance() -> DataAcquisition:
     """获取采集实例（单例）"""
+    if not DAQ_AVAILABLE or get_acquisition is None:
+        raise HTTPException(status_code=503, detail="DAQ system not available")
+    
     acq = get_acquisition()
     
     # 设置回调（只在第一次设置）
