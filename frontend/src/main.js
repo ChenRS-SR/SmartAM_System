@@ -1,8 +1,11 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import router from './router'
+import router, { removeToken } from './router'
 import App from './App.vue'
 import i18n from './i18n'
+
+// 每次应用启动时清除 token，确保需要重新登录
+removeToken()
 
 // 全局样式
 import './styles/variables.css'
