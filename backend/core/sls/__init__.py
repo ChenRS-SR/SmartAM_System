@@ -24,7 +24,7 @@ SLS (Selective Laser Sintering) 设备控制模块
     data = sls.get_current_data()
 """
 
-from .fotric_device import FotricEnhancedDevice, MockFotricDevice
+from .fotric_device import FotricDevice, MockFotricDevice
 from .vibration_sensor import VibrationSensor, MockVibrationSensor, VibrationData
 from .vibration_optimizer import VibrationOptimizer, OptimizerConfig
 from .servo_controller import ServoController, MockServoController
@@ -36,7 +36,7 @@ from .sls_acquisition import (
 
 __all__ = [
     # Fotric热成像仪
-    'FotricEnhancedDevice',
+    'FotricDevice',
     'MockFotricDevice',
     
     # 振动传感器

@@ -536,6 +536,21 @@ class FotricDevice:
         }
 
 
+class MockFotricDevice(FotricDevice):
+    """FOTRIC设备模拟器（用于无硬件测试）"""
+    
+    def __init__(self, ip: str = "192.168.1.100", **kwargs):
+        """
+        初始化模拟设备
+        
+        Args:
+            ip: 模拟IP地址
+            **kwargs: 其他参数（被忽略）
+        """
+        super().__init__(ip=ip, simulation_mode=True, update_rate=2.0)
+        logger.info(f"创建FOTRIC模拟设备: {ip}")
+
+
 if __name__ == "__main__":
     # 测试代码
     print("=" * 60)

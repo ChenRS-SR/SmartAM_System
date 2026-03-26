@@ -77,7 +77,7 @@ class DeviceManager:
     def _init_fdm(self):
         """初始化 FDM 设备"""
         logging.info("[DeviceManager] 正在初始化 FDM 设备...")
-        from core.data_acquisition import get_acquisition
+        from core.fdm import get_acquisition
         self._fdm_acquisition = get_acquisition()
         # FDM 不在这里初始化设备，等待前端调用 connect
         

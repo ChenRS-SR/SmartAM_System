@@ -343,6 +343,50 @@ class ServoController:
         }
 
 
+class MockServoController(ServoController):
+    """舵机控制器模拟器（用于无硬件测试）"""
+    
+    def __init__(self, port: str = 'COM16', servo_id: int = 1):
+        """
+        初始化模拟舵机控制器
+        
+        Args:
+            port: 模拟串口号（被忽略）
+            servo_id: 舵机ID
+        """
+        self.port = port
+        self.servo_id = servo_id
+        self.simulation_mode = True
+        self.status = ServoStatus()
+        self.status.is_connected = True  # 模拟模式下直接标记为已连接
+        print(f"[Servo] 模拟控制器初始化: port={port}, id={servo_id}")
+    
+    def connect(self) -> bool:
+        """模拟连接"""
+        self.status.is_connected = True
+        print(f"[Servo] 模拟连接成功: {self.port}")
+        return True
+    
+    def disconnect(self) -> None:
+        """模拟断开连接"""
+        self.status.is_connected = False
+        print("[Servo] 模拟连接已断开")
+    
+    def send_command(self, command: str) -> bool:
+        """模拟发送命令（总是成功）"""
+        print(f"[Servo] 模拟发送: {command}")
+        return True
+    
+    def set_servo_position(self, position: int, duration: int = 500) -> bool:
+        """模拟设置舵机位置"""
+        print(f"[Servo] 模拟设置位置: {position}")
+        self.status.position = position
+        self.status.target = position
+        self.status.is_moving = False
+        self.status.is_open = position > 2000
+        return True
+
+
 # 单例实例
 _servo_controller_instance: Optional[ServoController] = None
 
