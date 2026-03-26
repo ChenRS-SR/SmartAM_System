@@ -15,7 +15,7 @@ router = APIRouter(prefix="/device-type", tags=["设备类型"])
 
 
 class DeviceTypeRequest(BaseModel):
-    device_type: str  # 'fdm', 'sls', 'slm'
+    device_type: str  # 'fdm', 'slm'
 
 
 class DeviceTypeResponse(BaseModel):
@@ -31,7 +31,6 @@ async def select_device_type(request: DeviceTypeRequest):
     选择设备类型并初始化对应驱动
     
     - fdm: 熔融沉积成型（IDS相机、Fotric、OctoPrint）
-    - sls: 选择性激光烧结（振动传感器、双摄像头、Fotric）
     - slm: 选择性激光熔化（待实现）
     """
     import traceback

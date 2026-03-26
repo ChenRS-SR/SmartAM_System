@@ -11,7 +11,6 @@ class DeviceType(Enum):
     """设备类型枚举"""
     NONE = "none"      # 未选择
     FDM = "fdm"        # 熔融沉积
-    SLS = "sls"        # 选择性激光烧结
     SLM = "slm"        # 选择性激光熔化
 
 
@@ -28,7 +27,6 @@ class DeviceManager:
     def __init__(self):
         self._current_type = DeviceType.NONE
         self._fdm_acquisition = None
-        self._sls_acquisition = None
         self._initialized = False
         
         logging.info("[DeviceManager] 初始化完成")
@@ -48,17 +46,10 @@ class DeviceManager:
             if self._initialized:
                 self.stop_current_device()
             
-            # 设置新设备类型
+            # 设置新设备类型 - 仅支持 FDM 和 SLM
             if device_type == "fdm":
                 self._current_type = DeviceType.FDM
                 self._init_fdm()
-            elif device_type == "sls":
-                self._current_type = DeviceType.SLS
-                # SLS 使用后台线程初始化，避免阻塞
-                import threading
-                init_thread = threading.Thread(target=self._init_sls, daemon=True)
-                init_thread.start()
-                logging.info("[DeviceManager] SLS 初始化已在后台启动")
             elif device_type == "slm":
                 self._current_type = DeviceType.SLM
                 self._init_slm()
@@ -81,21 +72,6 @@ class DeviceManager:
         self._fdm_acquisition = get_acquisition()
         # FDM 不在这里初始化设备，等待前端调用 connect
         
-    def _init_sls(self):
-        """初始化 SLS 设备"""
-        logging.info("[DeviceManager] 正在初始化 SLS 设备...")
-        try:
-            from core.sls import get_sls_acquisition
-            self._sls_acquisition = get_sls_acquisition()
-            # 初始化 SLS 设备（振动传感器、摄像头）
-            result = self._sls_acquisition.initialize_devices()
-            logging.info(f"[DeviceManager] SLS 设备初始化完成: {result}")
-        except Exception as e:
-            logging.error(f"[DeviceManager] SLS 设备初始化失败: {e}")
-            import traceback
-            logging.error(traceback.format_exc())
-            # 不抛出异常，让前端知道初始化失败但服务仍然可用
-        
     def _init_slm(self):
         """初始化 SLM 设备"""
         logging.info("[DeviceManager] SLM 模式尚未实现")
@@ -106,8 +82,6 @@ class DeviceManager:
         if self._current_type == DeviceType.FDM and self._fdm_acquisition:
             self._fdm_acquisition.stop()
             self._fdm_acquisition.disconnect_all_devices()
-        elif self._current_type == DeviceType.SLS and self._sls_acquisition:
-            self._sls_acquisition.disconnect_all()
         
         self._initialized = False
         logging.info(f"[DeviceManager] {self._current_type.value} 设备已停止")
@@ -121,8 +95,6 @@ class DeviceManager:
         
         if self._current_type == DeviceType.FDM and self._fdm_acquisition:
             status["fdm"] = self._fdm_acquisition.get_device_status()
-        elif self._current_type == DeviceType.SLS and self._sls_acquisition:
-            status["sls"] = self._sls_acquisition.get_device_status()
         
         return status
     
@@ -134,9 +106,7 @@ class DeviceManager:
     def fdm_acquisition(self):
         return self._fdm_acquisition
     
-    @property
-    def sls_acquisition(self):
-        return self._sls_acquisition
+
 
 
 # 全局设备管理器实例

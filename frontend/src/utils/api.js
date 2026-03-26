@@ -6,6 +6,7 @@
 
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { getToken } from '../router/index.js'
 import {
   mockPrinterStatus,
   mockTemperatureHistory,
@@ -75,7 +76,7 @@ const api = axios.create({
 // 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }

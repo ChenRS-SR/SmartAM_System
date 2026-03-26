@@ -58,6 +58,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
+import { setToken } from '../router/index.js'
 
 const router = useRouter()
 
@@ -80,7 +81,7 @@ const handleLogin = () => {
   setTimeout(() => {
     if (form.value.username === 'admin' && form.value.password === 'admin') {
       ElMessage.success('登录成功')
-      localStorage.setItem('token', 'demo-token')
+      setToken('demo-token')
       router.push('/')
     } else {
       ElMessage.error('用户名或密码错误')

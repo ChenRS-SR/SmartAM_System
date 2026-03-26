@@ -12,11 +12,6 @@ import SLMAnalysis from '../views/slm/Analysis.vue'
 import SLMControl from '../views/slm/Control.vue'
 import SLMSettings from '../views/slm/Settings.vue'
 
-// SLS 页面
-import SLSDashboard from '../views/sls/Dashboard.vue'
-import SLSAnalysis from '../views/sls/Analysis.vue'
-import SLSControl from '../views/sls/Control.vue'
-
 // 其他页面
 import DeviceSelect from '../views/DeviceSelect.vue'
 import Login from '../views/Login.vue'
@@ -82,26 +77,6 @@ const routes = [
     meta: { title: '设置', device: 'slm' }
   },
   
-  // SLS 路由
-  {
-    path: '/sls/dashboard',
-    name: 'SLSDashboard',
-    component: SLSDashboard,
-    meta: { title: '仪表盘', device: 'sls' }
-  },
-  {
-    path: '/sls/analysis',
-    name: 'SLSAnalysis',
-    component: SLSAnalysis,
-    meta: { title: '数据分析', device: 'sls' }
-  },
-  {
-    path: '/sls/control',
-    name: 'SLSControl',
-    component: SLSControl,
-    meta: { title: '系统控制', device: 'sls' }
-  },
-  
   // 登录
   {
     path: '/login',
@@ -130,10 +105,27 @@ const router = createRouter({
   routes
 })
 
+// 使用 sessionStorage 替代 localStorage 存储 token
+// 这样每次关闭浏览器后再次打开都需要重新登录
+function getToken() {
+  return sessionStorage.getItem('token')
+}
+
+function setToken(token) {
+  sessionStorage.setItem('token', token)
+}
+
+function removeToken() {
+  sessionStorage.removeItem('token')
+}
+
+// 导出供其他模块使用
+export { getToken, setToken, removeToken }
+
 router.beforeEach((to, from, next) => {
   document.title = to.meta.title ? `${to.meta.title} - SmartAM` : 'SmartAM System'
   
-  const token = localStorage.getItem('token')
+  const token = getToken()
   const savedDeviceType = localStorage.getItem('deviceType')
   const targetDevice = to.meta.device
   
@@ -152,7 +144,7 @@ router.beforeEach((to, from, next) => {
       next('/')
       return
     }
-    // 如果设备类型不匹配（比如之前选了 FDM，现在直接访问 SLS）
+    // 如果设备类型不匹配
     if (savedDeviceType !== targetDevice) {
       console.log(`[Router] 设备类型不匹配，已选 ${savedDeviceType}，请重新选择`)
       // 清除设备类型，让用户重新选择

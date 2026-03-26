@@ -109,6 +109,7 @@ import { deviceApi } from './utils/api'
 import ThemeToggle from './components/ThemeToggle.vue'
 import LangSwitch from './components/LangSwitch.vue'
 import AlertList from './components/AlertList.vue'
+import { removeToken } from './router/index.js'
 
 const store = useDataStore()
 const route = useRoute()
@@ -128,7 +129,6 @@ const deviceType = computed(() => route.meta.device || localStorage.getItem('dev
 const deviceTypeIcon = computed(() => {
   switch (deviceType.value) {
     case 'fdm': return 'Printer'
-    case 'sls': return 'CopyDocument'
     case 'slm': return 'Lightning'
     default: return 'Cpu'
   }
@@ -150,17 +150,9 @@ const slmMenuItems = [
   { name: '设置', path: '/slm/settings', icon: 'Setting' },
 ]
 
-// SLS 菜单
-const slsMenuItems = [
-  { name: '仪表盘', path: '/sls/dashboard', icon: 'Monitor' },
-  { name: '数据分析', path: '/sls/analysis', icon: 'TrendCharts' },
-  { name: '系统控制', path: '/sls/control', icon: 'SetUp' },
-]
-
 // 根据设备类型返回对应菜单
 const menuItems = computed(() => {
   if (deviceType.value === 'slm') return slmMenuItems
-  if (deviceType.value === 'sls') return slsMenuItems
   return fdmMenuItems
 })
 
@@ -196,7 +188,7 @@ const toggleFullscreen = () => {
 }
 
 const logout = () => {
-  localStorage.removeItem('token')
+  removeToken()
   localStorage.removeItem('deviceType')
   router.push('/login')
 }

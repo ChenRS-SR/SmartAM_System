@@ -26,13 +26,8 @@ from .device import router as device_router
 from .system import router as system_router
 from .device_type import router as device_type_router
 
-# 导入SLS路由
-try:
-    from .sls import router as sls_router
-    SLS_AVAILABLE = True
-except ImportError as e:
-    SLS_AVAILABLE = False
-    print(f"[API] SLS模块导入失败: {e}")
+# SLS 路由已在此分支中禁用 (feature/onlyFDMandSLM)
+SLS_AVAILABLE = False
 
 # 导入SLM路由
 try:
@@ -69,9 +64,10 @@ router.include_router(control_router, prefix="/control", tags=["调控策略"])
 router.include_router(data_router, prefix="/data", tags=["数据管理"])
 router.include_router(acquisition_router, prefix="/acquisition", tags=["数据采集"])
 
-if SLS_AVAILABLE:
-    router.include_router(sls_router)
-    print("[API] SLS路由已注册: /api/sls/*")
+# SLS 路由已禁用
+# if SLS_AVAILABLE:
+#     router.include_router(sls_router)
+#     print("[API] SLS路由已注册: /api/sls/*")
 
 if SLM_AVAILABLE:
     router.include_router(slm_router)

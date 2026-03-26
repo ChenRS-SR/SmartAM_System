@@ -25,24 +25,6 @@
         </el-button>
       </div>
       
-      <!-- SLS -->
-      <div class="device-card" @click="selectDevice('sls')">
-        <div class="card-icon sls">
-          <el-icon size="48"><CopyDocument /></el-icon>
-        </div>
-        <h2 class="card-title">SLS 选择性激光烧结</h2>
-        <p class="card-desc">高分子粉末激光烧结成型技术</p>
-        <div class="card-features">
-          <span class="feature-tag">振动监测</span>
-          <span class="feature-tag">扑粉检测</span>
-          <span class="feature-tag">双视觉</span>
-        </div>
-        <el-button type="warning" size="large" class="enter-btn">
-          进入系统
-          <el-icon class="btn-icon"><ArrowRight /></el-icon>
-        </el-button>
-      </div>
-      
       <!-- SLM -->
       <div class="device-card" @click="selectDevice('slm')">
         <div class="card-icon slm">
