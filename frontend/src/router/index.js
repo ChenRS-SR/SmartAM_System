@@ -17,12 +17,12 @@ import DeviceSelect from '../views/DeviceSelect.vue'
 import Login from '../views/Login.vue'
 
 const routes = [
-  // 设备选择首页
+  // 设备选择首页 (需要登录)
   {
     path: '/',
     name: 'DeviceSelect',
     component: DeviceSelect,
-    meta: { title: '选择设备', public: true }
+    meta: { title: '选择设备' }
   },
   
   // FDM 路由
