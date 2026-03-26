@@ -129,9 +129,25 @@ router.beforeEach((to, from, next) => {
   const savedDeviceType = localStorage.getItem('deviceType')
   const targetDevice = to.meta.device
   
-  // 设备选择页面 - 如果有保存的设备类型但目标是不同设备，清除缓存
+  // 登录页面不需要验证 token
+  if (to.path === '/login') {
+    if (token) {
+      // 已登录则跳转到首页
+      next('/')
+    } else {
+      next()
+    }
+    return
+  }
+  
+  // 其他所有页面都需要登录
+  if (!token) {
+    next('/login')
+    return
+  }
+  
+  // 设备选择页面 - 已登录则正常显示
   if (to.path === '/') {
-    // 正常显示设备选择页
     next()
     return
   }
