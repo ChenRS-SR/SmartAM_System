@@ -4,7 +4,14 @@
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>SmartAM System</title>
+    <script>
+      // 应用启动时立即清除登录状态
+      sessionStorage.removeItem('token')
+    </script>
   </head>
   <body>
     <div id="app"></div>
