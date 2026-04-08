@@ -4,11 +4,25 @@
 提供系统配置的获取和保存
 """
 
+import sys
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
 router = APIRouter()
+
+
+def _get_daq():
+    """获取 DAQ 实例（从设备管理器动态获取）"""
+    try:
+        from core.device_manager import get_device_manager
+        manager = get_device_manager()
+        # 如果当前是 FDM 模式，返回 FDM acquisition
+        if manager.current_type.value == "fdm":
+            return manager.fdm_acquisition
+    except Exception as e:
+        print(f"[API] 获取 DAQ 失败: {e}")
+    return None
 
 
 class OctoPrintConfig(BaseModel):
@@ -115,7 +129,7 @@ async def save_octoprint_config(config: OctoPrintConfig):
     
     # 同时更新 DAQ 配置
     try:
-        from main import daq
+        daq = _get_daq()
         if daq:
             # 构建完整 URL
             url = config.host

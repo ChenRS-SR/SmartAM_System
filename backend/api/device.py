@@ -4,11 +4,25 @@
 提供手动连接/断开设备的功能
 """
 
+import sys
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 
 router = APIRouter()
+
+
+def _get_daq():
+    """获取 DAQ 实例（从设备管理器动态获取）"""
+    try:
+        from core.device_manager import get_device_manager
+        manager = get_device_manager()
+        # 如果当前是 FDM 模式，返回 FDM acquisition
+        if manager.current_type.value == "fdm":
+            return manager.fdm_acquisition
+    except Exception as e:
+        print(f"[API] 获取 DAQ 失败: {e}")
+    return None
 
 
 class DeviceConnectRequest(BaseModel):
@@ -28,7 +42,7 @@ class DeviceStatusResponse(BaseModel):
 @router.get("/status")
 async def get_device_status():
     """获取所有设备的连接状态"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         return {
@@ -49,7 +63,7 @@ async def get_device_status():
 @router.post("/connect")
 async def connect_device(req: DeviceConnectRequest):
     """手动连接指定设备"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")
@@ -80,7 +94,7 @@ async def connect_device(req: DeviceConnectRequest):
 @router.post("/connect-all")
 async def connect_all_devices():
     """连接所有可用设备"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")
@@ -98,7 +112,7 @@ async def connect_all_devices():
 @router.post("/disconnect-all")
 async def disconnect_all_devices():
     """断开所有设备连接"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")
@@ -116,7 +130,7 @@ async def disconnect_all_devices():
 @router.post("/start-acquisition")
 async def start_data_acquisition():
     """启动数据采集"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")
@@ -146,7 +160,7 @@ async def start_data_acquisition():
 @router.post("/stop-acquisition")
 async def stop_data_acquisition():
     """停止数据采集"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")

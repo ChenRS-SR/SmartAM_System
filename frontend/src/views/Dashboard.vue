@@ -88,14 +88,14 @@
             </div>
           </template>
           <div class="video-container">
-            <!-- 模拟视频流 Canvas -->
-            <canvas
-              ref="mockCanvas"
+            <!-- 真实视频流 -->
+            <img
+              src="/video_feed"
               class="video-stream"
-              :width="canvasWidth"
-              :height="canvasHeight"
+              alt="实时监控"
+              style="width: 100%; height: 100%; object-fit: contain;"
             />
-            <div class="mock-label">[MOCK MODE] 模拟视频流</div>
+            <div class="mock-label">实时视频流</div>
           </div>
         </el-card>
         
@@ -372,17 +372,12 @@ onMounted(() => {
   fetchTemperature()
   tempInterval = setInterval(fetchTemperature, 5000)
   
-  // 启动模拟视频流
-  setTimeout(() => {
-    console.log('[Dashboard] 启动模拟视频流')
-    videoConnected.value = true
-    startMockAnimation()
-  }, 100)
+  // 视频流现在通过 <img src="/video_feed"> 自动加载
+  console.log('[Dashboard] 视频流已启动: /video_feed')
 })
 
 onUnmounted(() => {
   if (tempInterval) clearInterval(tempInterval)
-  stopMockAnimation()
 })
 </script>
 

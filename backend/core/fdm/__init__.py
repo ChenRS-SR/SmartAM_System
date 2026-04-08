@@ -7,11 +7,13 @@ FDM (Fused Deposition Modeling) 模块
 - IDS相机 (ids_camera.py) - 随轴工业相机
 - 旁轴相机 (side_camera.py) - USB摄像头
 - Fotric热像仪 (fotric_driver.py) - 红外温度监测
-- M114协调器 (coordinator.py) - 打印机坐标获取
 - 参数管理器 (parameter_manager.py) - 打印参数管理
 
 主采集类:
 - DataAcquisition (data_acquisition.py) - FDM数据采集系统
+
+注意:
+- M114协调器 (coordinator.py) 已废弃，改用 DisplayLayerProgress 插件获取 Z 高度
 """
 
 from .data_acquisition import (
@@ -57,7 +59,7 @@ __all__ = [
     'FotricEnhancedDevice',
     'Fotric628CHDevice',
     
-    # 协调器
+    # 协调器 (已废弃：使用 DisplayLayerProgress 插件获取 Z 高度)
     'M114Coordinator',
     'get_coordinator',
     'reset_coordinator',

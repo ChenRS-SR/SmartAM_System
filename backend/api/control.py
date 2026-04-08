@@ -8,12 +8,26 @@
 - 查看调控历史
 """
 
+import sys
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 
 router = APIRouter()
+
+
+def _get_daq():
+    """获取 DAQ 实例（从设备管理器动态获取）"""
+    try:
+        from core.device_manager import get_device_manager
+        manager = get_device_manager()
+        # 如果当前是 FDM 模式，返回 FDM acquisition
+        if manager.current_type.value == "fdm":
+            return manager.fdm_acquisition
+    except Exception as e:
+        print(f"[API] 获取 DAQ 失败: {e}")
+    return None
 
 
 class PIDParams(BaseModel):
@@ -40,7 +54,7 @@ class RegulationThresholdRequest(BaseModel):
 @router.get("/status")
 async def get_control_status():
     """获取闭环控制状态"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq or not hasattr(daq, 'closed_loop') or not daq.closed_loop:
         return {
@@ -54,7 +68,7 @@ async def get_control_status():
 @router.post("/start")
 async def start_closed_loop():
     """启动闭环调控"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq or not hasattr(daq, 'closed_loop') or not daq.closed_loop:
         raise HTTPException(status_code=503, detail="闭环控制器不可用")
@@ -66,7 +80,7 @@ async def start_closed_loop():
 @router.post("/stop")
 async def stop_closed_loop():
     """停止闭环调控"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq or not hasattr(daq, 'closed_loop') or not daq.closed_loop:
         raise HTTPException(status_code=503, detail="闭环控制器不可用")
@@ -78,7 +92,7 @@ async def stop_closed_loop():
 @router.post("/pause")
 async def pause_closed_loop():
     """暂停闭环调控（继续收集数据但不执行调控）"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq or not hasattr(daq, 'closed_loop') or not daq.closed_loop:
         raise HTTPException(status_code=503, detail="闭环控制器不可用")
@@ -90,7 +104,7 @@ async def pause_closed_loop():
 @router.get("/pid_params")
 async def get_pid_params():
     """获取当前 PID 参数"""
-    from main import daq
+    daq = _get_daq()
     
     # 优先从 SLMController 获取
     if daq and hasattr(daq, 'slm_controller') and daq.slm_controller:
@@ -116,7 +130,7 @@ async def get_pid_params():
 @router.post("/pid_params")
 async def set_pid_params(params: PIDParams):
     """设置 PID 参数"""
-    from main import daq
+    daq = _get_daq()
     
     # 更新到 SLMController
     if daq and hasattr(daq, 'slm_controller') and daq.slm_controller:
@@ -143,7 +157,7 @@ async def set_pid_params(params: PIDParams):
 @router.post("/threshold")
 async def set_regulation_threshold(req: RegulationThresholdRequest):
     """设置调控置信度阈值"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq or not hasattr(daq, 'closed_loop') or not daq.closed_loop:
         raise HTTPException(status_code=503, detail="闭环控制器不可用")
@@ -161,7 +175,7 @@ async def set_regulation_threshold(req: RegulationThresholdRequest):
 @router.post("/manual")
 async def manual_control(req: ManualControlRequest):
     """手动控制打印参数"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq or not hasattr(daq, 'closed_loop') or not daq.closed_loop:
         raise HTTPException(status_code=503, detail="闭环控制器不可用")
@@ -227,7 +241,7 @@ async def manual_control(req: ManualControlRequest):
 @router.get("/history")
 async def get_regulation_history(limit: int = 100):
     """获取调控历史记录"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq or not hasattr(daq, 'closed_loop') or not daq.closed_loop:
         raise HTTPException(status_code=503, detail="闭环控制器不可用")
@@ -256,7 +270,7 @@ async def get_regulation_history(limit: int = 100):
 @router.post("/export")
 async def export_regulation_history(filepath: Optional[str] = None):
     """导出调控历史到文件"""
-    from main import daq
+    daq = _get_daq()
     from datetime import datetime
     
     if not daq or not hasattr(daq, 'closed_loop') or not daq.closed_loop:

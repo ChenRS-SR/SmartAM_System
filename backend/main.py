@@ -28,7 +28,7 @@ import os
 
 # 导入 DAQ 系统
 try:
-    from core.data_acquisition import get_daq_system, FrameData
+    from core.fdm.data_acquisition import get_daq_system, FrameData
     DAQ_AVAILABLE = True
     print("[Main] DAQ 系统导入成功")
 except ImportError as e:
@@ -39,13 +39,39 @@ except ImportError as e:
 daq = None
 
 
+def _get_daq_from_device_manager():
+    """从设备管理器获取当前活动的 DAQ 实例"""
+    global daq
+    try:
+        from core.device_manager import get_device_manager
+        manager = get_device_manager()
+        
+        # 如果当前是 FDM 模式，返回 FDM acquisition
+        if manager.current_type.value == "fdm":
+            if manager.fdm_acquisition:
+                return manager.fdm_acquisition
+            else:
+                print(f"[Main] FDM 模式但 fdm_acquisition 为 None")
+        
+        # 返回全局 daq（如果已设置）
+        return daq
+    except Exception as e:
+        print(f"[Main] 获取 DAQ 失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return daq
+
+
 def signal_handler(signum, frame):
     """信号处理函数"""
     global daq
     print(f"\n[Main] 接收到信号 {signum}，正在优雅关闭...")
-    if daq:
+    
+    # 获取当前活动的 DAQ
+    current_daq = _get_daq_from_device_manager()
+    if current_daq:
         try:
-            daq.stop()
+            current_daq.stop()
             print("[Main] DAQ 已停止")
         except Exception as e:
             print(f"[Main] 停止 DAQ 时出错: {e}")
@@ -231,25 +257,31 @@ def create_combined_frame(
         cv2.putText(canvas, "Side Camera - No Signal", (1260, 270),
                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     
-    # 3. 红外热像图（底部）
+    # 3. 红外热像图（底部）- 使用固定温度范围和 INFERNO 调色板
     thermal_x_offset = 50
     if thermal_data and thermal_data.get("available"):
         thermal_matrix = thermal_data.get("matrix")
         if thermal_matrix is not None:
-            temp_min = thermal_data.get("min", 0)
-            temp_max = thermal_data.get("max", 100)
+            # 获取实际温度统计（用于显示）
+            actual_min = thermal_data.get("min", 0)
+            actual_max = thermal_data.get("max", 100)
             
-            if temp_max > temp_min:
-                normalized = ((thermal_matrix - temp_min) / (temp_max - temp_min) * 255).astype(np.uint8)
-            else:
-                normalized = np.zeros_like(thermal_matrix, dtype=np.uint8)
+            # ========== 固定温度范围映射 (参考 ids_websocket.py) ==========
+            # 使用 20-50°C 作为显示范围（适合打印过程监控）
+            DISPLAY_TEMP_MIN = 20.0
+            DISPLAY_TEMP_MAX = 50.0
             
-            colored = cv2.applyColorMap(normalized, cv2.COLORMAP_JET)
+            # 将温度裁剪到显示范围，然后归一化到 [0, 255]
+            clipped = np.clip(thermal_matrix, DISPLAY_TEMP_MIN, DISPLAY_TEMP_MAX)
+            normalized = ((clipped - DISPLAY_TEMP_MIN) / (DISPLAY_TEMP_MAX - DISPLAY_TEMP_MIN) * 255).astype(np.uint8)
+            
+            # 应用 INFERNO 调色板（比 JET 更适合热成像）
+            colored = cv2.applyColorMap(normalized, cv2.COLORMAP_INFERNO)
             thermal_resized = cv2.resize(colored, (1100, 480))
             
             canvas[top_height+30:top_height+510, thermal_x_offset:thermal_x_offset+1100] = thermal_resized
             
-            info_text = f"Thermal: {temp_min:.1f}~{temp_max:.1f}C | Melt Pool: {thermal_data.get('melt_pool', 0):.1f}C"
+            info_text = f"Thermal: {actual_min:.1f}~{actual_max:.1f}C | Range: {DISPLAY_TEMP_MIN:.0f}-{DISPLAY_TEMP_MAX:.0f}C"
             cv2.putText(canvas, info_text, (thermal_x_offset + 10, top_height + 25),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         else:
@@ -281,13 +313,28 @@ def create_combined_frame(
                 cv2.putText(canvas, text, (x_start, y_offset + i * 35),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
     
-    # 5. 底部显示打印机状态
+    # 5. 底部显示打印机状态（与上方状态卡片保持一致）
     if printer_data:
-        bed_temp = printer_data.get("bed_temperature", 0)
-        hotend_temp = printer_data.get("hotend_temperature", 0)
+        # 使用与前端状态卡片相同的键名
+        bed_temp = printer_data.get("bed_actual", 0)
+        hotend_temp = printer_data.get("hotend_actual", 0)
         progress = printer_data.get("progress", 0)
+        state = printer_data.get("state", "Unknown")
         
-        status_text = f"Bed: {bed_temp:.1f}C | Hotend: {hotend_temp:.1f}C | Progress: {progress:.1f}%"
+        # 如果进度为0但正在打印，尝试估算进度
+        if progress == 0 and state in ["Printing", "Printing (OctoPrint Simulation)"]:
+            print_time = printer_data.get("print_time", 0)
+            print_time_left = printer_data.get("print_time_left", 0)
+            total_time = print_time + print_time_left
+            if total_time > 0:
+                progress = (print_time / total_time) * 100
+        
+        # 格式化状态文本
+        if state == "Unknown" or not printer_data.get("connected", False):
+            status_text = f"热床: {bed_temp:.1f}C | 喷嘴: {hotend_temp:.1f}C | 状态: 未连接"
+        else:
+            status_text = f"热床: {bed_temp:.1f}C | 喷嘴: {hotend_temp:.1f}C | 进度: {progress:.1f}%"
+        
         cv2.putText(canvas, status_text, (50, 1050),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
     
@@ -296,11 +343,12 @@ def create_combined_frame(
 
 def generate_video_stream():
     """生成视频流"""
-    global daq
-    
     while True:
         try:
-            if daq is None:
+            # 动态获取当前 DAQ
+            current_daq = _get_daq_from_device_manager()
+            
+            if current_daq is None:
                 # 如果没有DAQ，生成测试画面
                 frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
                 cv2.putText(frame, "DAQ System Not Initialized", (600, 540),
@@ -309,11 +357,11 @@ def generate_video_stream():
                            cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 200, 200), 2)
             else:
                 # 获取最新数据
-                ids_frame = daq.get_latest_frame("ids")
-                side_frame = daq.get_latest_frame("side")
-                thermal_data = daq.get_thermal_data()
-                prediction = daq.get_latest_prediction()
-                printer_data = daq.get_printer_data()
+                ids_frame = current_daq.get_latest_frame("ids")
+                side_frame = current_daq.get_latest_frame("side")
+                thermal_data = current_daq.get_thermal_data()
+                prediction = current_daq.get_latest_prediction()
+                printer_data = current_daq.get_printer_data()
                 
                 # 创建组合画面
                 frame = create_combined_frame(
@@ -346,77 +394,125 @@ async def video_feed():
 
 # ========== WebSocket 实时数据 ==========
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket实时数据推送"""
-    global daq
+async def _handle_websocket(websocket: WebSocket):
+    """WebSocket 处理逻辑（共享）"""
     await websocket.accept()
     
     latest_data = None
+    current_daq = None
     
     def on_new_data(data: FrameData):
         nonlocal latest_data
         latest_data = data
     
-    # 注册回调
-    if daq:
-        daq.register_callback(on_new_data)
+    # 动态获取 DAQ 并注册回调
+    current_daq = _get_daq_from_device_manager()
+    if current_daq:
+        current_daq.register_callback(on_new_data)
     
     try:
         while True:
+            # 动态获取当前 DAQ（以防设备类型切换）
+            active_daq = _get_daq_from_device_manager()
+            if active_daq and active_daq != current_daq:
+                # 如果 DAQ 发生变化，重新注册回调
+                if current_daq:
+                    current_daq.unregister_callback(on_new_data)
+                current_daq = active_daq
+                current_daq.register_callback(on_new_data)
+            
             # 检查是否有新数据
-            if latest_data:
-                try:
-                    data = {
-                        "timestamp": datetime.now().isoformat(),
-                        "frame_number": latest_data.frame_number if hasattr(latest_data, 'frame_number') else 0,
-                        "thermal": {
-                            "max": latest_data.temp_max if hasattr(latest_data, 'temp_max') else 0,
-                            "min": latest_data.temp_min if hasattr(latest_data, 'temp_min') else 0,
-                            "melt_pool": latest_data.melt_pool_temp if hasattr(latest_data, 'melt_pool_temp') else 0
-                        } if hasattr(latest_data, 'temp_max') else None,
-                        "prediction": {
-                            "available": True,
-                            "x_offset": {
-                                "class": latest_data.x_offset_class if hasattr(latest_data, 'x_offset_class') else 1,
-                                "label": ["Low", "Normal", "High"][latest_data.x_offset_class if hasattr(latest_data, 'x_offset_class') else 1],
-                                "confidence": 0.8
-                            },
-                            "z_offset": {
-                                "class": latest_data.z_offset_class if hasattr(latest_data, 'z_offset_class') else 1,
-                                "label": ["Low", "Normal", "High"][latest_data.z_offset_class if hasattr(latest_data, 'z_offset_class') else 1],
-                                "confidence": 0.8
-                            },
-                            "hot_end": {
-                                "class": latest_data.hotend_class if hasattr(latest_data, 'hotend_class') else 1,
-                                "label": ["Low", "Normal", "High"][latest_data.hotend_class if hasattr(latest_data, 'hotend_class') else 1],
-                                "confidence": 0.8
-                            },
-                            "inference_time_ms": 50
-                        } if hasattr(latest_data, 'x_offset_class') else {"available": False}
-                    }
-                    
-                    await websocket.send_text(json.dumps(data))
-                except Exception as e:
-                    print(f"[WebSocket] 发送状态失败: {e}")
-                    # 发送心跳保持连接
-                    await websocket.send_text(json.dumps({
-                        "timestamp": datetime.now().isoformat(),
-                        "heartbeat": True
-                    }))
+            try:
+                # 获取打印机状态（用于温度趋势等）
+                printer_status = None
+                if active_daq:
+                    try:
+                        printer_status = active_daq.get_printer_status()
+                    except:
+                        pass
+                
+                # 构建 WebSocket 数据
+                data = {
+                    "timestamp": datetime.now().isoformat(),
+                    "frame_number": latest_data.frame_number if hasattr(latest_data, 'frame_number') else 0,
+                    "printer": {
+                        "state": printer_status.get("state", "Unknown") if printer_status else "Unknown",
+                        "progress": printer_status.get("progress", 0) if printer_status else 0,
+                        "filename": printer_status.get("filename", "") if printer_status else "",
+                        "print_time": printer_status.get("print_time", 0) if printer_status else 0,
+                        "print_time_left": printer_status.get("print_time_left", 0) if printer_status else 0,
+                        "temperature": {
+                            "nozzle": printer_status.get("hotend_actual", 0) if printer_status else 0,
+                            "nozzle_target": printer_status.get("hotend_target", 0) if printer_status else 0,
+                            "bed": printer_status.get("bed_actual", 0) if printer_status else 0,
+                            "bed_target": printer_status.get("bed_target", 0) if printer_status else 0,
+                        },
+                        "position": printer_status.get("position", {"x": 0, "y": 0, "z": 0}) if printer_status else {"x": 0, "y": 0, "z": 0}
+                    } if printer_status else None,
+                    "thermal": {
+                        "max": latest_data.temp_max if hasattr(latest_data, 'temp_max') else 0,
+                        "min": latest_data.temp_min if hasattr(latest_data, 'temp_min') else 0,
+                        "melt_pool": latest_data.melt_pool_temp if hasattr(latest_data, 'melt_pool_temp') else 0
+                    } if latest_data and hasattr(latest_data, 'temp_max') else None,
+                    "prediction": {
+                        "available": True,
+                        "flow_rate": {
+                            "class": latest_data.flow_rate_class if hasattr(latest_data, 'flow_rate_class') else 1,
+                            "label": ["Low", "Normal", "High"][latest_data.flow_rate_class if hasattr(latest_data, 'flow_rate_class') else 1],
+                            "confidence": 0.8
+                        },
+                        "feed_rate": {
+                            "class": latest_data.feed_rate_class if hasattr(latest_data, 'feed_rate_class') else 1,
+                            "label": ["Low", "Normal", "High"][latest_data.feed_rate_class if hasattr(latest_data, 'feed_rate_class') else 1],
+                            "confidence": 0.8
+                        },
+                        "z_offset": {
+                            "class": latest_data.z_offset_class if hasattr(latest_data, 'z_offset_class') else 1,
+                            "label": ["Low", "Normal", "High"][latest_data.z_offset_class if hasattr(latest_data, 'z_offset_class') else 1],
+                            "confidence": 0.8
+                        },
+                        "hot_end": {
+                            "class": latest_data.hotend_class if hasattr(latest_data, 'hotend_class') else 1,
+                            "label": ["Low", "Normal", "High"][latest_data.hotend_class if hasattr(latest_data, 'hotend_class') else 1],
+                            "confidence": 0.8
+                        },
+                        "inference_time_ms": 50
+                    } if latest_data else {"available": False}
+                }
+                
+                await websocket.send_text(json.dumps(data))
+            except Exception as e:
+                print(f"[WebSocket] 发送状态失败: {e}")
+                # 发送心跳保持连接
+                await websocket.send_text(json.dumps({
+                    "timestamp": datetime.now().isoformat(),
+                    "heartbeat": True
+                }))
             
             await asyncio.sleep(0.1)  # 100ms 间隔
             
     except Exception as e:
         print(f"[WebSocket] 连接断开: {e}")
     finally:
-        if daq:
-            daq.unregister_callback(on_new_data)
+        if current_daq:
+            current_daq.unregister_callback(on_new_data)
         # 安全关闭 WebSocket
         try:
             await websocket.close()
         except RuntimeError:
             pass
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket实时数据推送 - 兼容旧版 /ws"""
+    await _handle_websocket(websocket)
+
+
+@app.websocket("/ws/sensor_data")
+async def websocket_sensor_data(websocket: WebSocket):
+    """WebSocket实时数据推送 - 前端使用的 /ws/sensor_data"""
+    await _handle_websocket(websocket)
 
 
 # ========== 主入口 ==========

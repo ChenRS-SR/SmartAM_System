@@ -7,6 +7,7 @@
 注意：此 API 仅在 FDM 模式下可用
 """
 
+import sys
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional
@@ -15,6 +16,19 @@ import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _get_daq():
+    """获取 DAQ 实例（从设备管理器动态获取）"""
+    try:
+        from core.device_manager import get_device_manager
+        manager = get_device_manager()
+        # 如果当前是 FDM 模式，返回 FDM acquisition
+        if manager.current_type.value == "fdm":
+            return manager.fdm_acquisition
+    except Exception as e:
+        print(f"[API] 获取 DAQ 失败: {e}")
+    return None
 
 
 def _check_fdm_mode():
@@ -75,7 +89,7 @@ async def get_printer_status():
             position={"x": 0, "y": 0, "z": 0}
         )
     
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         return PrinterStatus(
@@ -130,7 +144,7 @@ async def get_printer_temperature():
     # 检查是否为 FDM 模式
     _check_fdm_mode()
     
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")
@@ -268,7 +282,7 @@ async def pause_print():
 @router.post("/resume")
 async def resume_print():
     """恢复打印"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")
@@ -304,7 +318,7 @@ async def stop_print():
 @router.get("/test")
 async def test_printer_connection():
     """测试 OctoPrint 连接（支持模拟模式）"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         return {
@@ -420,7 +434,7 @@ async def test_printer_connection():
 @router.get("/files")
 async def get_printer_files():
     """获取打印机文件列表（本地和 SD 卡）"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")
@@ -509,7 +523,7 @@ async def start_print_file(
         filename: 文件名（包含路径）
         location: 文件位置，'local' 或 'sdcard'
     """
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")
@@ -582,7 +596,7 @@ async def start_print_file(
 @router.post("/job/pause")
 async def pause_job():
     """暂停当前打印任务"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")
@@ -612,7 +626,7 @@ async def pause_job():
 @router.post("/job/cancel")
 async def cancel_job():
     """取消当前打印任务"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 系统未初始化")

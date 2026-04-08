@@ -7,11 +7,25 @@
 - 查看推理统计
 """
 
+import sys
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict
 
 router = APIRouter()
+
+
+def _get_daq():
+    """获取 DAQ 实例（从设备管理器动态获取）"""
+    try:
+        from core.device_manager import get_device_manager
+        manager = get_device_manager()
+        # 如果当前是 FDM 模式，返回 FDM acquisition
+        if manager.current_type.value == "fdm":
+            return manager.fdm_acquisition
+    except Exception as e:
+        print(f"[API] 获取 DAQ 失败: {e}")
+    return None
 
 
 class PredictionResult(BaseModel):
@@ -37,7 +51,7 @@ class InferenceConfig(BaseModel):
 @router.get("/prediction", response_model=PredictionResult)
 async def get_latest_prediction():
     """获取最新预测结果"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq or not daq._latest_data:
         raise HTTPException(status_code=503, detail="数据不可用")
@@ -61,7 +75,7 @@ async def get_latest_prediction():
 @router.get("/status")
 async def get_inference_status():
     """获取推理引擎状态"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq or not hasattr(daq, 'pacnet') or not daq.pacnet:
         return {
@@ -81,7 +95,7 @@ async def get_inference_status():
 @router.post("/config")
 async def update_inference_config(config: InferenceConfig):
     """更新推理配置"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq or not daq.pacnet:
         raise HTTPException(status_code=503, detail="推理引擎不可用")
@@ -97,7 +111,7 @@ async def update_inference_config(config: InferenceConfig):
 @router.get("/history")
 async def get_prediction_history(limit: int = 100):
     """获取预测历史（用于分析）"""
-    from main import daq
+    daq = _get_daq()
     
     if not daq:
         raise HTTPException(status_code=503, detail="DAQ 不可用")

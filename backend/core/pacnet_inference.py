@@ -293,12 +293,30 @@ class PacNetInference:
     
     def _get_default_model_path(self) -> str:
         """获取默认模型路径"""
-        # 优先使用项目内的模型文件
-        local_path = Path(__file__).parent.parent / "weights" / "model_full.pt"
+        weights_dir = Path(__file__).parent.parent / "weights"
+        
+        # 1. 优先查找 ParamDriven_CrossAttn 变体8模型（最新训练）
+        for subdir in weights_dir.iterdir():
+            if subdir.is_dir() and 'ParamDriven' in subdir.name:
+                model_file = subdir / "best_model.pth"
+                if model_file.exists():
+                    logger.info(f"[PacNet] 找到变体8模型: {model_file}")
+                    return str(model_file)
+        
+        # 2. 查找任何子目录中的 best_model.pth
+        for subdir in weights_dir.iterdir():
+            if subdir.is_dir():
+                model_file = subdir / "best_model.pth"
+                if model_file.exists():
+                    logger.info(f"[PacNet] 找到模型: {model_file}")
+                    return str(model_file)
+        
+        # 3. 优先使用项目内的模型文件
+        local_path = weights_dir / "model_full.pt"
         if local_path.exists():
             return str(local_path)
         
-        # 回退到外部项目路径（兼容旧配置）
+        # 4. 回退到外部项目路径（兼容旧配置）
         external_path = PACNET_PATH / "saved_models" / "full" / "model_full.pt"
         if external_path.exists():
             return str(external_path)
@@ -381,6 +399,14 @@ class PacNetInference:
     def _detect_variant(self) -> str:
         """从模型路径检测变体类型"""
         path_str = str(self.model_path).lower()
+        
+        # 变体8: 参数驱动Cross-Attention (ParamDriven_CrossAttn)
+        # 在模型定义中，'full' 变体已经包含参数驱动的 Cross-Attention
+        if 'paramdriven' in path_str or 'param_driven' in path_str:
+            logger.info("[PacNet] 检测到变体8: 参数驱动Cross-Attention -> 使用 'full' 变体")
+            return 'full'
+        
+        # 其他变体
         if 'concat' in path_str:
             return 'concat_only'
         elif 'no-mmd' in path_str or 'no_mmd' in path_str:
@@ -389,6 +415,8 @@ class PacNetInference:
             return 'rgb_only'
         elif 'ids-only' in path_str or 'ids_only' in path_str:
             return 'ids_only'
+        
+        # 默认使用完整模型
         return 'full'
     
     def should_infer(self) -> bool:

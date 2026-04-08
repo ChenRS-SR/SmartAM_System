@@ -245,7 +245,7 @@ class DataAcquisition:
         self._side_camera = None
         self._fotric_device = None
         self._vibration_device = None
-        self._m114_coord = None
+        self._m114_coord = None  # 已废弃：使用 DisplayLayerProgress 插件获取 Z 高度
         
         # 数据队列
         self._save_queue = queue.Queue(maxsize=100)
@@ -277,6 +277,14 @@ class DataAcquisition:
         }
         self._octoprint_last_success = 0
         self._octoprint_backoff = 1  # 指数退避初始值（秒）
+        
+        # 初始化 PacNet 推理引擎
+        self._inference_engine = None
+        self._init_inference_engine()
+        
+        # 最新预测结果
+        self._latest_prediction = None
+        
         self._octoprint_cache_ttl = 5  # 缓存有效期（秒）
         
         # 参数管理器
@@ -287,6 +295,61 @@ class DataAcquisition:
             self._param_manager.on_param_change = self._on_param_changed
         
         logging.info("[DataAcquisition] 初始化完成")
+    
+    def _init_inference_engine(self):
+        """初始化 PacNet 推理引擎"""
+        try:
+            # 动态导入以避免循环依赖
+            from core.pacnet_inference import get_inference_engine
+            self._inference_engine = get_inference_engine()
+            if self._inference_engine and self._inference_engine.is_loaded:
+                logging.info("[DataAcquisition] PacNet 推理引擎初始化成功")
+            else:
+                logging.warning("[DataAcquisition] PacNet 推理引擎未加载，将在首次推理时尝试加载")
+        except Exception as e:
+            logging.error(f"[DataAcquisition] PacNet 推理引擎初始化失败: {e}")
+            self._inference_engine = None
+    
+    def _run_inference(self, ids_frame, side_frame, fotric_frame, thermal_data, params=None):
+        """运行模型推理"""
+        if self._inference_engine is None:
+            return None
+        
+        try:
+            # 准备输入数据
+            if thermal_data and isinstance(thermal_data, dict):
+                thermal_matrix = thermal_data.get("matrix")
+            else:
+                thermal_matrix = None
+            
+            # 获取当前打印参数（如果没有提供）
+            if params is None:
+                params = np.array([
+                    self.config.flow_rate,
+                    self.config.feed_rate,
+                    self.config.z_offset,
+                    self.config.target_hotend,
+                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0  # 填充到10维
+                ], dtype=np.float32)
+            
+            # 执行推理
+            result = self._inference_engine.inference(
+                ids_frame=ids_frame,
+                computer_frame=side_frame,
+                fotric_frame=fotric_frame,
+                thermal_matrix=thermal_matrix,
+                params=params
+            )
+            
+            if result:
+                self._latest_prediction = result
+                logging.debug(f"[Inference] 推理完成: Flow={result.flow_rate_label}, Feed={result.feed_rate_label}")
+            
+            return result
+            
+        except Exception as e:
+            logging.error(f"[Inference] 推理失败: {e}")
+            return None
     
     def _enable_simulation_mode(self):
         """启用模拟模式"""
@@ -382,7 +445,7 @@ class DataAcquisition:
                 requests.post(url, headers=headers, json={"command": gcode}, timeout=2)
                 logging.info(f"[参数] 速度倍率: {new_params.feed_rate}%")
             
-            # 发送Z偏移（使用M851检查，M290相对调整）
+            # 发送Z偏移（直接使用 M290 相对调整，不再使用 M114 查询）
             if hasattr(new_params, 'z_offset'):
                 target_display_offset = new_params.z_offset  # 目标显示值（如0.25）
                 logging.info(f"[参数] Z偏移处理开始: 目标显示值={target_display_offset:.2f}mm")
@@ -392,41 +455,27 @@ class DataAcquisition:
                     logging.error(f"[参数] Z偏移值 ({target_display_offset}mm) 超出安全范围 [-0.5, +0.5]，已拒绝发送！")
                     return
                 
-                # 使用 M851 获取当前 Z offset
-                if self._m114_coord:
-                    logging.info(f"[参数] 正在获取当前M851 Z偏移...")
-                    current_m851 = self._m114_coord.get_m851_z_offset(timeout=3, verbose=True)
-                    logging.info(f"[参数] M851返回: {current_m851}")
-                    if current_m851 is not None:
-                        # 计算当前显示值（相对于 -2.55）
-                        current_display = current_m851 - (-2.55)  # 如 -2.55 -> 0.00
-                        
-                        # 计算需要调整的差值
-                        delta = target_display_offset - current_display  # 如 0.25 - 0.00 = 0.25
-                        
-                        # 如果差值很小，跳过
-                        if abs(delta) < 0.01:
-                            logging.info(f"[参数] Z偏移无需调整: 当前={current_display:.2f}, 目标={target_display_offset:.2f}")
-                            # 更新配置为当前实际值
-                            self.config.z_offset = current_display
-                        else:
-                            # 使用 M290 相对调整（传入已知的当前值，避免重复查询）
-                            logging.info(f"[参数] 准备发送M290 Z{delta:+.2f} (当前M851={current_m851:.2f})")
-                            new_m851 = self._m114_coord.set_z_offset_relative(
-                                delta, timeout=3, verbose=True, current=current_m851
-                            )
-                            if new_m851 is not None:
-                                actual_display = new_m851 - (-2.55)
-                                # 更新配置为实际调整后的值
-                                self.config.z_offset = actual_display
-                                logging.info(f"[参数] Z偏移调整成功: {current_display:.2f} -> {actual_display:.2f} "
-                                          f"(M851: {current_m851:.2f} -> {new_m851:.2f})")
-                            else:
-                                logging.warning("[参数] Z偏移调整失败，无法验证新值")
-                    else:
-                        logging.warning("[参数] 无法获取当前M851 Z偏移，跳过调整")
+                # 计算需要调整的差值（相对于当前配置值）
+                current_display = self.config.z_offset
+                delta = target_display_offset - current_display
+                
+                # 如果差值很小，跳过
+                if abs(delta) < 0.01:
+                    logging.info(f"[参数] Z偏移无需调整: 当前={current_display:.2f}, 目标={target_display_offset:.2f}")
                 else:
-                    logging.warning("[参数] M114协调器未初始化，无法调整Z偏移")
+                    # 使用 M290 相对调整
+                    logging.info(f"[参数] 准备发送M290 Z{delta:+.2f}")
+                    try:
+                        gcode = f"M290 Z{delta:+.2f}"
+                        response = requests.post(url, headers=headers, json={"command": gcode}, timeout=2)
+                        if response.status_code == 204:
+                            # 更新配置为目标值（假设命令成功）
+                            self.config.z_offset = target_display_offset
+                            logging.info(f"[参数] Z偏移调整成功: {current_display:.2f} -> {target_display_offset:.2f}")
+                        else:
+                            logging.warning(f"[参数] Z偏移调整失败: HTTP {response.status_code}")
+                    except Exception as e:
+                        logging.error(f"[参数] Z偏移调整异常: {e}")
             
             # 发送热端温度
             if hasattr(new_params, 'target_hotend'):
@@ -571,7 +620,8 @@ class DataAcquisition:
         手动连接指定设备
         
         Args:
-            device_type: 设备类型 ('ids', 'side_camera', 'fotric', 'vibration', 'm114')
+            device_type: 设备类型 ('ids', 'side_camera', 'fotric', 'vibration')
+                        注意：'m114' 已废弃，使用 DisplayLayerProgress 插件获取 Z 高度
             
         Returns:
             bool: 连接是否成功
@@ -593,9 +643,9 @@ class DataAcquisition:
                 if self._init_vibration():
                     logging.info("[设备] 振动传感器已手动连接")
                     return True
-            elif device_type == 'm114' and M114_AVAILABLE:
-                self._m114_coord = M114Coordinator()
-                logging.info("[设备] M114协调器已手动连接")
+            elif device_type == 'm114':
+                # M114 已废弃，使用 DisplayLayerProgress 插件获取 Z 高度
+                logging.info("[设备] M114 已废弃，使用 DisplayLayerProgress 插件获取 Z 高度")
                 return True
         except Exception as e:
             logging.error(f"[设备] 连接 {device_type} 失败: {e}")
@@ -604,6 +654,9 @@ class DataAcquisition:
     
     def get_device_status(self) -> Dict[str, Any]:
         """获取所有设备的连接状态"""
+        # 检查 OctoPrint 连接状态（通过 DisplayLayerProgress 插件）
+        octoprint_connected = self._check_octoprint_connection()
+        
         # 模拟模式下所有设备都报告为可用
         if self._simulation_mode_active:
             return {
@@ -611,8 +664,9 @@ class DataAcquisition:
                 "side_camera": True,
                 "fotric": True,
                 "vibration": False,  # 振动传感器暂不模拟
-                "m114": True,
+                "m114": True,  # 已废弃，保留兼容
                 "octoprint": True,
+                "displaylayerprogress": True,  # 使用 DisplayLayerProgress 获取 Z 高度
                 "simulation": True,  # 标记当前为模拟模式
                 "octoprint_simulation": self._octoprint_simulation_active
             }
@@ -624,22 +678,44 @@ class DataAcquisition:
                 "side_camera": self._side_camera is not None,
                 "fotric": self._fotric_device is not None and (hasattr(self._fotric_device, 'is_connected') and self._fotric_device.is_connected),
                 "vibration": self._vibration_device is not None,
-                "m114": True,  # 使用模拟位置
+                "m114": True,  # 已废弃，保留兼容
                 "octoprint": True,
+                "displaylayerprogress": True,
                 "simulation": False,
                 "octoprint_simulation": True
             }
+        
+        # 真实模式：检查 OctoPrint 连接
+        # 注意：如果之前能获取到文件列表，说明连接是成功的
+        # 这里简化判断：只要配置了 API Key 就认为已连接（避免频繁请求）
+        octoprint_configured = bool(self.config.octoprint_api_key and len(self.config.octoprint_api_key) >= 20)
         
         return {
             "ids": self._ids_camera is not None,
             "side_camera": self._side_camera is not None,
             "fotric": self._fotric_device is not None and (hasattr(self._fotric_device, 'is_connected') and self._fotric_device.is_connected),
             "vibration": self._vibration_device is not None,
-            "m114": self._m114_coord is not None,
-            "octoprint": self._m114_coord is not None,
+            "m114": True,  # 已废弃，使用 DisplayLayerProgress，保留字段兼容
+            "octoprint": octoprint_connected or octoprint_configured,
+            "displaylayerprogress": octoprint_connected or octoprint_configured,
             "simulation": False,
             "octoprint_simulation": False
         }
+    
+    def _check_octoprint_connection(self) -> bool:
+        """检查 OctoPrint 连接状态"""
+        try:
+            import requests
+            api_key = self.config.octoprint_api_key
+            if not api_key or len(api_key) < 20:
+                return False
+            
+            url = f"{self.config.octoprint_url}/api/printer"
+            headers = {"X-Api-Key": api_key}
+            response = requests.get(url, headers=headers, timeout=3)
+            return response.status_code == 200
+        except:
+            return False
     
     def initialize_devices(self) -> Dict[str, bool]:
         """初始化所有设备（串行执行，带超时控制）
@@ -650,8 +726,8 @@ class DataAcquisition:
             "ids": False,
             "side_camera": False,
             "fotric": False,
-            "vibration": False,
-            "m114": False
+            "vibration": False
+            # 注意：m114 已废弃，使用 DisplayLayerProgress 插件
         }
         
         # 检查是否应该使用模拟模式
@@ -669,22 +745,68 @@ class DataAcquisition:
         start_time = time.time()
         any_device_connected = False
         
-        # 初始化 IDS 相机（设置较短超时）
-        if self.config.enable_ids and IDS_AVAILABLE:
-            try:
-                logging.info(f"[设备] 正在初始化IDS相机 (enable_ids={self.config.enable_ids}, IDS_AVAILABLE={IDS_AVAILABLE})")
-                results["ids"] = self._init_ids_camera()
-                if results["ids"]:
-                    logging.info(f"[设备] IDS相机初始化成功，_ids_camera={self._ids_camera is not None}")
-                else:
-                    logging.warning("[设备] IDS相机初始化返回False")
-            except Exception as e:
-                logging.error(f"[设备] IDS相机初始化失败: {e}")
-        else:
-            logging.info(f"[设备] 跳过IDS相机初始化 (enable_ids={self.config.enable_ids}, IDS_AVAILABLE={IDS_AVAILABLE})")
+        # 首先扫描所有可用摄像头，明确分配给 IDS 和旁轴
+        available_cameras = self._scan_available_cameras()
+        logging.warning(f"[设备] 扫描到可用摄像头: {available_cameras}")
         
-        # 初始化旁轴相机
-        if self.config.enable_side_camera:
+        # 分配摄像头：
+        # 索引 0：旁轴相机（电脑自带摄像头）
+        # 索引 1：IDS 随轴相机（USB 摄像头）
+        ids_camera_index = None
+        side_camera_index = None
+        
+        # 查找索引 0 和索引 1
+        cam_0 = next((cam for cam in available_cameras if cam[0] == 0), None)
+        cam_1 = next((cam for cam in available_cameras if cam[0] == 1), None)
+        
+        if cam_0 and cam_1:
+            # 两个都有，按正确分配
+            side_camera_index = 0   # 旁轴用索引 0
+            ids_camera_index = 1    # IDS 随轴用索引 1
+            logging.warning(f"[设备] 分配: 旁轴=索引0({cam_0[1]}x{cam_0[2]}), IDS随轴=索引1({cam_1[1]}x{cam_1[2]})")
+        elif cam_0:
+            # 只有索引 0，给旁轴
+            side_camera_index = 0
+            logging.warning(f"[设备] 警告: 只有索引0，分配给旁轴")
+        elif cam_1:
+            # 只有索引 1，给 IDS
+            ids_camera_index = 1
+            logging.warning(f"[设备] 警告: 只有索引1，分配给IDS随轴")
+        elif len(available_cameras) >= 1:
+            # 使用第一个可用摄像头
+            ids_camera_index = available_cameras[0][0]
+            logging.warning(f"[设备] 警告: 使用第一个可用摄像头索引{ids_camera_index}给IDS")
+        
+        logging.warning(f"[设备] 摄像头分配: IDS={ids_camera_index}, 旁轴={side_camera_index}")
+        
+        # 保存旁轴相机索引，供 IDS 初始化时跳过
+        self._side_camera_index = side_camera_index
+        
+        # 初始化 IDS 相机（传入指定的首选索引）
+        if self.config.enable_ids and ids_camera_index is not None:
+            try:
+                logging.warning(f"[设备] 正在初始化IDS相机 (首选索引 {ids_camera_index})")
+                results["ids"] = self._init_ids_camera(preferred_index=ids_camera_index)
+                if results["ids"]:
+                    logging.warning(f"[设备] IDS相机初始化成功")
+                else:
+                    logging.warning("[设备] IDS相机初始化失败")
+            except Exception as e:
+                logging.error(f"[设备] IDS相机初始化异常: {e}")
+        else:
+            logging.warning(f"[设备] 跳过IDS相机初始化")
+        
+        # 初始化旁轴相机（传入指定的索引）
+        if self.config.enable_side_camera and side_camera_index is not None:
+            try:
+                logging.warning(f"[设备] 正在初始化旁轴相机 (索引 {side_camera_index})")
+                results["side_camera"] = self._init_side_camera_with_index(side_camera_index)
+                if results["side_camera"]:
+                    logging.info("[设备] 旁轴相机初始化成功")
+            except Exception as e:
+                logging.error(f"[设备] 旁轴相机初始化失败: {e}")
+        elif self.config.enable_side_camera:
+            # 没有指定索引，使用默认扫描逻辑
             try:
                 results["side_camera"] = self._init_side_camera()
                 if results["side_camera"]:
@@ -710,29 +832,9 @@ class DataAcquisition:
             except Exception as e:
                 logging.error(f"[设备] 振动传感器初始化失败: {e}")
         
-        # 初始化 M114（这个很快，不需要超时）
-        if M114_AVAILABLE:
-            try:
-                self._m114_coord = M114Coordinator()
-                results["m114"] = True
-                logging.info("[设备] M114协调器初始化成功")
-                
-                # 同步当前 Z offset 显示值
-                try:
-                    current_m851 = self._m114_coord.get_m851_z_offset(timeout=3)
-                    if current_m851 is not None:
-                        # 计算显示值（相对于 -2.55）
-                        display_offset = current_m851 - (-2.55)
-                        self.config.z_offset = display_offset
-                        logging.info(f"[设备] Z偏移初始同步: M851={current_m851:.2f}, 显示值={display_offset:.2f}")
-                    else:
-                        # 默认初始化为 0（表示 M851 = -2.55）
-                        self.config.z_offset = 0.0
-                        logging.info("[设备] Z偏移初始化为默认值 0.00 (M851=-2.55)")
-                except Exception as e:
-                    logging.warning(f"[设备] Z偏移同步失败: {e}")
-            except Exception as e:
-                logging.error(f"[设备] M114协调器初始化失败: {e}")
+        # 注意：M114 轮询已废弃，改用 DisplayLayerProgress 插件获取 Z 高度
+        # Z offset 通过 OctoPrint API 直接发送 G-code (M851) 设置
+        logging.info("[设备] 使用 DisplayLayerProgress 插件获取 Z 高度（M114 已废弃）")
         
         elapsed = time.time() - start_time
         connected = sum(1 for v in results.values() if v)
@@ -837,90 +939,214 @@ class DataAcquisition:
         else:
             results["vibration"] = True
         
-        # 断开 M114
-        if self._m114_coord:
-            try:
-                # 先停止正在进行的请求
-                self._m114_coord.stop()
-                self._m114_coord = None
-                results["m114"] = True
-                logging.info("[设备] M114协调器已断开")
-            except Exception as e:
-                logging.error(f"[设备] M114断开失败: {e}")
-        else:
-            results["m114"] = True
+        # M114 已废弃，使用 DisplayLayerProgress 插件获取 Z 高度
+        results["m114"] = True  # 标记为已处理（实际无操作）
         
         return results
     
-    def _init_ids_camera(self) -> bool:
-        """初始化 IDS 相机"""
-        if not IDS_AVAILABLE:
-            return False
+    def _init_ids_camera(self, preferred_index: int = None) -> bool:
+        """初始化 IDS 相机（或回退到 USB 摄像头）
         
+        Args:
+            preferred_index: 首选的 USB 摄像头索引（USB 回退时使用）
+        """
         # 检查是否已初始化
         if self._ids_camera is not None:
             logging.info("[IDS] 相机已初始化，跳过")
             return True
-            
+        
+        # 尝试初始化 IDS 工业相机
+        if IDS_AVAILABLE:
+            try:
+                ids_peak.Library.Initialize()
+                device_manager = ids_peak.DeviceManager.Instance()
+                device_manager.Update()
+                
+                if not device_manager.Devices().empty():
+                    # 使用 Exclusive 模式打开设备以获得完整控制权限
+                    device = device_manager.Devices()[0].OpenDevice(ids_peak.DeviceAccessType_Exclusive)
+                    logging.info("[IDS] 设备已打开")
+                    
+                    # 配置相机
+                    remote_device_nodemap = device.RemoteDevice().NodeMaps()[0]
+                    
+                    # 尝试设置曝光时间和增益（非关键参数，失败不影响功能）
+                    for param_name, param_value in [("ExposureTime", self.config.ids_exposure_time), 
+                                                    ("Gain", self.config.ids_gain)]:
+                        try:
+                            node = remote_device_nodemap.FindNode(param_name)
+                            if node.IsAvailable():
+                                current = node.Value()
+                                if abs(current - param_value) > 0.1:
+                                    node.SetValue(param_value)
+                                    logging.info(f"[IDS] {param_name} 设置为 {param_value}")
+                        except Exception:
+                            # 简化错误信息，只记录 DEBUG 级别
+                            logging.debug(f"[IDS] {param_name} 使用默认值")
+                    
+                    # 获取数据流描述符并打开数据流
+                    datastream_descriptor = device.DataStreams()[0]
+                    datastream = datastream_descriptor.OpenDataStream()
+                    
+                    # 分配缓冲区
+                    payload_size = remote_device_nodemap.FindNode("PayloadSize").Value()
+                    for i in range(10):
+                        buffer = datastream.AllocAndAnnounceBuffer(payload_size)
+                        datastream.QueueBuffer(buffer)
+                    logging.info(f"[IDS] 已分配 10 个缓冲区 (payload_size={payload_size})")
+                    
+                    # 启动采集
+                    datastream.StartAcquisition()
+                    remote_device_nodemap.FindNode("AcquisitionStart").Execute()
+                    
+                    # 保存设备引用（用于后续关闭）
+                    self._ids_device = device
+                    self._ids_nodemap = remote_device_nodemap
+                    # 保存数据流引用（这是关键！）
+                    self._ids_camera = datastream
+                    
+                    # 应用用户自定义配置
+                    self._apply_ids_user_config()
+                    
+                    logging.info("[IDS] 工业相机初始化成功")
+                    return True
+                else:
+                    logging.warning("[IDS] 未找到 IDS 工业相机，将尝试 USB 摄像头")
+            except Exception as e:
+                logging.warning(f"[IDS] IDS 工业相机初始化失败: {e}，将尝试 USB 摄像头")
+        else:
+            logging.warning("[IDS] IDS Peak 库不可用，将尝试 USB 摄像头")
+        
+        # 回退到 USB 摄像头（使用 OpenCV）
+        if preferred_index is not None:
+            logging.warning(f"[IDS] 使用指定索引 {preferred_index} 进行 USB 回退...")
+            return self._init_ids_camera_with_index(preferred_index)
+        else:
+            logging.warning("[IDS] 调用 USB 回退（自动扫描）...")
+            return self._init_ids_camera_usb_fallback()
+    
+    def _init_ids_camera_usb_fallback(self) -> bool:
+        """IDS 相机初始化失败时，使用 USB 摄像头作为替代"""
         try:
-            ids_peak.Library.Initialize()
-            device_manager = ids_peak.DeviceManager.Instance()
-            device_manager.Update()
+            logging.info("[IDS-USB] 正在尝试使用 USB 摄像头作为 IDS 替代...")
             
-            if device_manager.Devices().empty():
-                raise Exception("未找到IDS相机")
+            # 获取旁轴相机使用的索引（如果有）
+            side_index = getattr(self, '_side_camera_index', None)
+            if side_index is not None:
+                logging.info(f"[IDS-USB] 旁轴相机使用索引 {side_index}，IDS 将跳过")
             
-            # 使用 Exclusive 模式打开设备以获得完整控制权限
-            device = device_manager.Devices()[0].OpenDevice(ids_peak.DeviceAccessType_Exclusive)
-            logging.info("[IDS] 设备已打开")
-            
-            # 配置相机
-            remote_device_nodemap = device.RemoteDevice().NodeMaps()[0]
-            
-            # 尝试设置曝光时间和增益（非关键参数，失败不影响功能）
-            for param_name, param_value in [("ExposureTime", self.config.ids_exposure_time), 
-                                            ("Gain", self.config.ids_gain)]:
-                try:
-                    node = remote_device_nodemap.FindNode(param_name)
-                    if node.IsAvailable():
-                        current = node.Value()
-                        if abs(current - param_value) > 0.1:
-                            node.SetValue(param_value)
-                            logging.info(f"[IDS] {param_name} 设置为 {param_value}")
-                except Exception:
-                    # 简化错误信息，只记录 DEBUG 级别
-                    logging.debug(f"[IDS] {param_name} 使用默认值")
-            
-            # 获取数据流描述符并打开数据流
-            datastream_descriptor = device.DataStreams()[0]
-            datastream = datastream_descriptor.OpenDataStream()
-            
-            # 分配缓冲区
-            payload_size = remote_device_nodemap.FindNode("PayloadSize").Value()
+            # 首先扫描所有可用摄像头
+            available_cameras = []
             for i in range(10):
-                buffer = datastream.AllocAndAnnounceBuffer(payload_size)
-                datastream.QueueBuffer(buffer)
-            logging.info(f"[IDS] 已分配 10 个缓冲区 (payload_size={payload_size})")
+                if side_index is not None and i == side_index:
+                    continue
+                try:
+                    # 先尝试 DirectShow，如果失败则尝试默认后端
+                    cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+                    if not cap.isOpened():
+                        cap.release()
+                        cap = cv2.VideoCapture(i)
+                    
+                    if cap.isOpened():
+                        ret, frame = cap.read()
+                        if ret and frame is not None and frame.size > 0:
+                            height, width = frame.shape[:2]
+                            available_cameras.append((i, width, height))
+                        cap.release()
+                except:
+                    pass
             
-            # 启动采集
-            datastream.StartAcquisition()
-            remote_device_nodemap.FindNode("AcquisitionStart").Execute()
+            logging.info(f"[IDS-USB] 发现可用摄像头: {available_cameras}")
             
-            # 保存设备引用（用于后续关闭）
-            self._ids_device = device
-            self._ids_nodemap = remote_device_nodemap
-            # 保存数据流引用（这是关键！）
-            self._ids_camera = datastream
+            # 尝试每个可用摄像头
+            for camera_index, width, height in available_cameras:
+                try:
+                    logging.info(f"[IDS-USB] 尝试索引 {camera_index} ({width}x{height})...")
+                    
+                    # 先尝试 DirectShow
+                    cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+                    if not cap.isOpened():
+                        cap.release()
+                        cap = cv2.VideoCapture(camera_index)
+                    
+                    if cap.isOpened():
+                        # 设置分辨率（使用摄像头原生分辨率）
+                        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+                        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+                        cap.set(cv2.CAP_PROP_FPS, 30)
+                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                        
+                        # 测试读取多帧
+                        time.sleep(0.1)
+                        for frame_idx in range(5):
+                            ret, frame = cap.read()
+                            if ret and frame is not None and frame.size > 0:
+                                actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                                actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                                logging.info(f"[IDS-USB] USB 摄像头初始化成功 (索引 {camera_index}): {actual_width}x{actual_height}")
+                                
+                                # 保存为 IDS 相机引用
+                                self._ids_camera_usb = cap
+                                self._ids_camera = self._create_usb_camera_wrapper(cap)
+                                self._ids_usb_fallback = True
+                                return True
+                            time.sleep(0.05)
+                        
+                        cap.release()
+                        
+                except Exception as e:
+                    logging.debug(f"[IDS-USB] 索引 {camera_index} 失败: {e}")
+                    continue
             
-            # 应用用户自定义配置
-            self._apply_ids_user_config()
-            
-            logging.info("[IDS] 相机初始化成功")
-            return True
+            logging.warning("[IDS-USB] 未找到可用的 USB 摄像头")
+            return False
             
         except Exception as e:
-            logging.error(f"IDS相机初始化错误: {e}")
+            logging.error(f"[IDS-USB] USB 摄像头初始化失败: {e}")
             return False
+    
+    def _create_usb_camera_wrapper(self, cap):
+        """为 USB 摄像头创建一个包装器，使其接口与 IDS 数据流兼容"""
+        class USBCameraWrapper:
+            def __init__(self, video_capture):
+                self._cap = video_capture
+                self._frame = None
+                self._lock = threading.Lock()
+                self._running = True
+                self._thread = threading.Thread(target=self._update, daemon=True)
+                self._thread.start()
+            
+            def _update(self):
+                """后台线程持续读取帧"""
+                while self._running:
+                    ret, frame = self._cap.read()
+                    if ret:
+                        with self._lock:
+                            self._frame = frame
+                    time.sleep(0.033)  # ~30fps
+            
+            def WaitForFinishedBuffer(self, timeout_ms=1000):
+                """模拟 IDS 接口：获取最新帧"""
+                start = time.time()
+                while (time.time() - start) * 1000 < timeout_ms:
+                    with self._lock:
+                        if self._frame is not None:
+                            return self._frame
+                    time.sleep(0.001)
+                return None
+            
+            def StopAcquisition(self):
+                """停止采集"""
+                self._running = False
+                if self._thread:
+                    self._thread.join(timeout=1)
+            
+            def get_numpy(self):
+                """模拟 IDS 接口：返回 numpy 数组"""
+                with self._lock:
+                    return self._frame.copy() if self._frame is not None else None
+        
+        return USBCameraWrapper(cap)
     
     def _apply_ids_user_config(self):
         """应用 IDS 相机用户配置（焦距112，关闭自动对焦）
@@ -1004,46 +1230,186 @@ class DataAcquisition:
         except Exception as e:
             logging.debug(f"[IDS] 读取配置文件失败: {e}")
     
-    def _init_side_camera(self) -> bool:
-        """初始化旁轴相机（自动查找USB摄像头，跳过自带相机）"""
-        # 使用简单的自动查找逻辑（从索引1开始，跳过自带相机）
-        logging.info("[旁轴相机] 开始扫描USB摄像头（跳过设备0）...")
-        for i in range(1, 5):  # 扫描设备 1-4
+    def _scan_available_cameras(self) -> list:
+        """扫描所有可用的 USB 摄像头"""
+        available_cameras = []
+        for i in range(10):
             try:
-                cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)  # 使用DirectShow后端
+                # 先尝试 DirectShow 后端
+                cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+                if not cap.isOpened():
+                    cap.release()
+                    # 回退到默认后端
+                    cap = cv2.VideoCapture(i)
+                
                 if cap.isOpened():
-                    # 快速测试读取一帧
                     ret, frame = cap.read()
                     if ret and frame is not None and frame.size > 0:
                         height, width = frame.shape[:2]
-                        logging.info(f"[旁轴相机] 发现设备 {i}: {width}x{height}")
-                        self._side_camera = cap
-                        # 设置分辨率
-                        self._side_camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.config.side_camera_resolution[0])
-                        self._side_camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.config.side_camera_resolution[1])
-                        return True
+                        available_cameras.append((i, width, height))
+                        logging.info(f"[摄像头扫描] 索引 {i}: {width}x{height}")
+                    cap.release()
+            except Exception as e:
+                logging.debug(f"[摄像头扫描] 索引 {i} 不可用: {e}")
+        
+        return available_cameras
+    
+    def _init_ids_camera_with_index(self, camera_index: int) -> bool:
+        """使用指定索引初始化 IDS 相机（USB 回退模式）"""
+        try:
+            logging.warning(f"[IDS-USB] 正在使用索引 {camera_index} 初始化...")
+            
+            # 尝试 DirectShow 后端
+            cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+            if not cap.isOpened():
+                cap.release()
+                cap = cv2.VideoCapture(camera_index)
+            
+            if not cap.isOpened():
+                logging.error(f"[IDS-USB] 无法打开摄像头索引 {camera_index}")
+                return False
+            
+            # 设置分辨率
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+            cap.set(cv2.CAP_PROP_FPS, 30)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            
+            # 预热并测试读取
+            time.sleep(0.2)
+            for _ in range(5):
+                ret, frame = cap.read()
+                if ret and frame is not None and frame.size > 0:
+                    actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    logging.warning(f"[IDS-USB] 初始化成功 (索引 {camera_index}): {actual_width}x{actual_height}")
+                    
+                    # 保存引用
+                    self._ids_camera_usb = cap
+                    self._ids_camera = self._create_usb_camera_wrapper(cap)
+                    self._ids_usb_fallback = True
+                    return True
+                time.sleep(0.05)
+            
+            cap.release()
+            return False
+            
+        except Exception as e:
+            logging.error(f"[IDS-USB] 初始化失败: {e}")
+            return False
+    
+    def _init_side_camera_with_index(self, camera_index: int) -> bool:
+        """使用指定索引初始化旁轴相机"""
+        try:
+            logging.warning(f"[旁轴相机] 正在使用索引 {camera_index} 初始化...")
+            
+            # 尝试 DirectShow 后端
+            cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+            if not cap.isOpened():
+                cap.release()
+                cap = cv2.VideoCapture(camera_index)
+            
+            if not cap.isOpened():
+                logging.error(f"[旁轴相机] 无法打开摄像头索引 {camera_index}")
+                return False
+            
+            # 设置参数
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.config.side_camera_resolution[0])
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.config.side_camera_resolution[1])
+            
+            # 测试读取
+            ret, frame = cap.read()
+            if ret and frame is not None and frame.size > 0:
+                height, width = frame.shape[:2]
+                logging.warning(f"[旁轴相机] 初始化成功 (索引 {camera_index}): {width}x{height}")
+                self._side_camera = cap
+                self._side_camera_index = camera_index
+                return True
+            
+            cap.release()
+            return False
+            
+        except Exception as e:
+            logging.error(f"[旁轴相机] 初始化失败: {e}")
+            return False
+    
+    def _init_side_camera(self) -> bool:
+        """初始化旁轴相机（自动查找USB摄像头，跳过IDS使用的设备）"""
+        logging.info("[旁轴相机] 开始扫描USB摄像头...")
+        
+        # 首先扫描所有可用摄像头
+        available_cameras = []
+        for i in range(10):
+            try:
+                cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+                if cap.isOpened():
+                    ret, frame = cap.read()
+                    if ret and frame is not None and frame.size > 0:
+                        height, width = frame.shape[:2]
+                        available_cameras.append((i, width, height))
                     cap.release()
                 else:
                     cap.release()
-            except Exception as e:
-                logging.debug(f"[旁轴相机] 设备 {i} 检测异常: {e}")
-                continue
+            except:
+                pass
         
-        logging.error("[旁轴相机] 未找到可用的USB摄像头（已跳过设备0）")
+        logging.info(f"[旁轴相机] 发现 {len(available_cameras)} 个摄像头: {available_cameras}")
+        
+        # 旁轴相机优先使用索引 1（如果可用），否则使用其他非0索引
+        preferred_indices = [1, 2, 3, 4]
+        for idx in preferred_indices:
+            for cam_idx, width, height in available_cameras:
+                if cam_idx == idx:
+                    try:
+                        cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
+                        if cap.isOpened():
+                            logging.info(f"[旁轴相机] 使用设备 {idx}: {width}x{height}")
+                            self._side_camera = cap
+                            self._side_camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.config.side_camera_resolution[0])
+                            self._side_camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.config.side_camera_resolution[1])
+                            # 记录旁轴使用的索引，以便IDS跳过
+                            self._side_camera_index = idx
+                            return True
+                    except Exception as e:
+                        logging.warning(f"[旁轴相机] 设备 {idx} 打开失败: {e}")
+                        continue
+        
+        logging.error("[旁轴相机] 未找到可用的USB摄像头")
         return False
     
     def _init_fotric(self) -> bool:
         """初始化 Fotric 相机"""
         if not FOTRIC_AVAILABLE:
+            logging.warning("[Fotric] 驱动不可用，跳过初始化")
             return False
         
-        # FotricEnhancedDevice 在构造函数中自动连接
-        self._fotric_device = FotricEnhancedDevice(
-            ip=self.config.fotric_ip,
-            port=self.config.fotric_port,
-            simulation_mode=False
-        )
-        return self._fotric_device.is_connected
+        logging.info(f"[Fotric] 正在连接 {self.config.fotric_ip}:{self.config.fotric_port}...")
+        
+        try:
+            # FotricEnhancedDevice 在构造函数中自动连接
+            self._fotric_device = FotricEnhancedDevice(
+                ip=self.config.fotric_ip,
+                port=self.config.fotric_port,
+                username="admin",
+                password="admin",
+                simulation_mode=False,
+                high_resolution=True,
+                update_rate=2.0
+            )
+            
+            if self._fotric_device.is_connected:
+                logging.info(f"[Fotric] 连接成功: {self._fotric_device.width}x{self._fotric_device.height}")
+            else:
+                logging.warning(f"[Fotric] 连接失败，请检查:")
+                logging.warning(f"  1. Fotric 相机是否开机并连接到网络")
+                logging.warning(f"  2. IP 地址 {self.config.fotric_ip} 是否正确")
+                logging.warning(f"  3. 电脑和相机是否在同一个网段")
+            
+            return self._fotric_device.is_connected
+        except Exception as e:
+            logging.error(f"[Fotric] 初始化异常: {e}")
+            return False
     
     def _init_vibration(self) -> bool:
         """初始化振动传感器"""
@@ -1180,13 +1546,7 @@ class DataAcquisition:
             
             logging.info("[采集] 正在停止...")
             
-            # 立即停止 M114 协调器（防止继续发送命令）
-            if self._m114_coord:
-                try:
-                    self._m114_coord.stop()
-                    logging.info("[采集] M114协调器已立即停止")
-                except Exception as e:
-                    logging.error(f"[采集] 停止M114协调器失败: {e}")
+            # 注意：M114 已废弃，使用 DisplayLayerProgress 插件获取 Z 高度
             
             # 等待采集线程结束
             if self._acquisition_thread and self._acquisition_thread.is_alive():
@@ -1232,6 +1592,9 @@ class DataAcquisition:
     
     def _notify_callbacks(self, packet):
         """通知所有回调函数有新数据"""
+        # 保存最新数据
+        self._latest_data = packet
+        
         if hasattr(self, '_callbacks'):
             for callback in self._callbacks:
                 try:
@@ -1408,6 +1771,28 @@ class DataAcquisition:
             frame_data.fotric_temp_max = float(np.max(thermal_data))
             frame_data.fotric_temp_avg = float(np.mean(thermal_data))
         
+        # 运行模型推理（如果有图像数据）
+        if (frame_data.ids_image is not None or 
+            frame_data.side_image is not None or 
+            frame_data.fotric_image is not None):
+            try:
+                inference_result = self._run_inference(
+                    ids_frame=frame_data.ids_image,
+                    side_frame=frame_data.side_image,
+                    fotric_frame=frame_data.fotric_image,
+                    thermal_data=frame_data.fotric_data
+                )
+                if inference_result:
+                    # 更新 frame_data 的预测类别
+                    frame_data.flow_rate_class = inference_result.flow_rate_class
+                    frame_data.feed_rate_class = inference_result.feed_rate_class
+                    frame_data.z_offset_class = inference_result.z_offset_class
+                    frame_data.hotend_class = inference_result.hot_end_class
+                    # 保存推理结果供后续使用
+                    self._latest_prediction = inference_result
+            except Exception as e:
+                logging.error(f"[采集] 推理失败: {e}")
+        
         # 每10帧记录一次，减少日志
         if frame_number % 10 == 1:
             logging.info(f"[采集] 第{frame_number}帧完成")
@@ -1418,8 +1803,32 @@ class DataAcquisition:
         return frame_data
     
     def _get_ids_frame(self) -> Optional[np.ndarray]:
-        """获取 IDS 相机帧"""
-        if not self._ids_camera or not IDS_AVAILABLE:
+        """获取 IDS 相机帧（支持 USB 摄像头回退）"""
+        if not self._ids_camera:
+            return None
+        
+        # 检查是否是 USB 摄像头回退模式（通过检查是否有 _ids_camera_usb 属性）
+        if hasattr(self, '_ids_camera_usb') and self._ids_camera_usb is not None:
+            # USB 摄像头模式
+            try:
+                frame = self._ids_camera.WaitForFinishedBuffer(1000)
+                if frame is not None:
+                    # USB 摄像头返回的是 BGR 格式（OpenCV 默认），不需要转换
+                    # 但某些摄像头可能返回 RGB，所以如果颜色看起来不对，需要检查
+                    
+                    # 旋转180度（相机倒装）
+                    frame = cv2.flip(frame, -1)
+                    
+                    # 应用图像处理
+                    frame = self._apply_host_image_processing(frame)
+                    return frame
+                return None
+            except Exception as e:
+                logging.error(f"[IDS-USB] 获取帧错误: {e}")
+                return None
+        
+        # IDS 工业相机模式（需要 IDS_AVAILABLE）
+        if not IDS_AVAILABLE:
             return None
         
         try:
@@ -1557,7 +1966,7 @@ class DataAcquisition:
                 state_text = data.get("state", {}).get("text", "").lower()
                 flags = data.get("state", {}).get("flags", {})
                 
-                # 如果正在打印，可以发送 M114
+                # 如果正在打印，可以发送 G-code 命令
                 if flags.get("printing", False):
                     return True
                 
@@ -1582,10 +1991,13 @@ class DataAcquisition:
     def _get_printer_position(self) -> Dict:
         """
         获取打印机位置
-        根据当前Z高度智能调整发送频率：
-        - Z < 4mm: 每15秒发送一次M114（初始化阶段，不急需位置）
-        - Z >= 4mm: 正常发送（接近参数切换点，需要精确位置）
-        - 发送失败: 退避10秒（打印机可能忙碌）
+        使用 DisplayLayerProgress 插件获取当前 Z 高度（无需轮询 M114）
+        
+        DisplayLayerProgress 插件提供的信息：
+        - currentHeight: 当前 Z 高度（来自 GCode 分析）
+        - totalHeight: 总高度
+        - currentLayer: 当前层数
+        - totalLayer: 总层数
         
         模拟模式：返回模拟位置数据
         """
@@ -1612,60 +2024,146 @@ class DataAcquisition:
             return self._current_position
         
         # 初始化时间跟踪（首次调用）
-        if not hasattr(self, '_last_m114_time'):
-            self._last_m114_time = 0
-            self._m114_backoff_until = 0
+        if not hasattr(self, '_last_dlp_time'):
+            self._last_dlp_time = 0
+            self._dlp_backoff_until = 0
         
         current_time = time.time()
-        current_z = self._current_position.get('Z', 0.0)
         
-        # 检查是否在退避期（之前发送失败）
-        if current_time < self._m114_backoff_until:
-            logging.debug(f"[位置] M114退避中，剩余{self._m114_backoff_until - current_time:.1f}秒")
+        # 检查是否在退避期（之前请求失败）
+        if current_time < self._dlp_backoff_until:
+            logging.debug(f"[位置] DLP退避中，剩余{self._dlp_backoff_until - current_time:.1f}秒")
             return self._current_position
         
-        # 根据Z高度决定发送间隔
-        if current_z < 4.0:
-            # Z < 4mm: 每15秒发送一次（初始化阶段）
-            interval = 15.0
-            if current_time - self._last_m114_time < interval:
-                return self._current_position
-            logging.debug(f"[位置] Z={current_z:.2f}mm < 4mm，每{interval}秒查询一次")
-        else:
-            # Z >= 4mm: 正常发送（准备参数切换）
-            logging.debug(f"[位置] Z={current_z:.2f}mm >= 4mm，正常查询位置")
-        
-        # 检查打印机是否就绪
-        if not self._is_printer_ready():
-            logging.debug(f"[位置] 打印机忙碌，退避10秒")
-            self._m114_backoff_until = current_time + 10.0
+        # 限制请求频率（每2秒最多一次）
+        if current_time - self._last_dlp_time < 2.0:
             return self._current_position
         
-        # 发送M114获取位置
-        if self._m114_coord:
-            try:
-                self._last_m114_time = current_time
-                # Z<4mm 时减少日志输出
-                verbose = current_z >= 4.0
-                coords = self._m114_coord.wait_for_m114_response(timeout=3.0, caller="DAQ", verbose=verbose)
-                if coords and coords.get('Z', 0) > 0:
-                    # 更新内部状态缓存
-                    self._current_position.update(coords)
-                    if verbose:
-                        logging.debug(f"[位置] M114更新: X={coords.get('X'):.1f}, Y={coords.get('Y'):.1f}, Z={coords.get('Z'):.2f}")
-                    return coords
-                else:
-                    # 获取失败，退避10秒
-                    if verbose:
-                        logging.debug(f"[位置] M114无响应，退避10秒")
-                    self._m114_backoff_until = current_time + 10.0
-            except Exception as e:
-                if verbose:
-                    logging.debug(f"[位置] M114异常: {e}，退避10秒")
-                self._m114_backoff_until = current_time + 10.0
+        # 从 DisplayLayerProgress 插件获取 Z 高度
+        try:
+            self._last_dlp_time = current_time
+            z_height = self._get_z_from_display_layer_progress()
+            
+            if z_height is not None and z_height >= 0:
+                # 只更新 Z，X/Y/E 保持缓存值或设为0
+                self._current_position.update({
+                    "Z": z_height
+                })
+                logging.debug(f"[位置] DLP更新: Z={z_height:.2f}mm")
+            else:
+                # 获取失败，退避5秒
+                logging.debug(f"[位置] DLP无响应，退避5秒")
+                self._dlp_backoff_until = current_time + 5.0
+                
+        except Exception as e:
+            logging.debug(f"[位置] DLP异常: {e}，退避5秒")
+            self._dlp_backoff_until = current_time + 5.0
         
         # 返回缓存的位置
         return self._current_position
+    
+    def _get_z_from_display_layer_progress(self) -> Optional[float]:
+        """
+        从 DisplayLayerProgress 插件获取当前 Z 高度
+        
+        插件 API:
+        - GET /plugin/DisplayLayerProgress/values
+        返回: {
+            "layer": {"current": "12", "total": "256"},
+            "height": {"current": "2.40", "total": "50.00"}
+        }
+        
+        或者在 /api/printer 的响应中也有相关信息
+        """
+        try:
+            import requests
+            
+            api_key = self.config.octoprint_api_key
+            if not api_key or len(api_key) < 20:
+                # 尝试从环境变量获取
+                try:
+                    import os
+                    env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+                    if os.path.exists(env_path):
+                        with open(env_path, 'r', encoding='utf-8') as f:
+                            for line in f:
+                                if line.startswith('OCTOPRINT_API_KEY='):
+                                    api_key = line.split('=', 1)[1].strip()
+                                    break
+                except:
+                    pass
+            
+            headers = {"X-Api-Key": api_key}
+            
+            # 首先尝试 DisplayLayerProgress 插件的专用端点
+            try:
+                url = f"{self.config.octoprint_url}/plugin/DisplayLayerProgress/values"
+                response = requests.get(url, headers=headers, timeout=3)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    height_data = data.get("height", {})
+                    current_height = height_data.get("current")
+                    
+                    if current_height:
+                        try:
+                            z = float(current_height)
+                            logging.debug(f"[DLP] 从插件获取 Z={z:.2f}mm")
+                            return z
+                        except (ValueError, TypeError):
+                            pass
+            except requests.exceptions.RequestException:
+                pass  # 插件可能未安装，尝试备用方法
+            
+            # 备用：从 /api/printer 获取（某些版本的 OctoPrint 或插件会在这里提供）
+            try:
+                url = f"{self.config.octoprint_url}/api/printer"
+                response = requests.get(url, headers=headers, timeout=3)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    # 检查是否有 DisplayLayerProgress 提供的数据
+                    if "displaylayerprogress" in data:
+                        dlp_data = data["displaylayerprogress"]
+                        current_height = dlp_data.get("current_height") or dlp_data.get("height", {}).get("current")
+                        if current_height:
+                            try:
+                                z = float(current_height)
+                                logging.debug(f"[DLP] 从 /api/printer 获取 Z={z:.2f}mm")
+                                return z
+                            except (ValueError, TypeError):
+                                pass
+            except requests.exceptions.RequestException:
+                pass
+            
+            # 如果都失败了，尝试从 GCode 分析估算（基于打印进度）
+            try:
+                url = f"{self.config.octoprint_url}/api/job"
+                response = requests.get(url, headers=headers, timeout=3)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    progress_data = data.get("progress", {})
+                    completion = progress_data.get("completion", 0)
+                    
+                    # 如果有文件名，尝试从 GCode 估算总高度
+                    job_data = data.get("job", {})
+                    file_data = job_data.get("file", {})
+                    
+                    # 简化处理：假设最大高度为 100mm（需要根据实际情况调整）
+                    # 或者从之前成功的 DLP 调用中获取总高度
+                    estimated_z = (completion / 100.0) * 100.0  # 默认估算
+                    logging.debug(f"[DLP] 从进度估算 Z={estimated_z:.2f}mm (完成度 {completion:.1f}%)")
+                    return estimated_z
+            except requests.exceptions.RequestException:
+                pass
+            
+            logging.warning("[DLP] 无法从任何来源获取 Z 高度")
+            return None
+            
+        except Exception as e:
+            logging.error(f"[DLP] 获取 Z 高度失败: {e}")
+            return None
     
     def _get_printer_status(self) -> Dict:
         """获取打印机温度状态（带缓存和指数退避）
@@ -1742,9 +2240,10 @@ class DataAcquisition:
         
         current_time = time.time()
         
-        # 任务状态变化快，使用更短的缓存时间 (1秒)
-        job_cache_ttl = 1.0
-        if current_time - self._octoprint_last_success < job_cache_ttl:
+        # 任务状态变化快，但失败时增加缓存时间避免刷屏
+        # 成功时缓存 2 秒，失败时缓存 10 秒
+        cache_ttl = 2.0 if self._octoprint_backoff <= 1 else 10.0
+        if current_time - self._octoprint_last_success < cache_ttl:
             return self._octoprint_cache["job"]
         
         try:
@@ -1759,9 +2258,10 @@ class DataAcquisition:
                 filename = job.get("file", {}).get("name", "")
                 completion = progress.get("completion", 0) or 0
                 
-                # 调试输出
-                if completion > 0:
+                # 调试输出（仅首次或状态变化时）
+                if not hasattr(self, '_last_job_log') or self._last_job_log != state:
                     logging.info(f"[OctoPrint] 状态: {state}, 进度: {completion:.1f}%, 文件: {filename}")
+                    self._last_job_log = state
                 
                 result = {
                     "state": state,
@@ -1777,9 +2277,19 @@ class DataAcquisition:
                 self._octoprint_backoff = 1  # 重置退避
                 return result
             else:
-                logging.warning(f"[OctoPrint] 获取任务状态失败: HTTP {response.status_code}")
+                # 403 错误说明 API Key 权限不足，降低日志级别避免刷屏
+                if response.status_code == 403:
+                    # 只在首次失败时记录一次
+                    if not hasattr(self, '_job_403_logged'):
+                        logging.warning(f"[OctoPrint] API Key 权限不足 (403)，任务状态查询将使用缓存")
+                        self._job_403_logged = True
+                else:
+                    logging.warning(f"[OctoPrint] 获取任务状态失败: HTTP {response.status_code}")
         except Exception as e:
             logging.debug(f"[DAQ] 获取任务状态失败: {e}")
+        
+        # 失败时增加退避
+        self._octoprint_backoff = min(self._octoprint_backoff * 2, 60)
         
         # 失败时返回缓存
         return self._octoprint_cache["job"]
@@ -2021,14 +2531,8 @@ class DataAcquisition:
                 pass
             self._vibration_device = None
         
-        # 关闭 M114 协调器
-        if self._m114_coord:
-            try:
-                self._m114_coord.stop()  # 先停止正在进行的请求
-                self._m114_coord = None
-                logging.info("[设备] M114协调器已关闭")
-            except:
-                pass
+        # 注意：M114 已废弃，使用 DisplayLayerProgress 插件获取 Z 高度
+        # 无需关闭任何资源
     
     def _set_state(self, new_state: AcquisitionState):
         """设置状态并触发回调"""
@@ -2085,13 +2589,106 @@ class DataAcquisition:
     
     # ========== 公共 API 方法 (供 main.py 使用) ==========
     
+    def get_latest_frame(self, camera_type: str = "ids") -> Optional[np.ndarray]:
+        """获取最新帧（供视频流使用）
+        
+        Args:
+            camera_type: 'ids' 或 'side'
+            
+        Returns:
+            numpy.ndarray: 图像帧，如果不可用返回 None
+        """
+        if camera_type == "ids":
+            return self._get_ids_frame()
+        elif camera_type == "side":
+            return self._get_side_camera_frame()
+        return None
+    
+    def _get_side_camera_frame(self) -> Optional[np.ndarray]:
+        """获取旁轴相机帧"""
+        if not self._side_camera:
+            return None
+        
+        try:
+            if hasattr(self._side_camera, 'get_frame'):
+                return self._side_camera.get_frame()
+            else:
+                ret, frame = self._side_camera.read()
+                if ret:
+                    return frame
+        except Exception as e:
+            logging.debug(f"[SideCamera] 获取帧失败: {e}")
+        return None
+    
+    def get_thermal_data(self) -> Optional[Dict]:
+        """获取热像数据"""
+        if self._simulation_mode_active and self._simulation_generator:
+            return self._simulation_generator.generate_thermal_data()
+        
+        if not self._fotric_device or not self._fotric_device.is_connected:
+            return None
+        
+        try:
+            thermal_matrix = self._fotric_device.get_thermal_data()
+            if thermal_matrix is not None:
+                # 获取温度统计信息
+                temp_stats = self._fotric_device.get_temperature_stats()
+                if temp_stats:
+                    return {
+                        "available": True,
+                        "matrix": thermal_matrix,
+                        "min": temp_stats.get('min_temp', 0),
+                        "max": temp_stats.get('max_temp', 100),
+                        "melt_pool": temp_stats.get('max_temp', 0)  # 熔池温度使用最高温度
+                    }
+        except Exception as e:
+            logging.debug(f"[Fotric] 获取热像数据失败: {e}")
+        return None
+    
+    def get_latest_prediction(self) -> Optional[Dict]:
+        """获取最新预测结果"""
+        if self._simulation_mode_active and self._simulation_generator:
+            return self._simulation_generator.generate_prediction()
+        
+        # 如果有推理结果，返回
+        if self._latest_prediction:
+            pred = self._latest_prediction
+            return {
+                "available": True,
+                "flow_rate_label": pred.flow_rate_label,
+                "flow_rate_conf": pred.flow_rate_conf,
+                "feed_rate_label": pred.feed_rate_label,
+                "feed_rate_conf": pred.feed_rate_conf,
+                "z_offset_label": pred.z_offset_label,
+                "z_offset_conf": pred.z_offset_conf,
+                "hot_end_label": pred.hot_end_label,
+                "hot_end_conf": pred.hot_end_conf,
+                "inference_time_ms": pred.inference_time_ms
+            }
+        return None
+    
+    def get_printer_data(self) -> Optional[Dict]:
+        """获取打印机数据"""
+        return self.get_printer_status()
+    
+    def register_callback(self, callback):
+        """注册数据回调（供 WebSocket 使用）"""
+        if not hasattr(self, '_callbacks'):
+            self._callbacks = []
+        self._callbacks.append(callback)
+    
+    def unregister_callback(self, callback):
+        """注销数据回调"""
+        if hasattr(self, '_callbacks') and callback in self._callbacks:
+            self._callbacks.remove(callback)
+    
     def get_printer_status(self) -> Dict:
         """获取打印机状态（公共API）"""
         status = self._get_printer_status()
         job = self._get_job_status()
         
-        # 判断连接状态
-        is_connected = self._m114_coord is not None or self._octoprint_simulation_active
+        # 判断连接状态（通过 DisplayLayerProgress 插件）
+        is_connected = self._check_octoprint_connection() or self._octoprint_simulation_active
         
         result = {
             "connected": is_connected,
@@ -2157,7 +2754,8 @@ class DataAcquisition:
         ids_frame_count = 0
         side_frame_count = 0
         
-        if self._ids_camera and IDS_AVAILABLE:
+        # 检查 IDS 相机（包括 USB 回退模式）
+        if self._ids_camera:
             try:
                 # 如果是数据流对象，尝试获取统计信息
                 if hasattr(self._ids_camera, 'get_frame_count'):
@@ -2172,12 +2770,16 @@ class DataAcquisition:
             except:
                 pass
         
+        # 判断是否使用 USB 摄像头回退模式
+        is_usb_fallback = hasattr(self, '_ids_camera_usb') and self._ids_camera_usb is not None
+        
         return {
             "ids": {
-                "available": self._ids_camera is not None and IDS_AVAILABLE,
+                "available": self._ids_camera is not None,
                 "connected": self._ids_camera is not None,
                 "frame_count": ids_frame_count,
-                "simulation": False
+                "simulation": False,
+                "usb_fallback": is_usb_fallback  # 标记是否使用 USB 回退
             },
             "side": {
                 "available": self._side_camera is not None,

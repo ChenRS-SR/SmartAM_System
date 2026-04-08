@@ -64,6 +64,7 @@ backend/test_images/
 
 # Model weights (large files)
 backend/weights/*.pt
+backend/weights/*.pth
 backend/weights/*.pkl
 backend/weights/*.onnx
 !backend/weights/.gitkeep

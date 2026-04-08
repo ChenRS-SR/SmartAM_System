@@ -4,6 +4,7 @@
 提供服务健康状态和系统监控信息
 """
 
+import sys as sys_module
 from fastapi import APIRouter, status
 from pydantic import BaseModel
 from typing import Dict, List, Optional
@@ -12,6 +13,19 @@ import platform
 import sys
 
 router = APIRouter()
+
+
+def _get_daq():
+    """获取 DAQ 实例（从设备管理器动态获取）"""
+    try:
+        from core.device_manager import get_device_manager
+        manager = get_device_manager()
+        # 如果当前是 FDM 模式，返回 FDM acquisition
+        if manager.current_type.value == "fdm":
+            return manager.fdm_acquisition
+    except Exception as e:
+        print(f"[API] 获取 DAQ 失败: {e}")
+    return None
 
 
 class HealthStatus(BaseModel):
@@ -124,7 +138,7 @@ async def detailed_health_check():
     
     # DAQ 状态
     try:
-        from main import daq
+        daq = _get_daq()
         if daq and daq.is_running:
             components.append(ComponentStatus(
                 name="DAQ",
@@ -149,7 +163,7 @@ async def detailed_health_check():
     
     # 相机状态
     try:
-        from main import daq
+        daq = _get_daq()
         camera_status = "healthy" if (daq and daq.ids_camera and daq.ids_camera.is_running) else "degraded"
         components.append(ComponentStatus(
             name="Camera",
@@ -167,7 +181,7 @@ async def detailed_health_check():
     
     # 模型推理状态
     try:
-        from main import daq
+        daq = _get_daq()
         inference_status = "healthy" if (daq and hasattr(daq, 'inference_engine') and daq.inference_engine) else "degraded"
         components.append(ComponentStatus(
             name="Inference",
@@ -236,7 +250,7 @@ async def readiness_check():
     检查服务是否已准备好接收流量
     """
     try:
-        from main import daq
+        daq = _get_daq()
         if daq and daq.is_running:
             return {"ready": True, "message": "服务已就绪"}
         else:

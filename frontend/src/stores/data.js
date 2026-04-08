@@ -246,6 +246,10 @@ export const useDataStore = defineStore('data', () => {
     // 更新预测
     if (data.prediction) {
       prediction.value = data.prediction
+    }
+    
+    // 更新历史数据（温度趋势等）- 只要有打印机或热像数据就更新
+    if (data.printer || data.thermal) {
       updateHistory(data)
     }
     
@@ -263,16 +267,23 @@ export const useDataStore = defineStore('data', () => {
   function updateHistory(data) {
     const now = new Date().toLocaleTimeString('zh-CN', { hour12: false })
     
-    // 获取熔池温度，如果没有数据则使用 null（图表不会显示）
-    const meltPoolTemp = data.thermal?.melt_pool_max
-    
-    // 获取目标温度（从 printer 数据）
+    // 获取温度数据
+    const nozzleTemp = data.printer?.temperature?.nozzle || 0
+    const bedTemp = data.printer?.temperature?.bed || 0
     const nozzleTarget = data.printer?.temperature?.nozzle_target || 0
     const bedTarget = data.printer?.temperature?.bed_target || 0
+    const meltPoolTemp = data.thermal?.max || 0
+    
+    // 调试输出（每10秒一次）
+    const nowTime = Date.now()
+    if (!window._lastHistoryLog || nowTime - window._lastHistoryLog > 10000) {
+      console.log('[updateHistory] 温度数据:', { nozzleTemp, bedTemp, nozzleTarget, bedTarget, meltPoolTemp })
+      window._lastHistoryLog = nowTime
+    }
     
     historyData.value.timestamps.push(now)
-    historyData.value.nozzleTemps.push(data.printer?.temperature?.nozzle || 0)
-    historyData.value.bedTemps.push(data.printer?.temperature?.bed || 0)
+    historyData.value.nozzleTemps.push(nozzleTemp)
+    historyData.value.bedTemps.push(bedTemp)
     historyData.value.nozzleTargetTemps.push(nozzleTarget)
     historyData.value.bedTargetTemps.push(bedTarget)
     historyData.value.meltPoolTemps.push(meltPoolTemp > 0 ? meltPoolTemp : null)

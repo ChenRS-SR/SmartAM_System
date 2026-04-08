@@ -10,7 +10,7 @@ from typing import Optional, Dict, List
 
 # 尝试导入 DAQ 系统
 try:
-    from core.data_acquisition import DataAcquisition, AcquisitionConfig, AcquisitionState, get_acquisition
+    from core.fdm.data_acquisition import DataAcquisition, AcquisitionConfig, AcquisitionState, get_acquisition
     DAQ_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"[API] DAQ 系统不可用: {e}")

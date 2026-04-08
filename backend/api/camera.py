@@ -7,11 +7,25 @@
 - 切换视频源
 """
 
+import sys
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 
 router = APIRouter()
+
+
+def _get_daq():
+    """获取 DAQ 实例（从设备管理器动态获取）"""
+    try:
+        from core.device_manager import get_device_manager
+        manager = get_device_manager()
+        # 如果当前是 FDM 模式，返回 FDM acquisition
+        if manager.current_type.value == "fdm":
+            return manager.fdm_acquisition
+    except Exception as e:
+        print(f"[API] 获取 DAQ 失败: {e}")
+    return None
 
 
 class CameraStatus(BaseModel):
@@ -33,7 +47,7 @@ class CameraSnapshotResponse(BaseModel):
 @router.get("/status", response_model=CameraStatus)
 async def get_camera_status():
     """获取相机状态"""
-    from main import daq
+    daq = _get_daq()
     
     if daq:
         status = daq.get_camera_status()
@@ -62,7 +76,7 @@ async def get_camera_status():
 @router.post("/snapshot/ids", response_model=CameraSnapshotResponse)
 async def snapshot_ids():
     """IDS 相机拍照"""
-    from main import daq
+    daq = _get_daq()
     import cv2
     import os
     from datetime import datetime
@@ -97,7 +111,7 @@ async def snapshot_ids():
 @router.post("/snapshot/side", response_model=CameraSnapshotResponse)
 async def snapshot_side():
     """旁轴摄像头拍照"""
-    from main import daq
+    daq = _get_daq()
     import cv2
     import os
     from datetime import datetime

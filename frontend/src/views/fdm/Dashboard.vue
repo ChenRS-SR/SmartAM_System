@@ -88,14 +88,22 @@
             </div>
           </template>
           <div class="video-container">
-            <!-- 模拟视频流 Canvas -->
+            <!-- 真实视频流 -->
+            <img
+              v-if="store.connected"
+              :src="videoFeedUrl"
+              class="video-stream"
+              alt="实时监控"
+              style="width: 100%; height: 100%; object-fit: contain;"
+            />
             <canvas
+              v-else
               ref="mockCanvas"
               class="video-stream"
               :width="canvasWidth"
               :height="canvasHeight"
             />
-            <div class="mock-label">[MOCK MODE] 模拟视频流</div>
+            <div class="mock-label">{{ store.connected ? '实时视频流' : '[未连接] 等待设备...' }}</div>
           </div>
         </el-card>
         
@@ -258,7 +266,9 @@ const stopMockAnimation = () => {
 
 // 监听流类型变化
 watch(currentStream, () => {
-  setTimeout(startMockAnimation, 50)
+  if (!store.connected) {
+    setTimeout(startMockAnimation, 50)
+  }
 })
 
 // ========== 温度数据 ==========
@@ -289,6 +299,7 @@ let tempInterval = null
 
 // ========== 视频流状态 ==========
 const videoConnected = ref(true)
+const videoFeedUrl = '/video_feed'
 
 // ========== 计算属性 ==========
 const statusColor = computed(() => {
@@ -372,11 +383,16 @@ onMounted(() => {
   fetchTemperature()
   tempInterval = setInterval(fetchTemperature, 5000)
   
-  // 启动模拟视频流
+  // 只在未连接时启动模拟视频流
   setTimeout(() => {
-    console.log('[Dashboard] 启动模拟视频流')
-    videoConnected.value = true
-    startMockAnimation()
+    if (!store.connected) {
+      console.log('[Dashboard] 未连接，启动模拟视频流')
+      videoConnected.value = false
+      startMockAnimation()
+    } else {
+      console.log('[Dashboard] 已连接，使用真实视频流')
+      videoConnected.value = true
+    }
   }, 100)
 })
 
