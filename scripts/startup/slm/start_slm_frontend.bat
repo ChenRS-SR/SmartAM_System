@@ -1,6 +1,20 @@
 @echo off
 chcp 65001 >nul
 title SmartAM SLM 前端服务
+setlocal EnableDelayedExpansion
+
+:: 获取本机局域网IP
+set "LOCAL_IP="
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    set "ip=%%a"
+    set "ip=!ip: =!"
+    echo !ip! | findstr /V "^127\." >nul
+    if !errorlevel! equ 0 (
+        if not defined LOCAL_IP set "LOCAL_IP=!ip!"
+    )
+)
+if not defined LOCAL_IP set "LOCAL_IP=localhost"
+
 echo ========================================
 echo   SmartAM SLM 前端服务启动脚本
 echo ========================================
@@ -29,8 +43,9 @@ if not exist "node_modules" (
 )
 
 echo [启动] 正在启动Vite开发服务器...
-echo        地址: http://localhost:5173
-echo        SLM仪表盘: http://localhost:5173/#/slm/dashboard
+echo        本地地址: http://localhost:5173
+echo        局域网地址: http://%LOCAL_IP%:5173
+echo        SLM仪表盘: http://%LOCAL_IP%:5173/#/slm/dashboard
 echo.
 echo 按 Ctrl+C 停止服务
 echo.

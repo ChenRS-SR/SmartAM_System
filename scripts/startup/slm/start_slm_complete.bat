@@ -1,9 +1,22 @@
 @echo off
 chcp 65001 >nul
 title SmartAM SLM Complete Startup
+setlocal EnableDelayedExpansion
 
 :: Set color
 color 0A
+
+:: 获取本机局域网IP
+set "LOCAL_IP="
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    set "ip=%%a"
+    set "ip=!ip: =!"
+    echo !ip! | findstr /V "^127\." >nul
+    if !errorlevel! equ 0 (
+        if not defined LOCAL_IP set "LOCAL_IP=!ip!"
+    )
+)
+if not defined LOCAL_IP set "LOCAL_IP=localhost"
 
 echo =========================================
 echo  SmartAM SLM Monitoring System - Complete Startup
@@ -32,7 +45,7 @@ timeout /t 5 /nobreak >nul
 echo   Checking backend status...
 curl -s http://localhost:8000/ >nul 2>&1
 if %errorlevel% equ 0 (
-    echo   Backend service started: http://localhost:8000
+    echo   Backend service started: http://%LOCAL_IP%:8000
 ) else (
     echo   Warning: Backend service may not have started properly
 )
@@ -50,16 +63,16 @@ timeout /t 3 /nobreak >nul
 echo.
 echo [4/4] Services startup complete!
 echo =========================================
-echo  Backend: http://localhost:8000
-echo  Frontend: http://localhost:5173
-echo  Full Interface: http://localhost:5173/slm/dashboard
+echo  Backend: http://%LOCAL_IP%:8000
+echo  Frontend: http://%LOCAL_IP%:5173
+echo  Full Interface: http://%LOCAL_IP%:5173/slm/dashboard
 echo =========================================
 echo.
 echo Press any key to open browser...
 pause >nul
 
 :: Open browser
-start http://localhost:5173/slm/dashboard
+start http://%LOCAL_IP%:5173/slm/dashboard
 
 echo.
 echo Note: Closing this window will NOT stop the services
