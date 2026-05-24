@@ -7,9 +7,6 @@
           视情维护可视化
         </span>
         <div class="header-tags">
-          <el-tag type="success" size="small" effect="dark" class="benefit-tag">
-            故障率降低30%
-          </el-tag>
           <el-tag :type="overallStatus.type" size="small" effect="dark">
             {{ overallStatus.label }}
           </el-tag>
@@ -180,8 +177,12 @@ const defaultSystems = [
   { key: 'fan', name: '风机', riskValue: 0.52, thresholdValue: 0.65, riskPercent: 80, thresholdPercent: 65, reliability: 0.65 }
 ]
 
+// 统计指标说明：
+// - totalFaults: 累计发生故障任务数（本应发生的故障总数）
+// - preventiveRepairs: 提前维修决策次数（通过视情维护提前介入的次数）
+// - avoidanceRate: 避免故障比例 = preventiveRepairs / totalFaults * 100%
 const defaultStats = {
-  totalFaults: 12,
+  totalFaults: 40,
   preventiveRepairs: 28,
   avoidanceRate: 70.0
 }
@@ -255,12 +256,6 @@ const getReliabilityColor = (value) => {
 .header-tags {
   display: flex;
   gap: 8px;
-}
-
-.benefit-tag {
-  background: linear-gradient(90deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 255, 0.2)) !important;
-  border-color: rgba(0, 255, 136, 0.4) !important;
-  color: #00ff88 !important;
 }
 
 /* 6个系统网格 */
