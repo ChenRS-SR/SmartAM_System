@@ -15,7 +15,7 @@ from datetime import datetime
 from collections import deque
 import cv2
 
-from .fotric_device import FotricEnhancedDevice, MockFotricDevice
+from .fotric_device import FotricDevice, MockFotricDevice
 from .vibration_sensor import VibrationSensor, MockVibrationSensor
 from .vibration_optimizer import VibrationOptimizer
 from .servo_controller import ServoController, MockServoController
@@ -116,7 +116,7 @@ class SLSAcquisition:
         self.simulation_mode = simulation_mode
         
         # 设备实例
-        self.fotric: Optional[FotricEnhancedDevice] = None
+        self.fotric: Optional[FotricDevice] = None
         self.vibration_sensor: Optional[VibrationSensor] = None
         self.vibration_optimizer: Optional[VibrationOptimizer] = None
         self.servo: Optional[ServoController] = None
@@ -175,7 +175,7 @@ class SLSAcquisition:
             if self.simulation_mode:
                 self.fotric = MockFotricDevice(self.fotric_ip)
             else:
-                self.fotric = FotricEnhancedDevice(self.fotric_ip)
+                self.fotric = FotricDevice(self.fotric_ip)
             
             if self.fotric.connect():
                 print("✅ Fotric热成像仪连接成功")

@@ -277,8 +277,8 @@ git commit -m "merge: 解决合并冲突"
 
 ## 获取帮助
 
-- 📧 邮件: your-email@example.com
-- 💬 微信工作群: xxx
-- 📋 Issues: https://github.com/your-username/SmartAM_System/issues
+- 📧 邮件: chenrs12138@gmail.com
+- 💬 微信:RS873128255 
+- 📋 Issues: https://github.com/ChenRS-SR/SmartAM_System/issues
 
 感谢您对项目的贡献！🎉
