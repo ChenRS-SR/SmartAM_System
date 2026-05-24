@@ -86,6 +86,11 @@
       />
     </div>
     
+    <!-- 视情维护可视化模块 -->
+    <div class="maintenance-section">
+      <MaintenanceDecisionPanel />
+    </div>
+    
     <!-- 设置对话框 -->
     <el-dialog
       v-model="showSettings"
@@ -206,6 +211,7 @@ import EquipmentHealthStatus from '../../components/sls/EquipmentHealthStatus.vu
 import ImageCapturePanel from '../../components/sls/ImageCapturePanel.vue'
 import VibrationWaveform from '../../components/sls/VibrationWaveform.vue'
 import ServoControlPanel from '../../components/sls/ServoControlPanel.vue'
+import MaintenanceDecisionPanel from '../../components/common/MaintenanceDecisionPanel.vue'
 
 // 状态
 const isRunning = ref(false)
@@ -699,7 +705,8 @@ onUnmounted(() => {
 .servo-section,
 .vibration-section,
 .health-section,
-.capture-section {
+.capture-section,
+.maintenance-section {
   width: 100%;
 }
 
