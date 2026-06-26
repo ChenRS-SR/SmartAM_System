@@ -1,0 +1,136 @@
+{
+  "id": "slm-b28",
+  "tag": "B28",
+  "dataTag": "7103-B28",
+  "databaseTag": "铂力特-S310-B28",
+  "owner": "铂力特",
+  "name": "铂力特 S310 B28",
+  "model": "铂力特 S310",
+  "serial": "B28",
+  "location": "7103 现场数据设备群",
+  "online": true,
+  "health": "fault",
+  "statusText": "复合故障",
+  "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B28/thumbnail.jpg",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S310 B28",
+  "parameters": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "value": "1208",
+      "unit": ""
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "200340",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "value": "10.469",
+      "unit": "%"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "value": "4.829",
+      "unit": "Bar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "value": "4.674",
+      "unit": "Bar"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "value": "0.001",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "value": "3.796",
+      "unit": "%"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "value": "41.699",
+      "unit": "%"
+    }
+  ],
+  "updatedAt": "2025-05-22 15:15:20",
+  "healthData": {
+    "status": "compound_fault",
+    "status_code": 4,
+    "status_labels": [
+      "复合故障",
+      "多系统复合故障",
+      "包含故障:铺粉检测缺粉/重铺异常、刮刀扭矩/位置故障、激光器/水冷机故障",
+      "铺粉检测缺粉/重铺异常证据:铺粉检测AI检测到缺粉、缺粉、铺粉检测",
+      "刮刀扭矩/位置故障证据:刮刀扭矩故障、刮刀扭矩"
+    ],
+    "laser_system": {
+      "status": "fault",
+      "message": "激光器/水冷机异常"
+    },
+    "powder_system": {
+      "status": "fault",
+      "message": "铺粉/刮刀系统异常"
+    },
+    "gas_system": {
+      "status": "fault",
+      "message": "气氛循环系统异常"
+    }
+  },
+  "diagnosis": {
+    "source": "7103最近样本",
+    "rawStatusCode": 90,
+    "rawStatusLabel": "多系统复合故障",
+    "frontendStatusCode": 4,
+    "frontendStatusLabel": "复合故障",
+    "categories": [
+      "powder_spreading_abnormal",
+      "scraper_torque_position_fault",
+      "laser_chiller_fault"
+    ],
+    "confidence": 0.95,
+    "evidence": [
+      {
+        "source": "filename",
+        "text": "2025-05-22 15-07-20 激光器水冷机故障",
+        "file": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/2025-05-22_15-07-20_激光器水冷机故障.csv"
+      },
+      {
+        "source": "alarm_log",
+        "text": "故障暂停，铺粉检测AI检测到缺粉!层号：42",
+        "file": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/报警日志.csv"
+      },
+      {
+        "source": "alarm_log",
+        "text": "故障暂停，激光器#00未使能$激光器#00故障",
+        "file": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/报警日志.csv"
+      },
+      {
+        "source": "alarm_log",
+        "text": "故障暂停，刮刀扭矩故障",
+        "file": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/报警日志.csv"
+      }
+    ]
+  },
+  "realData": {
+    "source_case_dir": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647",
+    "source_files": [
+      "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/2025-05-22_15-07-20_温度及其他参数.csv",
+      "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/2025-05-22_15-07-20_激光器水冷机故障.csv",
+      "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/报警日志.csv",
+      "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/设备信息.csv"
+    ],
+    "representative_csv": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/2025-05-22_15-07-20_温度及其他参数.csv",
+    "preview_csv": "SLM/铂力特 S310 B28/real_data/preview.csv"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "id": "slm-b34",
+  "tag": "B34",
+  "dataTag": "7103-B34",
+  "databaseTag": "铂力特-S310-B34",
+  "owner": "铂力特",
+  "name": "铂力特 S310 B34",
+  "model": "铂力特 S310",
+  "serial": "B34",
+  "location": "7103 现场数据设备群",
+  "online": true,
+  "health": "fault",
+  "statusText": "铺粉/刮刀异常",
+  "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B34/thumbnail.jpg",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S310 B34",
+  "parameters": [
+    {
+      "id": "diagnosis_status",
+      "name": "诊断状态码",
+      "value": "1",
+      "unit": ""
+    }
+  ],
+  "updatedAt": "2026-06-26T23:13:49",
+  "healthData": {
+    "status": "powder_fault",
+    "status_code": 1,
+    "status_labels": [
+      "铺粉/刮刀系统异常",
+      "刮刀扭矩/位置故障",
+      "刮刀扭矩/位置故障证据:刮刀扭矩故障、刮刀扭矩"
+    ],
+    "laser_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "powder_system": {
+      "status": "fault",
+      "message": "铺粉/刮刀系统异常"
+    },
+    "gas_system": {
+      "status": "healthy",
+      "message": "健康"
+    }
+  },
+  "diagnosis": {
+    "source": "7103最近样本",
+    "rawStatusCode": 3,
+    "rawStatusLabel": "刮刀扭矩/位置故障",
+    "frontendStatusCode": 1,
+    "frontendStatusLabel": "铺粉/刮刀系统异常",
+    "categories": [
+      "scraper_torque_position_fault"
+    ],
+    "confidence": 0.78,
+    "evidence": [
+      {
+        "source": "filename",
+        "text": "2025-05-07 04-58-46 刮刀故障 故障暂停，刮刀扭矩故障",
+        "file": "7103/output2/B34/20250428-09-38/B34_20250428-09-38_20250605113045/2025-05-07_04-58-46_刮刀故障_故障暂停，刮刀扭矩故障.csv"
+      }
+    ]
+  },
+  "realData": {
+    "source_case_dir": "7103/output2/B34/20250428-09-38/B34_20250428-09-38_20250605113045",
+    "source_files": [
+      "7103/output2/B34/20250428-09-38/B34_20250428-09-38_20250605113045/2025-05-07_04-58-46_刮刀故障_故障暂停，刮刀扭矩故障.csv",
+      "7103/output2/B34/20250428-09-38/B34_20250428-09-38_20250605113045/设备信息_设备信息.csv"
+    ],
+    "representative_csv": null,
+    "preview_csv": "SLM/铂力特 S310 B34/real_data/preview.csv"
+  }
+}

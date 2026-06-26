@@ -23,6 +23,10 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true
       },
+      '/slm_device_data': {
+        target: 'http://localhost:8000',
+        changeOrigin: true
+      },
       '/video_feed': {
         target: 'http://localhost:8000',
         changeOrigin: true

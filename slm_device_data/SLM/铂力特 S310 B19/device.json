@@ -1,0 +1,105 @@
+{
+  "id": "slm-b19",
+  "tag": "B19",
+  "dataTag": "7103-B19",
+  "databaseTag": "铂力特-S310-B19",
+  "owner": "铂力特",
+  "name": "铂力特 S310 B19",
+  "model": "铂力特 S310",
+  "serial": "SNXXXXXX",
+  "location": "7103 现场数据设备群",
+  "online": true,
+  "health": "healthy",
+  "statusText": "健康运行",
+  "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B19/thumbnail.jpg",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S310 B19",
+  "parameters": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "value": "1341",
+      "unit": ""
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "131562",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "value": "16.738",
+      "unit": "%"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "value": "5.534",
+      "unit": "Bar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "value": "4.81",
+      "unit": "Bar"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "value": "0.009",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "value": "19.377",
+      "unit": "%"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "value": "39.698",
+      "unit": "%"
+    }
+  ],
+  "updatedAt": "2024-12-03 11:28:40",
+  "healthData": {
+    "status": "healthy",
+    "status_code": 0,
+    "status_labels": [
+      "健康"
+    ],
+    "laser_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "powder_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "gas_system": {
+      "status": "healthy",
+      "message": "健康"
+    }
+  },
+  "diagnosis": {
+    "source": "7103最近样本",
+    "rawStatusCode": 0,
+    "rawStatusLabel": "健康",
+    "frontendStatusCode": 0,
+    "frontendStatusLabel": "健康",
+    "categories": [],
+    "confidence": 1.0,
+    "evidence": []
+  },
+  "realData": {
+    "source_case_dir": "7103/output1/B19/20241202-16-43/B19_20241202-16-43_20250612092301",
+    "source_files": [
+      "7103/output1/B19/20241202-16-43/B19_20241202-16-43_20250612092301/B19_20241202-16-43_2251层_样本数据.csv",
+      "7103/output1/B19/20241202-16-43/B19_20241202-16-43_20250612092301/设备信息_设备信息.csv"
+    ],
+    "representative_csv": "7103/output1/B19/20241202-16-43/B19_20241202-16-43_20250612092301/B19_20241202-16-43_2251层_样本数据.csv",
+    "preview_csv": "SLM/铂力特 S310 B19/real_data/preview.csv"
+  }
+}

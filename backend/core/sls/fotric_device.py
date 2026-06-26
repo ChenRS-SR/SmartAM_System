@@ -522,7 +522,47 @@ class FotricDevice:
             logger.error(f"JPEG编码失败: {e}")
         
         return None
-    
+
+    def get_thermal_array(self) -> Optional[np.ndarray]:
+        """获取当前热成像温度矩阵，供SLS采集模块统一调用。"""
+        return self._generate_thermal_array()
+
+    def generate_jpeg(self, thermal_data: np.ndarray, colormap: int = None) -> Optional[bytes]:
+        """
+        将温度矩阵编码为JPEG图像。
+
+        SLS采集循环会先拿到温度矩阵，再调用该方法生成视频流帧。
+        """
+        import cv2
+
+        if thermal_data is None:
+            return None
+
+        try:
+            temp_min = float(np.min(thermal_data))
+            temp_max = float(np.max(thermal_data))
+
+            # 避免恒温矩阵导致除零，同时保留真实温度分布的相对变化。
+            normalized = (
+                (thermal_data - temp_min) / (temp_max - temp_min + 1e-6) * 255
+            ).astype(np.uint8)
+
+            if colormap is None:
+                colormap = cv2.COLORMAP_JET
+            colored = cv2.applyColorMap(normalized, colormap)
+
+            ok, encoded = cv2.imencode(
+                '.jpg',
+                colored,
+                [int(cv2.IMWRITE_JPEG_QUALITY), 85]
+            )
+            if not ok:
+                return None
+            return encoded.tobytes()
+        except Exception as e:
+            logger.error(f"JPEG编码失败: {e}")
+            return None
+
     def get_status(self) -> Dict:
         """获取设备状态"""
         return {
@@ -534,6 +574,18 @@ class FotricDevice:
             'frame_count': self.frame_count,
             'temperature': self.get_temperature_data()
         }
+
+
+class FotricEnhancedDevice(FotricDevice):
+    """SLS集成层期望的增强版Fotric设备类。"""
+
+
+class MockFotricDevice(FotricDevice):
+    """SLS模拟模式使用的Fotric设备类。"""
+
+    def __init__(self, ip: str = "192.168.1.100", *args, **kwargs):
+        kwargs["simulation_mode"] = True
+        super().__init__(ip=ip, *args, **kwargs)
 
 
 if __name__ == "__main__":

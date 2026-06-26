@@ -128,6 +128,12 @@ if os.path.exists(simulation_record_path):
     app.mount("/simulation_record", StaticFiles(directory=simulation_record_path), name="simulation_record")
     print(f"[Main] 模拟视频服务已挂载: {simulation_record_path}")
 
+# SLM设备群数据（7103诊断清单与缩略图）
+slm_device_data_path = os.path.join(project_root, "slm_device_data")
+if os.path.exists(slm_device_data_path):
+    app.mount("/slm_device_data", StaticFiles(directory=slm_device_data_path), name="slm_device_data")
+    print(f"[Main] SLM设备群数据服务已挂载: {slm_device_data_path}")
+
 
 # 视频测试页面
 @app.get("/video-test")

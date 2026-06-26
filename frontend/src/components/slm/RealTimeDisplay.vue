@@ -489,14 +489,6 @@ function getROILabelStyle(roi) {
 .temp-min { color: #3b82f6; }
 .temp-avg { color: #22c55e; }
 
-/* 振动波形区域 */
-.vibration-section {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
-  border-radius: 8px;
-  padding: 16px;
-}
-
 @media (max-width: 1200px) {
   .video-grid {
     grid-template-columns: repeat(2, 1fr);

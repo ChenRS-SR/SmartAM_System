@@ -7,6 +7,7 @@ import FDMControl from '../views/fdm/Control.vue'
 import FDMSettings from '../views/fdm/Settings.vue'
 
 // SLM 页面
+import SLMDeviceGroup from '../views/slm/DeviceGroup.vue'
 import SLMDashboard from '../views/slm/Dashboard.vue'
 import SLMAnalysis from '../views/slm/Analysis.vue'
 import SLMControl from '../views/slm/Control.vue'
@@ -59,9 +60,15 @@ const routes = [
   // SLM 路由
   {
     path: '/slm/dashboard',
-    name: 'SLMDashboard',
+    name: 'SLMDeviceGroup',
+    component: SLMDeviceGroup,
+    meta: { title: '设备群监测', device: 'slm' }
+  },
+  {
+    path: '/slm/device/:deviceId?',
+    name: 'SLMDeviceDashboard',
     component: SLMDashboard,
-    meta: { title: '仪表盘', device: 'slm' }
+    meta: { title: '打印状态监测', device: 'slm' }
   },
   {
     path: '/slm/analysis',

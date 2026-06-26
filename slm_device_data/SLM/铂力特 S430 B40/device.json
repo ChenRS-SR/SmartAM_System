@@ -1,0 +1,116 @@
+{
+  "id": "slm-b40",
+  "tag": "B40",
+  "dataTag": "7103-B40",
+  "databaseTag": "铂力特-S430-B40",
+  "owner": "铂力特",
+  "name": "铂力特 S430 B40",
+  "model": "铂力特 S430",
+  "serial": "SNXXXXXX",
+  "location": "7103 现场数据设备群",
+  "online": true,
+  "health": "fault",
+  "statusText": "铺粉/刮刀异常",
+  "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B40/thumbnail.jpg",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S430 B40",
+  "parameters": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "value": "585",
+      "unit": ""
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "226756",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "value": "18.086",
+      "unit": "%"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "value": "2.219",
+      "unit": "bar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "value": "4.606",
+      "unit": "bar"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "value": "0.022",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "value": "0",
+      "unit": "%"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "value": "76.797",
+      "unit": "%"
+    }
+  ],
+  "updatedAt": "2025-04-12 00:26:57",
+  "healthData": {
+    "status": "powder_fault",
+    "status_code": 1,
+    "status_labels": [
+      "铺粉/刮刀系统异常",
+      "刮刀扭矩/位置故障",
+      "刮刀扭矩/位置故障证据:刮刀扭矩故障、刮刀扭矩"
+    ],
+    "laser_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "powder_system": {
+      "status": "fault",
+      "message": "铺粉/刮刀系统异常"
+    },
+    "gas_system": {
+      "status": "healthy",
+      "message": "健康"
+    }
+  },
+  "diagnosis": {
+    "source": "7103最近样本",
+    "rawStatusCode": 3,
+    "rawStatusLabel": "刮刀扭矩/位置故障",
+    "frontendStatusCode": 1,
+    "frontendStatusLabel": "铺粉/刮刀系统异常",
+    "categories": [
+      "scraper_torque_position_fault"
+    ],
+    "confidence": 0.78,
+    "evidence": [
+      {
+        "source": "filename",
+        "text": "2025-04-12 00-21-51 刮刀故障 故障暂停，刮刀扭矩故障 Error",
+        "file": "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/2025-04-12_00-21-51_刮刀故障_故障暂停，刮刀扭矩故障_Error.csv"
+      }
+    ]
+  },
+  "realData": {
+    "source_case_dir": "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413",
+    "source_files": [
+      "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/2025-04-12_00-21-51_刮刀故障_故障暂停，刮刀扭矩故障_Error.csv",
+      "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/打印日志_打印日志.csv",
+      "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/设备信息_设备信息.csv"
+    ],
+    "representative_csv": "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/2025-04-12_00-21-51_刮刀故障_故障暂停，刮刀扭矩故障_Error.csv",
+    "preview_csv": "SLM/铂力特 S430 B40/real_data/preview.csv"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "slm-b44",
+  "tag": "B44",
+  "dataTag": "7103-B44",
+  "databaseTag": "铂力特-S430-B44",
+  "owner": "铂力特",
+  "name": "铂力特 S430 B44",
+  "model": "铂力特 S430",
+  "serial": "SNXXXXXX",
+  "location": "7103 现场数据设备群",
+  "online": true,
+  "health": "healthy",
+  "statusText": "健康运行",
+  "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B44/thumbnail.jpg",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S430 B44",
+  "parameters": [
+    {
+      "id": "diagnosis_status",
+      "name": "诊断状态码",
+      "value": "0",
+      "unit": ""
+    }
+  ],
+  "updatedAt": "2026-06-26T23:13:47",
+  "healthData": {
+    "status": "healthy",
+    "status_code": 0,
+    "status_labels": [
+      "健康"
+    ],
+    "laser_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "powder_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "gas_system": {
+      "status": "healthy",
+      "message": "健康"
+    }
+  },
+  "diagnosis": {
+    "source": "7103最近样本",
+    "rawStatusCode": 0,
+    "rawStatusLabel": "健康",
+    "frontendStatusCode": 0,
+    "frontendStatusLabel": "健康",
+    "categories": [],
+    "confidence": 1.0,
+    "evidence": []
+  },
+  "realData": {
+    "source_case_dir": "7103/26_5_22/B44(857个零件)/20241028-14-14/20250617160523",
+    "source_files": [
+      "7103/26_5_22/B44(857个零件)/20241028-14-14/20250617160523/报警日志.csv",
+      "7103/26_5_22/B44(857个零件)/20241028-14-14/20250617160523/设备信息.csv"
+    ],
+    "representative_csv": null,
+    "preview_csv": "SLM/铂力特 S430 B44/real_data/preview.csv"
+  }
+}

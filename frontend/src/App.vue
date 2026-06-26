@@ -144,7 +144,8 @@ const fdmMenuItems = [
 
 // SLM 菜单
 const slmMenuItems = [
-  { name: '仪表盘', path: '/slm/dashboard', icon: 'Monitor' },
+  { name: '设备群监测', path: '/slm/dashboard', icon: 'Grid' },
+  { name: '打印状态监测', path: '/slm/device', icon: 'Monitor' },
   { name: '数据分析', path: '/slm/analysis', icon: 'TrendCharts' },
   { name: '系统控制', path: '/slm/control', icon: 'SetUp' },
   { name: '设置', path: '/slm/settings', icon: 'Setting' },
@@ -166,6 +167,9 @@ const menuItems = computed(() => {
 
 // 判断菜单项是否激活
 const isActive = (path) => {
+  if (path.startsWith('/slm/device') && route.path.startsWith('/slm/device')) {
+    return true
+  }
   return route.path === path
 }
 

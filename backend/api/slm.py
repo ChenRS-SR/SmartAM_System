@@ -6,15 +6,21 @@ SLM设备API路由
 
 import asyncio
 import base64
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException, Body
 from fastapi.responses import StreamingResponse, JSONResponse
 from typing import Optional, List
 import json
 import time
 
 from core.slm import get_slm_acquisition, reset_slm_acquisition, SLMAcquisition
+from core.slm_device_data import get_slm_device_data_store
 
 router = APIRouter(prefix="/slm", tags=["SLM"])
+
+
+def get_device_data_store():
+    """获取7103设备群数据仓库。"""
+    return get_slm_device_data_store()
 
 # 获取SLM采集实例（使用slm_acquisition模块的单例）
 def get_acquisition(create_if_none: bool = True, use_mock: bool = False, check_mode: bool = False) -> Optional[SLMAcquisition]:
@@ -243,6 +249,112 @@ async def get_health_status():
         "success": True,
         "health": acquisition._health_state.to_dict(),
         "is_running": acquisition.is_running
+    }
+
+
+# ========== 设备群监测数据（7103现场数据） ==========
+
+@router.get("/device-group/manifest")
+async def get_device_group_manifest():
+    """获取7103设备群数据清单。"""
+    try:
+        manifest = get_device_data_store().load_manifest()
+        return {"success": True, "manifest": manifest}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/device-group/devices")
+async def list_device_group_devices():
+    """获取设备群卡片列表。"""
+    try:
+        store = get_device_data_store()
+        manifest = store.load_manifest()
+        return {
+            "success": True,
+            "sourceRoot": manifest.get("sourceRoot"),
+            "diagnosisPolicy": manifest.get("diagnosisPolicy"),
+            "statusCodeMap": manifest.get("statusCodeMap", {}),
+            "devices": manifest.get("devices", [])
+        }
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/device-group/devices/{device_id}")
+async def get_device_group_device(device_id: str):
+    """获取单台设备的诊断、参数和真实数据路径。"""
+    try:
+        device = get_device_data_store().get_device(device_id)
+        return {"success": True, "device": device}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.post("/device-group/devices")
+async def create_device_group_device(device: dict = Body(...)):
+    """新增设备并写入文件级模拟数据库。"""
+    try:
+        saved_device = get_device_data_store().upsert_device(device)
+        return {"success": True, "device": saved_device}
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.patch("/device-group/devices/{device_id}")
+async def update_device_group_device(device_id: str, patch: dict = Body(...)):
+    """更新设备卡片信息，并同步到manifest和单设备JSON。"""
+    try:
+        saved_device = get_device_data_store().patch_device(device_id, patch)
+        return {"success": True, "device": saved_device}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/device-group/sync")
+async def sync_device_group_database(payload: dict = Body(...)):
+    """把页面当前设备列表完整同步到文件级模拟数据库。"""
+    devices = payload.get("devices")
+    if not isinstance(devices, list):
+        raise HTTPException(status_code=400, detail="devices必须是数组")
+    try:
+        manifest = get_device_data_store().sync_devices(devices)
+        return {
+            "success": True,
+            "deviceCount": manifest.get("deviceCount", 0),
+            "databaseUpdatedAt": manifest.get("databaseUpdatedAt")
+        }
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/device-group/devices/{device_id}/apply-health")
+async def apply_device_group_health(device_id: str):
+    """把设备群中某台设备的7103诊断状态同步到当前SLM健康状态控件。"""
+    try:
+        device = get_device_data_store().get_device(device_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    health_data = device.get("healthData", {})
+    status_code = int(health_data.get("status_code", -1))
+    labels = health_data.get("status_labels", [])
+    acquisition = get_acquisition()
+    acquisition.update_health_status(status_code, labels)
+    return {
+        "success": True,
+        "device_id": device_id,
+        "health": acquisition._health_state.to_dict()
     }
 
 

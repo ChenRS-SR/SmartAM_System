@@ -282,6 +282,44 @@ class ServoController:
             time.sleep(duration / 1000.0)
         
         return success
+
+    @property
+    def current_angle(self) -> int:
+        """当前角度，按ROBOIDE 500-2500脉宽线性换算到0-180度。"""
+        return int(round((self.status.position - 500) / 2000 * 180))
+
+    @property
+    def is_moving(self) -> bool:
+        """当前是否正在运动。"""
+        return self.status.is_moving
+
+    def set_angle(self, angle: int, speed: int = 50) -> bool:
+        """
+        按角度控制舵机。
+
+        Args:
+            angle: 目标角度，范围0-180。
+            speed: 速度百分比，范围1-100，数值越大动作耗时越短。
+        """
+        angle = max(0, min(180, int(angle)))
+        speed = max(1, min(100, int(speed)))
+
+        # SLS API 使用角度；底层ROBOIDE协议使用500-2500位置值。
+        position = int(500 + angle / 180 * 2000)
+        duration = int(1000 - speed * 8)
+        duration = max(100, duration)
+        return self.move_to_position(position, duration)
+
+    def sweep(self, start_angle: int = 0, end_angle: int = 180, step: int = 10, delay: float = 0.5) -> None:
+        """按角度范围扫描舵机。"""
+        step = max(1, abs(int(step)))
+        if start_angle > end_angle:
+            step = -step
+
+        for angle in range(int(start_angle), int(end_angle) + (1 if step > 0 else -1), step):
+            if not self.set_angle(angle):
+                break
+            time.sleep(max(0.0, delay))
     
     def open_shutter(self, duration: int = 500) -> bool:
         """
@@ -362,6 +400,42 @@ def reset_servo_controller():
         _servo_controller_instance.disconnect()
         _servo_controller_instance = None
     print("[Servo] 控制器已重置")
+
+
+class MockServoController(ServoController):
+    """SLS模拟模式使用的舵机控制器，不打开真实串口。"""
+
+    def __init__(self, port: str = 'MOCK', baudrate: int = 9600, servo_id: int = 1):
+        super().__init__(port=port, baudrate=baudrate, servo_id=servo_id)
+
+    def connect(self, max_retries: int = 3) -> bool:
+        self.is_connected = True
+        self.status.is_connected = True
+        self.status.position = ServoPosition.CLOSED.value
+        self.status.target = ServoPosition.CLOSED.value
+        return True
+
+    def disconnect(self) -> None:
+        self.is_connected = False
+        self.status.is_connected = False
+
+    def force_disconnect(self) -> None:
+        self.disconnect()
+
+    def send_command(self, command: str) -> bool:
+        return self.is_connected
+
+    def set_servo_position(self, position: int, duration: int = 100) -> bool:
+        if not self.is_connected:
+            return False
+
+        position = max(500, min(2500, int(position)))
+        self.status.target = position
+        self.status.is_moving = True
+        self.status.position = position
+        self.status.is_open = position > 2000
+        self.status.is_moving = False
+        return True
 
 
 if __name__ == "__main__":

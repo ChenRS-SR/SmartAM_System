@@ -1,0 +1,105 @@
+{
+  "id": "slm-b6",
+  "tag": "B6",
+  "dataTag": "7103-B6",
+  "databaseTag": "铂力特-S400-NEO-B6",
+  "owner": "铂力特",
+  "name": "铂力特 S400-NEO B6",
+  "model": "铂力特 S400-NEO",
+  "serial": "B6",
+  "location": "7103 现场数据设备群",
+  "online": true,
+  "health": "healthy",
+  "statusText": "健康运行",
+  "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S400-NEO%20B6/thumbnail.jpg",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S400-NEO B6",
+  "parameters": [
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "21712",
+      "unit": ""
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "value": "43",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "value": "43.9",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "value": "44",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "value": "44",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "value": "-119",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "value": "-70",
+      "unit": "mA"
+    }
+  ],
+  "updatedAt": "2025/2/25 11:35:23",
+  "healthData": {
+    "status": "healthy",
+    "status_code": 0,
+    "status_labels": [
+      "健康"
+    ],
+    "laser_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "powder_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "gas_system": {
+      "status": "healthy",
+      "message": "健康"
+    }
+  },
+  "diagnosis": {
+    "source": "7103最近样本",
+    "rawStatusCode": 0,
+    "rawStatusLabel": "健康",
+    "frontendStatusCode": 0,
+    "frontendStatusLabel": "健康",
+    "categories": [],
+    "confidence": 1.0,
+    "evidence": []
+  },
+  "realData": {
+    "source_case_dir": "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732",
+    "source_files": [
+      "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度X0_max.csv",
+      "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度X1_max.csv",
+      "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度Y0_max.csv",
+      "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度Y1_max.csv",
+      "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度峰值_温度及其他参数_合并.csv",
+      "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度所有峰值_主参数合并.csv",
+      "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/报警日志.csv",
+      "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/设备信息.csv"
+    ],
+    "representative_csv": "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度X0_max.csv",
+    "preview_csv": "SLM/铂力特 S400-NEO B6/real_data/preview.csv"
+  }
+}

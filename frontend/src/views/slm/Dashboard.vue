@@ -2,8 +2,30 @@
   <div class="slm-dashboard">
     <!-- 页面标题 -->
     <div class="dashboard-header">
-      <h1 class="page-title">SLM 设备监控仪表盘</h1>
+      <div class="title-block">
+        <h1 class="page-title">{{ selectedDeviceName }} 打印状态监测</h1>
+        <div class="device-subtitle">
+          {{ selectedDevice?.dataTag || '7103设备' }} · {{ selectedDevice?.model || 'SLM 设备' }} · {{ selectedDevice?.location || '未设置位置' }}
+        </div>
+      </div>
       <div class="header-actions">
+        <el-select
+          v-model="selectedDeviceId"
+          class="device-switch"
+          size="large"
+          @change="switchDevice"
+        >
+          <el-option
+            v-for="device in slmDeviceStore.devices"
+            :key="device.id"
+            :label="device.name"
+            :value="device.id"
+          />
+        </el-select>
+        <el-button @click="goToDeviceGroup">
+          <el-icon><ArrowLeft /></el-icon>
+          设备群
+        </el-button>
         <!-- 模式指示器 -->
         <el-tag 
           :type="settings.use_mock ? 'warning' : 'success'" 
@@ -11,7 +33,7 @@
           effect="dark"
           class="mode-tag"
         >
-          {{ settings.use_mock ? '🔶 模拟模式' : '🔷 真实硬件' }}
+          {{ settings.use_mock ? '模拟模式' : '真实硬件' }}
         </el-tag>
         <el-tag :type="isRunning ? 'success' : 'info'" size="large" effect="dark">
           {{ isRunning ? '采集中' : '已停止' }}
@@ -34,9 +56,29 @@
     <SensorConnectionStatus
       :sensor-status="sensorStatus"
       @toggle-sensor="handleToggleSensor"
-      @change-com-port="handleChangeComPort"
       @refresh="refreshStatus"
     />
+
+    <!-- 当前设备实时参数 -->
+    <section class="parameter-panel">
+      <div class="panel-header">
+        <span>实时参数</span>
+        <el-tag size="small" :type="selectedDevice?.online ? 'success' : 'info'">
+          {{ selectedDevice?.online ? '在线' : '离线' }}
+        </el-tag>
+      </div>
+      <div class="parameter-grid">
+        <div
+          v-for="param in liveParameters"
+          :key="param.id || param.name"
+          class="parameter-item"
+        >
+          <span class="parameter-name">{{ param.name }}</span>
+          <strong class="parameter-value">{{ param.value }}</strong>
+          <span class="parameter-unit">{{ param.unit }}</span>
+        </div>
+      </div>
+    </section>
     
     <!-- 实时数据显示 (包含CH1/CH2/CH3视频) -->
     <div class="realtime-section">
@@ -68,30 +110,11 @@
       />
     </div>
     
-    <!-- 振动波形监测 (放在特征曲线下方) -->
-    <div class="vibration-section">
-      <VibrationWaveform 
-        :waveform-data="latestData.vibration_waveform"
-        :latest-vibration="latestData.vibration"
-        :enabled="sensorStatus.vibration?.enabled"
-        :connected="sensorStatus.vibration?.connected"
-      />
-    </div>
-    
     <!-- 设备健康状态 -->
     <div class="health-section">
       <EquipmentHealthStatus
         :health-data="healthData"
         :is-running="isRunning"
-      />
-    </div>
-    
-    <!-- 振动触发图像采集 -->
-    <div class="capture-section">
-      <ImageCapturePanel
-        :is-running="isRunning"
-        :latest-data="latestData"
-        @capture-triggered="handleCaptureTriggered"
       />
     </div>
     
@@ -133,22 +156,6 @@
           </el-select>
         </el-form-item>
         
-        <!-- 振动传感器 -->
-        <el-divider content-position="left">振动传感器 (COM口)</el-divider>
-        <el-form-item label="COM端口">
-          <el-select v-model="settings.vibration_com" style="width: 200px">
-            <el-option
-              v-for="port in availableComPorts"
-              :key="port.device"
-              :label="`${port.device} - ${port.description}`"
-              :value="port.device"
-            />
-          </el-select>
-          <el-button type="primary" size="small" @click="fetchComPorts" style="margin-left: 10px">
-            <el-icon><Refresh /></el-icon> 刷新
-          </el-button>
-        </el-form-item>
-        
         <!-- 红外热像仪 -->
         <el-divider content-position="left">红外热像仪</el-divider>
         <el-form-item>
@@ -187,18 +194,26 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
-import { Setting, Refresh } from '@element-plus/icons-vue'
+import { computed, ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ArrowLeft, Setting, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
 import SensorConnectionStatus from '../../components/slm/SensorConnectionStatus.vue'
 import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
 import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
-import ImageCapturePanel from '../../components/slm/ImageCapturePanel.vue'
 import RegulationControl from '../../components/slm/RegulationControl.vue'
 import FeatureCurvePanel from '../../components/slm/FeatureCurvePanel.vue'
-import VibrationWaveform from '../../components/slm/VibrationWaveform.vue'
+import { useSlmDeviceStore } from '../../stores/slmDevices'
+
+const route = useRoute()
+const router = useRouter()
+const slmDeviceStore = useSlmDeviceStore()
+
+const selectedDeviceId = ref(route.params.deviceId || '')
+const selectedDevice = computed(() => slmDeviceStore.getDeviceById(selectedDeviceId.value) || slmDeviceStore.firstDevice)
+const selectedDeviceName = computed(() => selectedDevice.value?.name || 'SLM设备')
 
 // 状态
 const isRunning = ref(false)
@@ -217,8 +232,7 @@ const lastFrames = reactive({      // 暂停时显示的最后一帧
 const sensorStatus = reactive({
   camera_ch1: { enabled: true, connected: false },
   camera_ch2: { enabled: true, connected: false },
-  thermal: { enabled: true, connected: false },
-  vibration: { enabled: true, connected: false, com_port: 'COM5' }
+  thermal: { enabled: true, connected: false }
 })
 
 // 最新数据
@@ -228,8 +242,6 @@ const latestData = reactive({
   camera_ch1: null,
   camera_ch2: null,
   thermal: null,
-  vibration: null,
-  vibration_waveform: { x: [], y: [], z: [], sample_count: 0 },
   statistics: {},
   health: {
     status: 'power_off',
@@ -255,15 +267,12 @@ const healthData = reactive({
 const settings = reactive({
   camera_ch1_index: 0,  // 默认自动检测
   camera_ch2_index: 1,  // 默认自动检测
-  vibration_com: 'COM5',
   use_mock: false  // 默认使用真实硬件
 })
 
 // 可用摄像头列表
 const availableCameras = ref([])
 const camerasLoading = ref(false)
-
-const availableComPorts = ref([])
 
 // RegulationControl 引用
 const regulationControl = ref(null)
@@ -282,12 +291,127 @@ const currentVideoConfig = ref({
   folder: ''
 })
 
+const ensureSelectedDevice = (routeDeviceId = route.params.deviceId) => {
+  if (!slmDeviceStore.devices.length) return
+  const fallbackDeviceId = slmDeviceStore.firstDevice?.id
+  const nextDeviceId = routeDeviceId && slmDeviceStore.getDeviceById(routeDeviceId)
+    ? routeDeviceId
+    : fallbackDeviceId
+  selectedDeviceId.value = nextDeviceId
+  if (nextDeviceId && routeDeviceId !== nextDeviceId) {
+    router.replace(`/slm/device/${nextDeviceId}`)
+  }
+}
+
+watch([() => route.params.deviceId, () => slmDeviceStore.devices.length], ([deviceId]) => {
+  ensureSelectedDevice(deviceId)
+}, { immediate: true })
+
+watch(selectedDevice, (device) => {
+  if (device?.healthData) {
+    Object.assign(healthData, device.healthData)
+  }
+}, { immediate: true })
+
+const goToDeviceGroup = () => {
+  router.push('/slm/dashboard')
+}
+
+const switchDevice = (deviceId) => {
+  router.push(`/slm/device/${deviceId}`)
+}
+
+const applySensorStatus = (status = {}) => {
+  const sensorKeys = ['camera_ch1', 'camera_ch2', 'thermal']
+  sensorKeys.forEach((key) => {
+    if (status[key]) {
+      sensorStatus[key] = {
+        ...sensorStatus[key],
+        ...status[key]
+      }
+    }
+  })
+}
+
+const syncHealthDataToDevice = () => {
+  if (selectedDeviceId.value) {
+    slmDeviceStore.updateDeviceHealth(selectedDeviceId.value, {
+      ...healthData,
+      status_labels: [...(healthData.status_labels || [])],
+      laser_system: { ...(healthData.laser_system || {}) },
+      powder_system: { ...(healthData.powder_system || {}) },
+      gas_system: { ...(healthData.gas_system || {}) }
+    })
+  }
+}
+
+const applyHealthData = (nextHealth = {}) => {
+  healthData.status = nextHealth.status || healthData.status
+  healthData.status_code = nextHealth.status_code !== undefined ? nextHealth.status_code : healthData.status_code
+  healthData.status_labels = nextHealth.status_labels || healthData.status_labels
+  if (nextHealth.laser_system) {
+    healthData.laser_system = { ...nextHealth.laser_system }
+  }
+  if (nextHealth.powder_system) {
+    healthData.powder_system = { ...nextHealth.powder_system }
+  }
+  if (nextHealth.gas_system) {
+    healthData.gas_system = { ...nextHealth.gas_system }
+  }
+  Object.assign(latestData.health, nextHealth)
+  syncHealthDataToDevice()
+}
+
+const formatRuntimeValue = (value, digits = 1) => {
+  if (value === undefined || value === null || value === '') return '--'
+  if (typeof value === 'number') return Number.isInteger(value) ? value : value.toFixed(digits)
+  return value
+}
+
+const liveParameters = computed(() => {
+  const runtimeMap = isRunning.value
+    ? {
+        current_layer: formatRuntimeValue(currentLayerInfo.value.number, 0),
+        frame_number: formatRuntimeValue(latestData.frame_number, 0),
+        max_temperature: formatRuntimeValue(latestData.statistics?.max_temperature ?? latestData.statistics?.max_temp ?? latestData.thermal?.max_temperature),
+        avg_temperature: formatRuntimeValue(latestData.statistics?.avg_temperature ?? latestData.statistics?.mean_temperature ?? latestData.thermal?.avg_temperature)
+      }
+    : {}
+
+  const baseParameters = selectedDevice.value?.parameters?.length
+    ? selectedDevice.value.parameters
+    : [
+        { id: 'current_layer', name: '当前层', value: '--', unit: '层' },
+        { id: 'frame_number', name: '视频帧', value: '--', unit: '帧' },
+        { id: 'max_temperature', name: '最高温度', value: '--', unit: '℃' }
+      ]
+
+  const nextParameters = baseParameters.map((param) => ({
+    ...param,
+    value: runtimeMap[param.id] ?? param.value
+  }))
+
+  if (isRunning.value && !nextParameters.some((param) => param.id === 'frame_number')) {
+    nextParameters.push({ id: 'frame_number', name: '视频帧', value: runtimeMap.frame_number, unit: '帧' })
+  }
+  return nextParameters
+})
+
+let lastParameterSignature = ''
+watch(liveParameters, (parameters) => {
+  if (selectedDeviceId.value) {
+    const signature = JSON.stringify(parameters)
+    if (signature === lastParameterSignature) return
+    lastParameterSignature = signature
+    slmDeviceStore.updateDeviceParameters(selectedDeviceId.value, parameters)
+  }
+}, { deep: true })
+
 // 当设置对话框打开时自动检测硬件
 watch(showSettings, (val) => {
   if (val) {
     // 对话框打开时自动检测
     fetchCameras()
-    fetchComPorts()
   }
 })
 
@@ -318,7 +442,7 @@ const fetchStatus = async () => {
     if (response.data) {
       const wasRunning = isRunning.value
       isRunning.value = response.data.is_running
-      Object.assign(sensorStatus, response.data.sensor_status || {})
+      applySensorStatus(response.data.sensor_status || {})
       
       // 如果正在采集且当前状态为未开机(-1)，则更新为开机正常状态(0)
       if (isRunning.value && healthData.status_code === -1) {
@@ -329,6 +453,7 @@ const fetchStatus = async () => {
         healthData.laser_system = { status: 'healthy', message: '健康' }
         healthData.powder_system = { status: 'healthy', message: '健康' }
         healthData.gas_system = { status: 'healthy', message: '健康' }
+        syncHealthDataToDevice()
         
         // 通知后端更新健康状态
         await updateHealthStatusOnBackend(0, ['系统健康'])
@@ -343,6 +468,7 @@ const fetchStatus = async () => {
         healthData.laser_system = { status: 'unknown', message: '未检测' }
         healthData.powder_system = { status: 'unknown', message: '未检测' }
         healthData.gas_system = { status: 'unknown', message: '未检测' }
+        syncHealthDataToDevice()
         
         // 重置后端健康状态缓存
         lastBackendHealthCode = -1
@@ -368,24 +494,6 @@ const updateHealthStatusOnBackend = async (statusCode, labels) => {
     console.log(`[Dashboard] 后端健康状态已更新: ${statusCode}`)
   } catch (error) {
     console.error('[Dashboard] 更新后端健康状态失败:', error)
-  }
-}
-
-// 获取COM口列表
-const fetchComPorts = async () => {
-  try {
-    const response = await axios.get('/api/slm/com_ports')
-    if (response.data.success) {
-      availableComPorts.value = response.data.ports
-      // 自动检测振动传感器COM口
-      const ch340 = response.data.ports.find(p => p.description.includes('CH340') || p.description.includes('USB-SERIAL'))
-      if (ch340 && !isRunning.value) {
-        settings.vibration_com = ch340.device
-        console.log('自动检测到振动传感器:', ch340.device)
-      }
-    }
-  } catch (error) {
-    console.error('获取COM口失败:', error)
   }
 }
 
@@ -460,6 +568,7 @@ const toggleAcquisition = async () => {
       healthData.laser_system = { status: 'unknown', message: '未检测' }
       healthData.powder_system = { status: 'unknown', message: '未检测' }
       healthData.gas_system = { status: 'unknown', message: '未检测' }
+      syncHealthDataToDevice()
       
       ElMessage.success('采集已停止')
     } catch (error) {
@@ -479,7 +588,6 @@ const toggleAcquisition = async () => {
         params: {
           camera_ch1_index: settings.camera_ch1_index,
           camera_ch2_index: settings.camera_ch2_index,
-          vibration_com: settings.vibration_com,
           use_mock: settings.use_mock
         }
       })
@@ -562,16 +670,10 @@ const closeWebSocket = () => {
 const handleWebSocketData = (data) => {
   // 更新传感器状态
   if (data.sensor_status) {
-    Object.assign(sensorStatus, data.sensor_status)
+    applySensorStatus(data.sensor_status)
   }
-  
+
   // 更新最新数据
-  if (data.vibration) {
-    latestData.vibration = data.vibration
-  }
-  if (data.vibration_waveform) {
-    latestData.vibration_waveform = data.vibration_waveform
-  }
   if (data.thermal) {
     latestData.thermal = data.thermal
   }
@@ -581,21 +683,7 @@ const handleWebSocketData = (data) => {
   // 更新健康状态
   if (data.health) {
     console.log('[Dashboard] 收到健康状态:', data.health)
-    // 直接赋值确保响应式更新
-    healthData.status = data.health.status || healthData.status
-    healthData.status_code = data.health.status_code !== undefined ? data.health.status_code : healthData.status_code
-    healthData.status_labels = data.health.status_labels || healthData.status_labels
-    if (data.health.laser_system) {
-      healthData.laser_system = { ...data.health.laser_system }
-    }
-    if (data.health.powder_system) {
-      healthData.powder_system = { ...data.health.powder_system }
-    }
-    if (data.health.gas_system) {
-      healthData.gas_system = { ...data.health.gas_system }
-    }
-    // 同时更新latestData
-    Object.assign(latestData.health, data.health)
+    applyHealthData(data.health)
   }
   
   latestData.timestamp = data.timestamp
@@ -615,21 +703,9 @@ const handleToggleSensor = async (sensor, enabled) => {
   }
 }
 
-// 切换COM口
-const handleChangeComPort = async (port) => {
-  try {
-    await axios.post(`/api/slm/vibration/com_port?port=${port}`)
-    settings.vibration_com = port
-    ElMessage.success(`COM口已切换到 ${port}`)
-  } catch (error) {
-    ElMessage.error('切换COM口失败')
-  }
-}
-
 // 刷新状态
 const refreshStatus = async () => {
   fetchStatus()
-  fetchComPorts()
   
   // 检查视频文件模式配置是否变化
   try {
@@ -689,7 +765,6 @@ const restartAcquisitionWithNewVideoConfig = async () => {
       params: {
         camera_ch1_index: settings.camera_ch1_index,
         camera_ch2_index: settings.camera_ch2_index,
-        vibration_com: settings.vibration_com,
         use_mock: true  // 视频文件模式使用模拟模式
       }
     })
@@ -728,7 +803,6 @@ const saveSettings = async () => {
         params: {
           camera_ch1_index: settings.camera_ch1_index,
           camera_ch2_index: settings.camera_ch2_index,
-          vibration_com: settings.vibration_com,
           use_mock: settings.use_mock
         }
       })
@@ -781,6 +855,7 @@ const handleDiagnosisComplete = (result) => {
     healthData.powder_system = { status: 'fault', message: '需检查' }
     healthData.gas_system = { status: 'fault', message: '需检查' }
   }
+  syncHealthDataToDevice()
   
   ElMessage.success(`诊断完成: ${result.status_label}`)
 }
@@ -795,16 +870,6 @@ const getStatusFromCode = (code) => {
     '4': 'compound_fault'
   }
   return map[String(code)] || 'power_off'
-}
-
-// 处理图像采集触发
-const handleCaptureTriggered = (event) => {
-  console.log('[Dashboard] 图像采集触发:', event)
-  // 可以在这里添加提示音或其他反馈
-  if (event.type === 'after') {
-    // 完成一层时给出提示
-    ElMessage.success(`第 ${event.layer} 层采集完成`)
-  }
 }
 
 // 后端健康状态缓存
@@ -826,8 +891,8 @@ const fetchBackendHealthStatus = async () => {
         console.log(`[Dashboard] 后端健康状态变化: ${lastBackendHealthCode} -> ${backendCode}`)
         lastBackendHealthCode = backendCode
         
-        // 更新前端健康状态
-        Object.assign(healthData, response.data.health)
+        // 更新前端健康状态，并同步到设备群卡片。
+        applyHealthData(response.data.health)
         
         // 如果状态码表示故障，提示用户
         if (backendCode > 0) {
@@ -869,9 +934,15 @@ const fetchVideoFileModeConfig = async () => {
 let ws = null
 let reconnectTimer = null
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    await slmDeviceStore.loadDevicesFromBackend()
+    ensureSelectedDevice()
+  } catch (error) {
+    ElMessage.error(error.message || '加载7103设备群数据失败')
+  }
+
   fetchStatus()
-  fetchComPorts()
   fetchCameras()
   fetchVideoFileModeConfig()  // 获取视频文件模式配置
   
@@ -913,6 +984,10 @@ onUnmounted(() => {
   gap: 16px;
 }
 
+.title-block {
+  min-width: 240px;
+}
+
 .page-title {
   font-size: 24px;
   font-weight: 600;
@@ -920,15 +995,80 @@ onUnmounted(() => {
   margin: 0;
 }
 
+.device-subtitle {
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.device-switch {
+  width: 220px;
 }
 
 .realtime-section,
 .health-section {
   width: 100%;
+}
+
+.parameter-panel {
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  border-radius: 8px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.parameter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.parameter-item {
+  min-height: 76px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(100, 116, 139, 0.22);
+  background: rgba(30, 41, 59, 0.5);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr;
+  column-gap: 8px;
+  align-items: end;
+}
+
+.parameter-name {
+  grid-column: 1 / -1;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.parameter-value {
+  color: #f8fafc;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.parameter-unit {
+  color: #64748b;
+  font-size: 12px;
+  padding-bottom: 2px;
 }
 
 /* 响应式调整 */
@@ -949,6 +1089,10 @@ onUnmounted(() => {
   .header-actions {
     width: 100%;
     flex-wrap: wrap;
+  }
+
+  .device-switch {
+    width: 100%;
   }
 }
 </style>

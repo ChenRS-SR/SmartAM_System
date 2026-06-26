@@ -1,0 +1,2195 @@
+{
+  "version": "2026-06-26 23:16:01",
+  "sourceRoot": "7103",
+  "diagnosisReport": "diagnosis/slm_fault_report.json",
+  "diagnosisPolicy": "每台设备取 7103 中最近一次诊断样本，并归并到前端 0-4 状态码。",
+  "statusCodeMap": {
+    "0": "健康",
+    "1": "铺粉/刮刀系统异常",
+    "2": "激光器/水冷机异常",
+    "3": "气氛循环系统异常",
+    "4": "复合故障"
+  },
+  "categoryToFrontendCode": {
+    "powder_spreading_abnormal": 1,
+    "scraper_torque_position_fault": 1,
+    "servo_drive_fault": 1,
+    "powder_axis_fault": 1,
+    "powder_storage_fault": 1,
+    "laser_chiller_fault": 2,
+    "oxygen_abnormal": 3,
+    "fan_fault": 3,
+    "air_pressure_fault": 3,
+    "filter_fault": 3,
+    "valve_switch_fault": 3,
+    "ash_bucket_fault": 3,
+    "scan_emergency_fault": 4,
+    "parameter_config_fault": 4
+  },
+  "deviceCount": 25,
+  "devices": [
+    {
+      "id": "slm-b5",
+      "tag": "B5",
+      "dataTag": "7103-B5",
+      "databaseTag": "铂力特-S400-NEO-B5",
+      "owner": "铂力特",
+      "name": "铂力特 S400-NEO B5",
+      "model": "铂力特 S400-NEO",
+      "serial": "B5",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S400-NEO%20B5/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S400-NEO B5",
+      "parameters": [
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "16416",
+          "unit": ""
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "value": "40.3",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "value": "37.9",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "value": "44",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "value": "44",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "value": "-15",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "value": "-7",
+          "unit": "mA"
+        }
+      ],
+      "updatedAt": "2025/1/22 19:38:38",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828",
+        "source_files": [
+          "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度X0_max.csv",
+          "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度X1_max.csv",
+          "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度Y0_max.csv",
+          "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度Y1_max.csv",
+          "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度峰值_温度及其他参数_合并.csv",
+          "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度所有峰值_主参数合并.csv",
+          "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/报警日志.csv",
+          "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/设备信息.csv"
+        ],
+        "representative_csv": "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度X0_max.csv",
+        "preview_csv": "SLM/铂力特 S400-NEO B5/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b6",
+      "tag": "B6",
+      "dataTag": "7103-B6",
+      "databaseTag": "铂力特-S400-NEO-B6",
+      "owner": "铂力特",
+      "name": "铂力特 S400-NEO B6",
+      "model": "铂力特 S400-NEO",
+      "serial": "B6",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S400-NEO%20B6/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S400-NEO B6",
+      "parameters": [
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "21712",
+          "unit": ""
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "value": "43",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "value": "43.9",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "value": "44",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "value": "44",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "value": "-119",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "value": "-70",
+          "unit": "mA"
+        }
+      ],
+      "updatedAt": "2025/2/25 11:35:23",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732",
+        "source_files": [
+          "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度X0_max.csv",
+          "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度X1_max.csv",
+          "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度Y0_max.csv",
+          "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度Y1_max.csv",
+          "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度峰值_温度及其他参数_合并.csv",
+          "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度所有峰值_主参数合并.csv",
+          "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/报警日志.csv",
+          "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/设备信息.csv"
+        ],
+        "representative_csv": "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度X0_max.csv",
+        "preview_csv": "SLM/铂力特 S400-NEO B6/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b8",
+      "tag": "B8",
+      "dataTag": "7103-B8",
+      "databaseTag": "铂力特-S310-B8",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B8",
+      "model": "铂力特 S310",
+      "serial": "B8",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B8/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B8",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output2/B8/20250325-18-06/B8_20250325-18-06_20250606170350",
+        "source_files": [
+          "7103/output2/B8/20250325-18-06/B8_20250325-18-06_20250606170350/B8_20250325-18-06_1018层_样本数据.csv",
+          "7103/output2/B8/20250325-18-06/B8_20250325-18-06_20250606170350/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B8/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b10",
+      "tag": "B10",
+      "dataTag": "7103-B10",
+      "databaseTag": "铂力特-S310-B10",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B10",
+      "model": "铂力特 S310",
+      "serial": "B10",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B10/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B10",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output3/B10/20250520-09-02/B10_20250520-09-02_20250527093714",
+        "source_files": [
+          "7103/output3/B10/20250520-09-02/B10_20250520-09-02_20250527093714/B10_20250520-09-02_9238层_样本数据.csv",
+          "7103/output3/B10/20250520-09-02/B10_20250520-09-02_20250527093714/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B10/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b14",
+      "tag": "B14",
+      "dataTag": "7103-B14",
+      "databaseTag": "铂力特-S310-B14",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B14",
+      "model": "铂力特 S310",
+      "serial": "B14",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B14/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B14",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output3/B14/20240713-20-04/B14_20240713-20-04_20250528171128",
+        "source_files": [
+          "7103/output3/B14/20240713-20-04/B14_20240713-20-04_20250528171128/B14_20240713-20-04_5704层_样本数据.csv",
+          "7103/output3/B14/20240713-20-04/B14_20240713-20-04_20250528171128/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B14/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b15",
+      "tag": "B15",
+      "dataTag": "7103-B15",
+      "databaseTag": "铂力特-S310-B15",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B15",
+      "model": "铂力特 S310",
+      "serial": "B15",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B15/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B15",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output3/B15/20250310-14-01/B15_20250310-14-01_20250528160700",
+        "source_files": [
+          "7103/output3/B15/20250310-14-01/B15_20250310-14-01_20250528160700/B15_20250310-14-01_5611层_样本数据.csv",
+          "7103/output3/B15/20250310-14-01/B15_20250310-14-01_20250528160700/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B15/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b16",
+      "tag": "B16",
+      "dataTag": "7103-B16",
+      "databaseTag": "铂力特-S310-B16",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B16",
+      "model": "铂力特 S310",
+      "serial": "B16",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B16/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B16",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output3/B16/20240506-08-00/B16_20240506-08-00_20250527172540",
+        "source_files": [
+          "7103/output3/B16/20240506-08-00/B16_20240506-08-00_20250527172540/B16_20240506-08-00_5704层_样本数据.csv",
+          "7103/output3/B16/20240506-08-00/B16_20240506-08-00_20250527172540/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B16/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b17",
+      "tag": "B17",
+      "dataTag": "7103-B17",
+      "databaseTag": "华科-S430-B17",
+      "owner": "华科",
+      "name": "华科SLM B17",
+      "model": "铂力特 S430",
+      "serial": "SNXXXXXX",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "fault",
+      "statusText": "铺粉/刮刀异常",
+      "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/华科SLM B17",
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "5491",
+          "unit": ""
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "481827",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "17.441",
+          "unit": "%"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "2.399",
+          "unit": "Bar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "4.763",
+          "unit": "Bar"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "0.038",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "11.981",
+          "unit": "%"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "72.697",
+          "unit": "%"
+        }
+      ],
+      "updatedAt": "2024-05-07 14:23:57",
+      "healthData": {
+        "status": "powder_fault",
+        "status_code": 1,
+        "status_labels": [
+          "铺粉/刮刀系统异常",
+          "落粉轴故障",
+          "落粉轴故障证据:落粉轴扭矩故障、落粉轴故障、落粉轴扭矩"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "fault",
+          "message": "铺粉/刮刀系统异常"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 5,
+        "rawStatusLabel": "落粉轴故障",
+        "frontendStatusCode": 1,
+        "frontendStatusLabel": "铺粉/刮刀系统异常",
+        "categories": [
+          "powder_axis_fault"
+        ],
+        "confidence": 0.86,
+        "evidence": [
+          {
+            "source": "filename",
+            "text": "2024-05-07 08-53-36 落粉轴故障 故障暂停，落粉轴扭矩故障",
+            "file": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv"
+          }
+        ]
+      },
+      "realData": {
+        "source_case_dir": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010",
+        "source_files": [
+          "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv",
+          "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/设备信息_设备信息.csv"
+        ],
+        "representative_csv": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv",
+        "preview_csv": "SLM/华科SLM B17/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b19",
+      "tag": "B19",
+      "dataTag": "7103-B19",
+      "databaseTag": "铂力特-S310-B19",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B19",
+      "model": "铂力特 S310",
+      "serial": "SNXXXXXX",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B19/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B19",
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "1341",
+          "unit": ""
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "131562",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "16.738",
+          "unit": "%"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "5.534",
+          "unit": "Bar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "4.81",
+          "unit": "Bar"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "0.009",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "19.377",
+          "unit": "%"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "39.698",
+          "unit": "%"
+        }
+      ],
+      "updatedAt": "2024-12-03 11:28:40",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output1/B19/20241202-16-43/B19_20241202-16-43_20250612092301",
+        "source_files": [
+          "7103/output1/B19/20241202-16-43/B19_20241202-16-43_20250612092301/B19_20241202-16-43_2251层_样本数据.csv",
+          "7103/output1/B19/20241202-16-43/B19_20241202-16-43_20250612092301/设备信息_设备信息.csv"
+        ],
+        "representative_csv": "7103/output1/B19/20241202-16-43/B19_20241202-16-43_20250612092301/B19_20241202-16-43_2251层_样本数据.csv",
+        "preview_csv": "SLM/铂力特 S310 B19/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b20",
+      "tag": "B20",
+      "dataTag": "7103-B20",
+      "databaseTag": "铂力特-S310-B20",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B20",
+      "model": "铂力特 S310",
+      "serial": "SNXXXXXX",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B20/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B20",
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "2020",
+          "unit": ""
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "227359",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "13.262",
+          "unit": "%"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "5.263",
+          "unit": "Bar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "5.122",
+          "unit": "Bar"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "0.001",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "15.484",
+          "unit": "%"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "46.896",
+          "unit": "%"
+        }
+      ],
+      "updatedAt": "2024-11-03 02:10:42",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512",
+        "source_files": [
+          "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512/B20_20241101-13-31_3378层_样本数据.csv",
+          "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512/设备信息_设备信息.csv"
+        ],
+        "representative_csv": "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512/B20_20241101-13-31_3378层_样本数据.csv",
+        "preview_csv": "SLM/铂力特 S310 B20/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b26",
+      "tag": "B26",
+      "dataTag": "7103-B26",
+      "databaseTag": "铂力特-S310-B26",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B26",
+      "model": "铂力特 S310",
+      "serial": "B26",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B26/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B26",
+      "parameters": [
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "43649",
+          "unit": ""
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "0.001",
+          "unit": "%"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "value": "52.3",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "value": "54.3",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "value": "43.9",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "value": "43.9",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "value": "90",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "value": "10",
+          "unit": "mA"
+        }
+      ],
+      "updatedAt": "2025/5/28 11:20:20",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/26_5_22/B26(507个零件)/20250613-16-46/20250620131726",
+        "source_files": [
+          "7103/26_5_22/B26(507个零件)/20250613-16-46/20250620131726/伺服温度X0_max.csv",
+          "7103/26_5_22/B26(507个零件)/20250613-16-46/20250620131726/伺服温度Y0_max.csv",
+          "7103/26_5_22/B26(507个零件)/20250613-16-46/20250620131726/伺服温度峰值_温度及其他参数_合并.csv",
+          "7103/26_5_22/B26(507个零件)/20250613-16-46/20250620131726/伺服温度所有峰值_主参数合并.csv",
+          "7103/26_5_22/B26(507个零件)/20250613-16-46/20250620131726/报警日志.csv",
+          "7103/26_5_22/B26(507个零件)/20250613-16-46/20250620131726/设备信息.csv"
+        ],
+        "representative_csv": "7103/26_5_22/B26(507个零件)/20250613-16-46/20250620131726/伺服温度X0_max.csv",
+        "preview_csv": "SLM/铂力特 S310 B26/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b27",
+      "tag": "B27",
+      "dataTag": "7103-B27",
+      "databaseTag": "铂力特-S310-B27",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B27",
+      "model": "铂力特 S310",
+      "serial": "B27",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B27/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B27",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output2/B27/20250522-09-18/B27_20250522-09-18_20250606161828",
+        "source_files": [
+          "7103/output2/B27/20250522-09-18/B27_20250522-09-18_20250606161828/B27_20250522-09-18_1853层_样本数据.csv",
+          "7103/output2/B27/20250522-09-18/B27_20250522-09-18_20250606161828/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B27/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b28",
+      "tag": "B28",
+      "dataTag": "7103-B28",
+      "databaseTag": "铂力特-S310-B28",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B28",
+      "model": "铂力特 S310",
+      "serial": "B28",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "fault",
+      "statusText": "复合故障",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B28/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B28",
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "1208",
+          "unit": ""
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "200340",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "10.469",
+          "unit": "%"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "4.829",
+          "unit": "Bar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "4.674",
+          "unit": "Bar"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "0.001",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "3.796",
+          "unit": "%"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "41.699",
+          "unit": "%"
+        }
+      ],
+      "updatedAt": "2025-05-22 15:15:20",
+      "healthData": {
+        "status": "compound_fault",
+        "status_code": 4,
+        "status_labels": [
+          "复合故障",
+          "多系统复合故障",
+          "包含故障:铺粉检测缺粉/重铺异常、刮刀扭矩/位置故障、激光器/水冷机故障",
+          "铺粉检测缺粉/重铺异常证据:铺粉检测AI检测到缺粉、缺粉、铺粉检测",
+          "刮刀扭矩/位置故障证据:刮刀扭矩故障、刮刀扭矩"
+        ],
+        "laser_system": {
+          "status": "fault",
+          "message": "激光器/水冷机异常"
+        },
+        "powder_system": {
+          "status": "fault",
+          "message": "铺粉/刮刀系统异常"
+        },
+        "gas_system": {
+          "status": "fault",
+          "message": "气氛循环系统异常"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 90,
+        "rawStatusLabel": "多系统复合故障",
+        "frontendStatusCode": 4,
+        "frontendStatusLabel": "复合故障",
+        "categories": [
+          "powder_spreading_abnormal",
+          "scraper_torque_position_fault",
+          "laser_chiller_fault"
+        ],
+        "confidence": 0.95,
+        "evidence": [
+          {
+            "source": "filename",
+            "text": "2025-05-22 15-07-20 激光器水冷机故障",
+            "file": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/2025-05-22_15-07-20_激光器水冷机故障.csv"
+          },
+          {
+            "source": "alarm_log",
+            "text": "故障暂停，铺粉检测AI检测到缺粉!层号：42",
+            "file": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/报警日志.csv"
+          },
+          {
+            "source": "alarm_log",
+            "text": "故障暂停，激光器#00未使能$激光器#00故障",
+            "file": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/报警日志.csv"
+          },
+          {
+            "source": "alarm_log",
+            "text": "故障暂停，刮刀扭矩故障",
+            "file": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/报警日志.csv"
+          }
+        ]
+      },
+      "realData": {
+        "source_case_dir": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647",
+        "source_files": [
+          "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/2025-05-22_15-07-20_温度及其他参数.csv",
+          "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/2025-05-22_15-07-20_激光器水冷机故障.csv",
+          "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/报警日志.csv",
+          "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/设备信息.csv"
+        ],
+        "representative_csv": "7103/26_5_22/B28（1720个零件）/20250521-09-45/20250530123647/2025-05-22_15-07-20_温度及其他参数.csv",
+        "preview_csv": "SLM/铂力特 S310 B28/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b29",
+      "tag": "B29",
+      "dataTag": "7103-B29",
+      "databaseTag": "铂力特-S310-B29",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B29",
+      "model": "铂力特 S310",
+      "serial": "B29",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B29/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B29",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output2/B29/20241130-20-07/B29_20241130-20-07_20250604160508",
+        "source_files": [
+          "7103/output2/B29/20241130-20-07/B29_20241130-20-07_20250604160508/B29_20241130-20-07_2858层_样本数据.csv",
+          "7103/output2/B29/20241130-20-07/B29_20241130-20-07_20250604160508/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B29/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b30",
+      "tag": "B30",
+      "dataTag": "7103-B30",
+      "databaseTag": "铂力特-S310-B30",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B30",
+      "model": "铂力特 S310",
+      "serial": "B30",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B30/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B30",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output2/B30/20240507-08-33/B30_20240507-08-33_20250604110008",
+        "source_files": [
+          "7103/output2/B30/20240507-08-33/B30_20240507-08-33_20250604110008/B30_20240507-08-33_2501层_样本数据.csv",
+          "7103/output2/B30/20240507-08-33/B30_20240507-08-33_20250604110008/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B30/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b33",
+      "tag": "B33",
+      "dataTag": "7103-B33",
+      "databaseTag": "铂力特-S310-B33",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B33",
+      "model": "铂力特 S310",
+      "serial": "B33",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B33/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B33",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output2/B33/20250319-11-00/B33_20250319-11-00_20250605100117",
+        "source_files": [
+          "7103/output2/B33/20250319-11-00/B33_20250319-11-00_20250605100117/B33_20250319-11-00_1781层_样本数据.csv",
+          "7103/output2/B33/20250319-11-00/B33_20250319-11-00_20250605100117/打印日志_打印日志.csv",
+          "7103/output2/B33/20250319-11-00/B33_20250319-11-00_20250605100117/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B33/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b34",
+      "tag": "B34",
+      "dataTag": "7103-B34",
+      "databaseTag": "铂力特-S310-B34",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B34",
+      "model": "铂力特 S310",
+      "serial": "B34",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "fault",
+      "statusText": "铺粉/刮刀异常",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B34/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B34",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "1",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "powder_fault",
+        "status_code": 1,
+        "status_labels": [
+          "铺粉/刮刀系统异常",
+          "刮刀扭矩/位置故障",
+          "刮刀扭矩/位置故障证据:刮刀扭矩故障、刮刀扭矩"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "fault",
+          "message": "铺粉/刮刀系统异常"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 3,
+        "rawStatusLabel": "刮刀扭矩/位置故障",
+        "frontendStatusCode": 1,
+        "frontendStatusLabel": "铺粉/刮刀系统异常",
+        "categories": [
+          "scraper_torque_position_fault"
+        ],
+        "confidence": 0.78,
+        "evidence": [
+          {
+            "source": "filename",
+            "text": "2025-05-07 04-58-46 刮刀故障 故障暂停，刮刀扭矩故障",
+            "file": "7103/output2/B34/20250428-09-38/B34_20250428-09-38_20250605113045/2025-05-07_04-58-46_刮刀故障_故障暂停，刮刀扭矩故障.csv"
+          }
+        ]
+      },
+      "realData": {
+        "source_case_dir": "7103/output2/B34/20250428-09-38/B34_20250428-09-38_20250605113045",
+        "source_files": [
+          "7103/output2/B34/20250428-09-38/B34_20250428-09-38_20250605113045/2025-05-07_04-58-46_刮刀故障_故障暂停，刮刀扭矩故障.csv",
+          "7103/output2/B34/20250428-09-38/B34_20250428-09-38_20250605113045/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B34/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b35",
+      "tag": "B35",
+      "dataTag": "7103-B35",
+      "databaseTag": "铂力特-S310-B35",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B35",
+      "model": "铂力特 S310",
+      "serial": "B35",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B35/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B35",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:49",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output2/B35/20250513-08-50/B35_20250513-08-50_20250606111610",
+        "source_files": [
+          "7103/output2/B35/20250513-08-50/B35_20250513-08-50_20250606111610/B35_20250513-08-50_1881层_样本数据.csv",
+          "7103/output2/B35/20250513-08-50/B35_20250513-08-50_20250606111610/设备信息_设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S310 B35/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b38",
+      "tag": "B38",
+      "dataTag": "7103-B38",
+      "databaseTag": "铂力特-S310-B38",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B38",
+      "model": "铂力特 S310",
+      "serial": "B38",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B38/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B38",
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "37",
+          "unit": ""
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "11102",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "11.27",
+          "unit": "%"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "4.628",
+          "unit": "Bar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "5.443",
+          "unit": "Bar"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "0.005",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "0.065",
+          "unit": "%"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "46.296",
+          "unit": "%"
+        }
+      ],
+      "updatedAt": "2025-05-04 10:44:28",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output1/B38/20250504-08-53/B38_20250504-08-53_20250613102021",
+        "source_files": [
+          "7103/output1/B38/20250504-08-53/B38_20250504-08-53_20250613102021/B38_20250504-08-53_4556层_样本数据.csv",
+          "7103/output1/B38/20250504-08-53/B38_20250504-08-53_20250613102021/设备信息_设备信息.csv"
+        ],
+        "representative_csv": "7103/output1/B38/20250504-08-53/B38_20250504-08-53_20250613102021/B38_20250504-08-53_4556层_样本数据.csv",
+        "preview_csv": "SLM/铂力特 S310 B38/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b39",
+      "tag": "B39",
+      "dataTag": "7103-B39",
+      "databaseTag": "铂力特-S310-B39",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B39",
+      "model": "铂力特 S310",
+      "serial": "B39",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B39/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B39",
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "1415",
+          "unit": ""
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "2181",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "17.07",
+          "unit": "%"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "5.127",
+          "unit": "Bar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "5.561",
+          "unit": "Bar"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "0.003",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "20.629",
+          "unit": "%"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "50.298",
+          "unit": "%"
+        }
+      ],
+      "updatedAt": "2025-02-15 14:14:17",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/output1/B39/20250214-16-47/B39_20250214-16-47_20250613194322",
+        "source_files": [
+          "7103/output1/B39/20250214-16-47/B39_20250214-16-47_20250613194322/B39_20250214-16-47_1781层_样本数据.csv",
+          "7103/output1/B39/20250214-16-47/B39_20250214-16-47_20250613194322/打印日志_打印日志.csv",
+          "7103/output1/B39/20250214-16-47/B39_20250214-16-47_20250613194322/设备信息_设备信息.csv"
+        ],
+        "representative_csv": "7103/output1/B39/20250214-16-47/B39_20250214-16-47_20250613194322/B39_20250214-16-47_1781层_样本数据.csv",
+        "preview_csv": "SLM/铂力特 S310 B39/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b40",
+      "tag": "B40",
+      "dataTag": "7103-B40",
+      "databaseTag": "铂力特-S430-B40",
+      "owner": "铂力特",
+      "name": "铂力特 S430 B40",
+      "model": "铂力特 S430",
+      "serial": "SNXXXXXX",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "fault",
+      "statusText": "铺粉/刮刀异常",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B40/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S430 B40",
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "585",
+          "unit": ""
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "226756",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "18.086",
+          "unit": "%"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "2.219",
+          "unit": "bar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "4.606",
+          "unit": "bar"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "0.022",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "0",
+          "unit": "%"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "76.797",
+          "unit": "%"
+        }
+      ],
+      "updatedAt": "2025-04-12 00:26:57",
+      "healthData": {
+        "status": "powder_fault",
+        "status_code": 1,
+        "status_labels": [
+          "铺粉/刮刀系统异常",
+          "刮刀扭矩/位置故障",
+          "刮刀扭矩/位置故障证据:刮刀扭矩故障、刮刀扭矩"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "fault",
+          "message": "铺粉/刮刀系统异常"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 3,
+        "rawStatusLabel": "刮刀扭矩/位置故障",
+        "frontendStatusCode": 1,
+        "frontendStatusLabel": "铺粉/刮刀系统异常",
+        "categories": [
+          "scraper_torque_position_fault"
+        ],
+        "confidence": 0.78,
+        "evidence": [
+          {
+            "source": "filename",
+            "text": "2025-04-12 00-21-51 刮刀故障 故障暂停，刮刀扭矩故障 Error",
+            "file": "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/2025-04-12_00-21-51_刮刀故障_故障暂停，刮刀扭矩故障_Error.csv"
+          }
+        ]
+      },
+      "realData": {
+        "source_case_dir": "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413",
+        "source_files": [
+          "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/2025-04-12_00-21-51_刮刀故障_故障暂停，刮刀扭矩故障_Error.csv",
+          "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/打印日志_打印日志.csv",
+          "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/设备信息_设备信息.csv"
+        ],
+        "representative_csv": "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/2025-04-12_00-21-51_刮刀故障_故障暂停，刮刀扭矩故障_Error.csv",
+        "preview_csv": "SLM/铂力特 S430 B40/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b43",
+      "tag": "B43",
+      "dataTag": "7103-B43",
+      "databaseTag": "铂力特-S310-B43",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B43",
+      "model": "铂力特 S310",
+      "serial": "B43",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B43/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B43",
+      "parameters": [
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "168664",
+          "unit": ""
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "value": "61.1",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "value": "61",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "value": "50.7",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "value": "50.6",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "value": "-12",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "value": "-20",
+          "unit": "mA"
+        }
+      ],
+      "updatedAt": "2025/6/5 14:12:21",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/26_5_22/B43_BLT_S310_TC4(997个零件)/20250603-17-44/20250618172412",
+        "source_files": [
+          "7103/26_5_22/B43_BLT_S310_TC4(997个零件)/20250603-17-44/20250618172412/伺服温度X0_max.csv",
+          "7103/26_5_22/B43_BLT_S310_TC4(997个零件)/20250603-17-44/20250618172412/伺服温度Y0_max.csv",
+          "7103/26_5_22/B43_BLT_S310_TC4(997个零件)/20250603-17-44/20250618172412/伺服温度峰值_温度及其他参数_合并.csv",
+          "7103/26_5_22/B43_BLT_S310_TC4(997个零件)/20250603-17-44/20250618172412/伺服温度所有峰值_主参数合并.csv",
+          "7103/26_5_22/B43_BLT_S310_TC4(997个零件)/20250603-17-44/20250618172412/报警日志.csv",
+          "7103/26_5_22/B43_BLT_S310_TC4(997个零件)/20250603-17-44/20250618172412/设备信息.csv"
+        ],
+        "representative_csv": "7103/26_5_22/B43_BLT_S310_TC4(997个零件)/20250603-17-44/20250618172412/伺服温度X0_max.csv",
+        "preview_csv": "SLM/铂力特 S310 B43/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b44",
+      "tag": "B44",
+      "dataTag": "7103-B44",
+      "databaseTag": "铂力特-S430-B44",
+      "owner": "铂力特",
+      "name": "铂力特 S430 B44",
+      "model": "铂力特 S430",
+      "serial": "SNXXXXXX",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康运行",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B44/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S430 B44",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "0",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:47",
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1.0,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "7103/26_5_22/B44(857个零件)/20241028-14-14/20250617160523",
+        "source_files": [
+          "7103/26_5_22/B44(857个零件)/20241028-14-14/20250617160523/报警日志.csv",
+          "7103/26_5_22/B44(857个零件)/20241028-14-14/20250617160523/设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S430 B44/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b45",
+      "tag": "B45",
+      "dataTag": "7103-B45",
+      "databaseTag": "铂力特-S310-B45",
+      "owner": "铂力特",
+      "name": "铂力特 S310 B45",
+      "model": "铂力特 S310",
+      "serial": "B45",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "fault",
+      "statusText": "气氛循环异常",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B45/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B45",
+      "parameters": [
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "73217",
+          "unit": ""
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "value": "43.6",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "value": "46.7",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "value": "43.9",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "value": "43.9",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "value": "185",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "value": "-48",
+          "unit": "mA"
+        }
+      ],
+      "updatedAt": "2025/2/26 19:58:39",
+      "healthData": {
+        "status": "gas_fault",
+        "status_code": 3,
+        "status_labels": [
+          "气氛循环系统异常",
+          "灰桶/收粉/卸灰故障",
+          "灰桶/收粉/卸灰故障证据:左侧收粉桶满"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "fault",
+          "message": "气氛循环系统异常"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 6,
+        "rawStatusLabel": "灰桶/收粉/卸灰故障",
+        "frontendStatusCode": 3,
+        "frontendStatusLabel": "气氛循环系统异常",
+        "categories": [
+          "ash_bucket_fault"
+        ],
+        "confidence": 0.7,
+        "evidence": [
+          {
+            "source": "alarm_log",
+            "text": "故障暂停，左侧收粉桶满",
+            "file": "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/报警日志.csv"
+          }
+        ]
+      },
+      "realData": {
+        "source_case_dir": "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248",
+        "source_files": [
+          "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度X0_max.csv",
+          "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度Y0_max.csv",
+          "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度峰值_温度及其他参数_合并.csv",
+          "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度所有峰值_主参数合并.csv",
+          "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/报警日志.csv",
+          "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/设备信息.csv"
+        ],
+        "representative_csv": "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度X0_max.csv",
+        "preview_csv": "SLM/铂力特 S310 B45/real_data/preview.csv"
+      }
+    },
+    {
+      "id": "slm-b46",
+      "tag": "B46",
+      "dataTag": "7103-B46",
+      "databaseTag": "铂力特-S430-B46",
+      "owner": "铂力特",
+      "name": "铂力特 S430 B46",
+      "model": "铂力特 S430",
+      "serial": "B46",
+      "location": "7103 现场数据设备群",
+      "online": true,
+      "health": "fault",
+      "statusText": "铺粉/刮刀异常",
+      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B46/thumbnail.jpg",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S430 B46",
+      "parameters": [
+        {
+          "id": "diagnosis_status",
+          "name": "诊断状态码",
+          "value": "1",
+          "unit": ""
+        }
+      ],
+      "updatedAt": "2026-06-26T23:13:47",
+      "healthData": {
+        "status": "powder_fault",
+        "status_code": 1,
+        "status_labels": [
+          "铺粉/刮刀系统异常",
+          "铺粉检测缺粉/重铺异常",
+          "铺粉检测缺粉/重铺异常证据:铺粉检测AI检测到缺粉、缺粉、铺粉检测"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "fault",
+          "message": "铺粉/刮刀系统异常"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "7103最近样本",
+        "rawStatusCode": 2,
+        "rawStatusLabel": "铺粉检测缺粉/重铺异常",
+        "frontendStatusCode": 1,
+        "frontendStatusLabel": "铺粉/刮刀系统异常",
+        "categories": [
+          "powder_spreading_abnormal"
+        ],
+        "confidence": 0.86,
+        "evidence": [
+          {
+            "source": "alarm_log",
+            "text": "故障暂停，铺粉检测AI检测到缺粉!层号：1932",
+            "file": "7103/26_5_22/B46(1016个零件)/20250611-06-57/20250620115213/报警日志.csv"
+          }
+        ]
+      },
+      "realData": {
+        "source_case_dir": "7103/26_5_22/B46(1016个零件)/20250611-06-57/20250620115213",
+        "source_files": [
+          "7103/26_5_22/B46(1016个零件)/20250611-06-57/20250620115213/报警日志.csv",
+          "7103/26_5_22/B46(1016个零件)/20250611-06-57/20250620115213/设备信息.csv"
+        ],
+        "representative_csv": null,
+        "preview_csv": "SLM/铂力特 S430 B46/real_data/preview.csv"
+      }
+    }
+  ]
+}

@@ -62,6 +62,9 @@ backend/ids_focus_test_*/
 backend/test_data/
 backend/test_images/
 
+# 本机真实采集数据体积较大，只保留代码中的相对目录约定。
+/7103/
+
 # Model weights (large files)
 backend/weights/*.pt
 backend/weights/*.pkl

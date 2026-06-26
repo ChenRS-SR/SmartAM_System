@@ -1,0 +1,115 @@
+{
+  "id": "slm-b17",
+  "tag": "B17",
+  "dataTag": "7103-B17",
+  "databaseTag": "华科-S430-B17",
+  "owner": "华科",
+  "name": "华科SLM B17",
+  "model": "铂力特 S430",
+  "serial": "SNXXXXXX",
+  "location": "7103 现场数据设备群",
+  "online": true,
+  "health": "fault",
+  "statusText": "铺粉/刮刀异常",
+  "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
+  "dataDirectory": "slm_device_data/SLM/华科SLM B17",
+  "parameters": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "value": "5491",
+      "unit": ""
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "481827",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "value": "17.441",
+      "unit": "%"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "value": "2.399",
+      "unit": "Bar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "value": "4.763",
+      "unit": "Bar"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "value": "0.038",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "value": "11.981",
+      "unit": "%"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "value": "72.697",
+      "unit": "%"
+    }
+  ],
+  "updatedAt": "2024-05-07 14:23:57",
+  "healthData": {
+    "status": "powder_fault",
+    "status_code": 1,
+    "status_labels": [
+      "铺粉/刮刀系统异常",
+      "落粉轴故障",
+      "落粉轴故障证据:落粉轴扭矩故障、落粉轴故障、落粉轴扭矩"
+    ],
+    "laser_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "powder_system": {
+      "status": "fault",
+      "message": "铺粉/刮刀系统异常"
+    },
+    "gas_system": {
+      "status": "healthy",
+      "message": "健康"
+    }
+  },
+  "diagnosis": {
+    "source": "7103最近样本",
+    "rawStatusCode": 5,
+    "rawStatusLabel": "落粉轴故障",
+    "frontendStatusCode": 1,
+    "frontendStatusLabel": "铺粉/刮刀系统异常",
+    "categories": [
+      "powder_axis_fault"
+    ],
+    "confidence": 0.86,
+    "evidence": [
+      {
+        "source": "filename",
+        "text": "2024-05-07 08-53-36 落粉轴故障 故障暂停，落粉轴扭矩故障",
+        "file": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv"
+      }
+    ]
+  },
+  "realData": {
+    "source_case_dir": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010",
+    "source_files": [
+      "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv",
+      "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/设备信息_设备信息.csv"
+    ],
+    "representative_csv": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv",
+    "preview_csv": "SLM/华科SLM B17/real_data/preview.csv"
+  }
+}

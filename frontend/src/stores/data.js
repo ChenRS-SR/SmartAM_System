@@ -139,7 +139,8 @@ export const useDataStore = defineStore('data', () => {
     }
     
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//localhost:8000/ws/sensor_data`
+    const wsHost = window.location.hostname || '127.0.0.1'
+    const wsUrl = `${protocol}//${wsHost}:8000/ws`
     
     ws.value = new WebSocket(wsUrl)
     
@@ -182,14 +183,14 @@ export const useDataStore = defineStore('data', () => {
     }
     
     ws.value.onerror = (error) => {
-      console.error('WebSocket 错误:', error)
       // 连接失败且不在模拟模式，切换到模拟
       if (!FORCE_MOCK && !connected.value) {
-        console.log('[DataStore] WebSocket 连接失败，切换到模拟模式')
+        console.warn('[DataStore] WebSocket 连接失败，切换到模拟模式', error)
         ws.value = null
         connecting.value = false
         startMockDataStream()
       } else {
+        console.error('WebSocket 错误:', error)
         ws.value?.close()
       }
     }

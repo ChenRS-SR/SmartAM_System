@@ -129,8 +129,20 @@ class VibrationOptimizer:
         
         if len(self.calibration_data) > 0:
             # 计算平均值作为基线
+            # 校准样本使用短字段名，baseline_data 使用完整字段名。
+            calibration_key_map = {
+                'velocity_x': 'vx',
+                'velocity_y': 'vy',
+                'velocity_z': 'vz',
+                'displacement_x': 'dx',
+                'displacement_y': 'dy',
+                'displacement_z': 'dz',
+                'frequency_x': 'fx',
+                'frequency_y': 'fy',
+                'frequency_z': 'fz',
+            }
             for key in self.baseline_data:
-                values = [d[key.replace('_', '')] for d in self.calibration_data]
+                values = [d[calibration_key_map[key]] for d in self.calibration_data]
                 self.baseline_data[key] = sum(values) / len(values)
             
             self.is_calibrated = True

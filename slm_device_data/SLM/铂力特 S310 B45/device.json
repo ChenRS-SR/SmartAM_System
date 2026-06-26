@@ -1,0 +1,113 @@
+{
+  "id": "slm-b45",
+  "tag": "B45",
+  "dataTag": "7103-B45",
+  "databaseTag": "铂力特-S310-B45",
+  "owner": "铂力特",
+  "name": "铂力特 S310 B45",
+  "model": "铂力特 S310",
+  "serial": "B45",
+  "location": "7103 现场数据设备群",
+  "online": true,
+  "health": "fault",
+  "statusText": "气氛循环异常",
+  "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B45/thumbnail.jpg",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S310 B45",
+  "parameters": [
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "73217",
+      "unit": ""
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "value": "43.6",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "value": "46.7",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "value": "43.9",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "value": "43.9",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "value": "185",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "value": "-48",
+      "unit": "mA"
+    }
+  ],
+  "updatedAt": "2025/2/26 19:58:39",
+  "healthData": {
+    "status": "gas_fault",
+    "status_code": 3,
+    "status_labels": [
+      "气氛循环系统异常",
+      "灰桶/收粉/卸灰故障",
+      "灰桶/收粉/卸灰故障证据:左侧收粉桶满"
+    ],
+    "laser_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "powder_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "gas_system": {
+      "status": "fault",
+      "message": "气氛循环系统异常"
+    }
+  },
+  "diagnosis": {
+    "source": "7103最近样本",
+    "rawStatusCode": 6,
+    "rawStatusLabel": "灰桶/收粉/卸灰故障",
+    "frontendStatusCode": 3,
+    "frontendStatusLabel": "气氛循环系统异常",
+    "categories": [
+      "ash_bucket_fault"
+    ],
+    "confidence": 0.7,
+    "evidence": [
+      {
+        "source": "alarm_log",
+        "text": "故障暂停，左侧收粉桶满",
+        "file": "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/报警日志.csv"
+      }
+    ]
+  },
+  "realData": {
+    "source_case_dir": "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248",
+    "source_files": [
+      "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度X0_max.csv",
+      "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度Y0_max.csv",
+      "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度峰值_温度及其他参数_合并.csv",
+      "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度所有峰值_主参数合并.csv",
+      "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/报警日志.csv",
+      "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/设备信息.csv"
+    ],
+    "representative_csv": "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度X0_max.csv",
+    "preview_csv": "SLM/铂力特 S310 B45/real_data/preview.csv"
+  }
+}
