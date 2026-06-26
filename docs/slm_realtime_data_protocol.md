@@ -56,21 +56,20 @@ http://192.168.1.20:8000/api
 - 采集端先访问 `GET http://<SmartAM后端服务器IP>:8000/api/slm/realtime/schema`，能返回 JSON 即表示端口连通。
 - 如果现场使用反向代理或 HTTPS，只需要把接口基础路径替换为代理后的地址，例如 `https://smartam.example.com/api`。
 
-前端默认运行在监控服务器或浏览器可访问的机器上：
+正式界面由 SmartAM 后端 `8000` 端口统一提供。启动脚本会先构建前端页面，再由 FastAPI 服务页面和 API：
 
-```bash
-cd <SmartAM_System项目目录>/frontend
-npm run dev -- --host 127.0.0.1 --port 5173
+```text
+http://<SmartAM后端服务器IP>:8000/slm/dashboard
 ```
 
-如果需要让其他电脑上的浏览器访问前端，同样监听局域网地址：
+`5173` 仅作为前端开发调试端口使用，不作为现场局域网正式入口。需要单独调试前端时可运行：
 
 ```bash
 cd <SmartAM_System项目目录>/frontend
 npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
-采集端不需要访问前端端口；它只需要向后端 API 端口发送数据。
+采集端不需要访问前端开发端口；它只需要向后端 API 端口发送数据。
 
 本文后续命令中的接口基础路径记作：
 
@@ -416,7 +415,7 @@ curl <SMARTAM_API_BASE>/slm/realtime/data/slm-b8
 
 ## 前端联调
 
-1. 打开 SmartAM 前端地址，例如 `http://<SmartAM前端服务器IP>:5173`。
+1. 打开 SmartAM 前端地址，例如 `http://<SmartAM后端服务器IP>:8000/slm/dashboard`。
 2. 选择 `SLM`。
 3. 进入 `打印状态监测`，选择 `铂力特 S310 B8`。
 4. 真实硬件模式下先清空缓存，此时实时参数应为 `--`：

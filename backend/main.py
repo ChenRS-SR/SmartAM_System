@@ -9,7 +9,7 @@ SmartAM_System - 后端入口 (FastAPI)
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -99,6 +99,11 @@ print(f"[Main] 项目根目录: {project_root}")
 frontend_dist_path = os.path.join(project_root, "frontend", "dist")
 frontend_public_path = os.path.join(project_root, "frontend", "public")
 
+
+def get_frontend_index_path() -> str:
+    """返回前端构建后的入口文件路径。"""
+    return os.path.join(frontend_dist_path, "index.html")
+
 # 前端静态文件
 if os.path.exists(frontend_dist_path):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
@@ -165,7 +170,7 @@ app.include_router(health_router)
 @app.get("/")
 async def root():
     """返回前端页面"""
-    frontend_index = os.path.join(project_root, "frontend", "dist", "index.html")
+    frontend_index = get_frontend_index_path()
     if os.path.exists(frontend_index):
         return FileResponse(frontend_index)
     else:
@@ -175,6 +180,15 @@ async def root():
             "service": "SmartAM_System Backend",
             "message": "Frontend not built"
         }
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    """返回前端图标，避免浏览器访问根路径时产生 404。"""
+    favicon_path = os.path.join(frontend_dist_path, "favicon.ico")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    raise HTTPException(status_code=404, detail="favicon not found")
 
 
 @app.get("/api/status")
@@ -429,6 +443,39 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.close()
         except RuntimeError:
             pass
+
+
+# ========== 前端 History 路由 ==========
+
+@app.get("/{full_path:path}")
+async def frontend_history_fallback(full_path: str):
+    """
+    支持局域网直接访问 Vue 路由，例如 /slm/dashboard。
+
+    API、静态资源和数据目录缺失时保持 404，避免把接口错误误返回成前端页面。
+    """
+    reserved_prefixes = (
+        "api/",
+        "assets/",
+        "public/",
+        "state_picture/",
+        "simulation_record/",
+        "slm_device_data/",
+        "sls_device_data/",
+        "video_feed",
+        "ws",
+        "docs",
+        "openapi.json",
+        "favicon.ico",
+    )
+    if full_path.startswith(reserved_prefixes):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    frontend_index = get_frontend_index_path()
+    if os.path.exists(frontend_index):
+        return FileResponse(frontend_index)
+
+    raise HTTPException(status_code=404, detail="Frontend not built")
 
 
 # ========== 主入口 ==========

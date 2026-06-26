@@ -73,9 +73,29 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5173"') do (
 )
 timeout /t 1 /nobreak >nul
 
+:: 构建前端静态页面，正式界面由后端 8000 端口统一提供。
+echo.
+echo [3/5] Building frontend static assets...
+cd /d "%~dp0frontend"
+if not exist "node_modules" (
+    echo   Installing frontend dependencies...
+    call npm install
+    if errorlevel 1 (
+        echo   [ERROR] npm install failed.
+        pause
+        exit /b 1
+    )
+)
+call npm run build
+if errorlevel 1 (
+    echo   [ERROR] frontend build failed.
+    pause
+    exit /b 1
+)
+
 :: 启动后端服务，子窗口中再次激活环境，确保服务进程继承正确 Python。
 echo.
-echo [3/5] Starting backend service...
+echo [4/5] Starting backend service...
 cd /d "%~dp0backend"
 start "SmartAM Backend" cmd /k "call conda activate %CONDA_ENV% && python main.py"
 
@@ -92,42 +112,19 @@ if %errorlevel% equ 0 (
     echo   Warning: Backend service may not have started properly
 )
 
-:: 首次运行时安装前端依赖。
-echo.
-echo [4/5] Starting frontend dev server...
-cd /d "%~dp0frontend"
-if not exist "node_modules" (
-    echo   Installing frontend dependencies...
-    call npm install
-    if errorlevel 1 (
-        echo   [ERROR] npm install failed.
-        pause
-        exit /b 1
-    )
-)
-start "SmartAM Frontend" cmd /k "npm run dev"
-
-:: 等待前端开发服务器启动。
-echo   Waiting for frontend to start (3 seconds)...
-timeout /t 3 /nobreak >nul
-
 echo.
 echo [5/5] Services startup complete!
 echo =========================================
-echo  Backend: http://%LOCAL_IP%:8000
-echo  Frontend: http://%LOCAL_IP%:5173
-echo  Full Interface: http://%LOCAL_IP%:5173/slm/dashboard
+echo  Full Interface: http://%LOCAL_IP%:8000/slm/dashboard
+echo  API Docs: http://%LOCAL_IP%:8000/docs
 echo =========================================
 echo.
-echo Press any key to open browser...
-pause >nul
-
-:: Vite dev server already opens the browser once through the current remote/editor environment.
-:: This manual open keeps the old LAN entry for machines that can directly reach %LOCAL_IP%.
-start http://%LOCAL_IP%:5173/slm/dashboard
+echo Opening browser...
+timeout /t 2 /nobreak >nul
+start "" "http://%LOCAL_IP%:8000/slm/dashboard"
 
 echo.
 echo Note: Closing this window will NOT stop the services
-echo       Please manually close the Backend and Frontend windows to stop
+echo       Please manually close the Backend window to stop
 echo.
 pause
