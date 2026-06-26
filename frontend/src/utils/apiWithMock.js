@@ -26,6 +26,7 @@ import {
 // 是否启用模拟模式
 const MOCK_MODE = import.meta.env.VITE_MOCK_MODE === 'true' || false
 const API_BASE_URL = resolveBackendBaseUrl()
+const BACKEND_CHECK_URL = API_BASE_URL ? `${API_BASE_URL}/` : '/api/slm/realtime/schema'
 
 // 创建 axios 实例
 const api = axios.create({
@@ -40,7 +41,7 @@ async function checkBackend() {
   if (backendAvailable !== null) return backendAvailable
   
   try {
-    await axios.get(`${API_BASE_URL}/`, { timeout: 2000 })
+    await axios.get(BACKEND_CHECK_URL, { timeout: 2000 })
     backendAvailable = true
     console.log('[API] 后端连接成功，使用真实数据')
     return true

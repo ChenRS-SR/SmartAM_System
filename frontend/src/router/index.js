@@ -113,38 +113,28 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   document.title = to.meta.title ? `${to.meta.title} - SmartAM` : 'SmartAM System'
-  
-  const token = localStorage.getItem('token')
+
   const savedDeviceType = localStorage.getItem('deviceType')
   const targetDevice = to.meta.device
-  
+
   // 设备选择页面 - 如果有保存的设备类型但目标是不同设备，清除缓存
   if (to.path === '/') {
     // 正常显示设备选择页
     next()
     return
   }
-  
-  // 访问具体设备页面时，检查是否匹配
+
+  // 通过一键脚本或远程端口直接打开 /slm/...、/sls/... 时，
+  // 自动同步当前设备类型，避免新浏览器上下文因缺少 localStorage 而被踢回首页。
   if (targetDevice) {
-    // 如果没有选择过设备，强制跳转到设备选择页（让用户手动选择）
-    if (!savedDeviceType) {
-      console.log(`[Router] 请先选择设备类型，当前访问: ${targetDevice}`)
-      next('/')
-      return
-    }
-    // 如果设备类型不匹配（比如之前选了 FDM，现在直接访问 SLS）
     if (savedDeviceType !== targetDevice) {
-      console.log(`[Router] 设备类型不匹配，已选 ${savedDeviceType}，请重新选择`)
-      // 清除设备类型，让用户重新选择
-      localStorage.removeItem('deviceType')
-      next('/')
-      return
+      localStorage.setItem('deviceType', targetDevice)
     }
   }
-  
-  // 需要登录的页面
-  if (!to.meta.public && !token) {
+
+  // 现场监控页默认作为局域网入口开放；只有显式标记 requiresAuth 的页面才要求登录。
+  const token = localStorage.getItem('token')
+  if (to.meta.requiresAuth && !token) {
     next('/login')
   } else if (to.path === '/login' && token) {
     next('/')

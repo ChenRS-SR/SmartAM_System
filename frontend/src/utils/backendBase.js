@@ -1,8 +1,8 @@
 /**
  * 生成前端访问后端的默认地址。
  *
- * 局域网部署时，远程浏览器中的 localhost 指向浏览器所在电脑，
- * 因此默认使用当前页面主机名并连接后端 8000 端口。
+ * 默认返回空字符串，表示使用当前前端同源地址访问 /api、/video_feed 等路径。
+ * 这样 SSH 端口转发只需要转发 5173，Vite 代理会在服务器侧转到后端 8000。
  */
 export function resolveBackendBaseUrl() {
   const configured = import.meta.env.VITE_API_BASE_URL
@@ -10,11 +10,5 @@ export function resolveBackendBaseUrl() {
     return configured.replace(/\/$/, '')
   }
 
-  if (typeof window === 'undefined') {
-    return 'http://localhost:8000'
-  }
-
-  const protocol = window.location.protocol || 'http:'
-  const hostname = window.location.hostname || 'localhost'
-  return `${protocol}//${hostname}:8000`
+  return ''
 }

@@ -31,6 +31,7 @@ const AUTO_MOCK_FALLBACK = true
 
 // 后端地址
 const API_BASE_URL = resolveBackendBaseUrl()
+const BACKEND_CHECK_URL = API_BASE_URL ? `${API_BASE_URL}/` : '/api/slm/realtime/schema'
 
 // ==================== 后端检测 ====================
 
@@ -46,7 +47,7 @@ async function checkBackend() {
   
   checkPromise = (async () => {
     try {
-      await axios.get(`${API_BASE_URL}/`, { timeout: 2000 })
+      await axios.get(BACKEND_CHECK_URL, { timeout: 2000 })
       backendAvailable = true
       console.log('[API] ✅ 后端连接成功，使用真实数据')
       return true

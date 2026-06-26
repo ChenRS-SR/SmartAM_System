@@ -116,12 +116,12 @@ echo [5/5] Services startup complete!
 echo =========================================
 echo  Backend: http://%LOCAL_IP%:8000
 echo  Frontend: http://%LOCAL_IP%:5173
-echo  Full Interface: http://%LOCAL_IP%:5173/slm/dashboard
+echo  Full Interface: http://%LOCAL_IP%:5173
 echo =========================================
 echo.
 echo Opening browser...
 timeout /t 2 /nobreak >nul
-start "" "http://%LOCAL_IP%:5173/slm/dashboard"
+start "" "http://%LOCAL_IP%:5173"
 
 echo.
 echo Note: Closing this window will NOT stop the services
