@@ -127,47 +127,39 @@ const deviceType = computed(() => route.meta.device || localStorage.getItem('dev
 // 设备类型图标
 const deviceTypeIcon = computed(() => {
   switch (deviceType.value) {
-    case 'fdm': return 'Printer'
     case 'sls': return 'CopyDocument'
     case 'slm': return 'Lightning'
     default: return 'Cpu'
   }
 })
 
-// FDM 菜单
-const fdmMenuItems = [
-  { name: '仪表盘', path: '/fdm/dashboard', icon: 'Monitor' },
-  { name: '数据分析', path: '/fdm/analysis', icon: 'TrendCharts' },
-  { name: '系统控制', path: '/fdm/control', icon: 'SetUp' },
-  { name: '设置', path: '/fdm/settings', icon: 'Setting' },
-]
-
 // SLM 菜单
 const slmMenuItems = [
   { name: '设备群监测', path: '/slm/dashboard', icon: 'Grid' },
   { name: '打印状态监测', path: '/slm/device', icon: 'Monitor' },
-  { name: '数据分析', path: '/slm/analysis', icon: 'TrendCharts' },
-  { name: '系统控制', path: '/slm/control', icon: 'SetUp' },
   { name: '设置', path: '/slm/settings', icon: 'Setting' },
 ]
 
 // SLS 菜单
 const slsMenuItems = [
-  { name: '仪表盘', path: '/sls/dashboard', icon: 'Monitor' },
-  { name: '数据分析', path: '/sls/analysis', icon: 'TrendCharts' },
-  { name: '系统控制', path: '/sls/control', icon: 'SetUp' },
+  { name: '设备群监测', path: '/sls/dashboard', icon: 'Grid' },
+  { name: '打印状态监测', path: '/sls/device', icon: 'Monitor' },
+  { name: '设置', path: '/sls/settings', icon: 'Setting' },
 ]
 
 // 根据设备类型返回对应菜单
 const menuItems = computed(() => {
   if (deviceType.value === 'slm') return slmMenuItems
   if (deviceType.value === 'sls') return slsMenuItems
-  return fdmMenuItems
+  return []
 })
 
 // 判断菜单项是否激活
 const isActive = (path) => {
   if (path.startsWith('/slm/device') && route.path.startsWith('/slm/device')) {
+    return true
+  }
+  if (path.startsWith('/sls/device') && route.path.startsWith('/sls/device')) {
     return true
   }
   return route.path === path

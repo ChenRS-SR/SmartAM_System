@@ -10,60 +10,234 @@
   "location": "7103 现场数据设备群",
   "online": true,
   "health": "healthy",
-  "statusText": "健康运行",
+  "statusText": "健康",
   "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B39/thumbnail.jpg",
   "dataDirectory": "slm_device_data/SLM/铂力特 S310 B39",
-  "parameters": [
+  "parameterSchema": [
     {
       "id": "current_layer",
       "name": "当前层",
-      "value": "1415",
-      "unit": ""
+      "unit": "层"
     },
     {
       "id": "sequence",
       "name": "数据序号",
-      "value": "2181",
+      "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
       "unit": ""
     },
     {
       "id": "scraper_torque",
       "name": "刮刀扭矩",
-      "value": "17.07",
       "unit": "%"
-    },
-    {
-      "id": "compressed_air_pressure",
-      "name": "压缩空气压力",
-      "value": "5.127",
-      "unit": "Bar"
-    },
-    {
-      "id": "gas_pressure",
-      "name": "气源压力",
-      "value": "5.561",
-      "unit": "Bar"
     },
     {
       "id": "oxygen",
       "name": "成形室氧含量",
-      "value": "0.003",
       "unit": "%"
     },
     {
       "id": "ambient_oxygen",
       "name": "环境氧含量",
-      "value": "20.629",
       "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "unit": "m3/h"
     },
     {
       "id": "fan_speed",
       "name": "风机转速",
-      "value": "50.298",
       "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "unit": "mA"
     }
   ],
-  "updatedAt": "2025-02-15 14:14:17",
+  "parameters": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "value": "1405",
+      "unit": "层"
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "114934",
+      "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "value": "健康",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "value": "2024-08-07 14:30:52",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "value": "19.219",
+      "unit": "%"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "value": "0.004",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "value": "20.226",
+      "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "value": "37.717",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "value": "448.159",
+      "unit": "m3/h"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "value": "51.999",
+      "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "value": "3.121",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "value": "8.785",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "value": "5.255",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "value": "5.305",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "value": "43",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "value": "45.3",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "value": "43.9",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "value": "43.9",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "value": "22",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "value": "-23",
+      "unit": "mA"
+    }
+  ],
+  "updatedAt": "2024-08-07 14:30:52",
   "healthData": {
     "status": "healthy",
     "status_code": 0,
@@ -87,6 +261,9 @@
     "source": "7103最近样本",
     "rawStatusCode": 0,
     "rawStatusLabel": "健康",
+    "rawStatusLabels": [
+      "健康"
+    ],
     "frontendStatusCode": 0,
     "frontendStatusLabel": "健康",
     "categories": [],
@@ -100,7 +277,11 @@
       "7103/output1/B39/20250214-16-47/B39_20250214-16-47_20250613194322/打印日志_打印日志.csv",
       "7103/output1/B39/20250214-16-47/B39_20250214-16-47_20250613194322/设备信息_设备信息.csv"
     ],
-    "representative_csv": "7103/output1/B39/20250214-16-47/B39_20250214-16-47_20250613194322/B39_20250214-16-47_1781层_样本数据.csv",
+    "representative_csv": "7103/26_5_22/B39(2585)/20240806-09-50/20250613155533/20260525_204754_scraper_故障_温度及其他参数.csv",
+    "parameter_csvs": [
+      "7103/26_5_22/B39(2585)/20240806-09-50/20250613155533/20260525_204754_scraper_故障_温度及其他参数.csv",
+      "7103/26_5_22/B39(2585)/20250317-14-49/20250613183358/2025-03-17_14-56-09_激光器水冷机故障.csv"
+    ],
     "preview_csv": "SLM/铂力特 S310 B39/real_data/preview.csv"
   }
 }

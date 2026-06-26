@@ -6,7 +6,28 @@ const BACKEND_DEVICES_ENDPOINT = '/api/slm/device-group/devices'
 const BACKEND_SYNC_ENDPOINT = '/api/slm/device-group/sync'
 const THUMBNAIL_WIDTH = 360
 const THUMBNAIL_HEIGHT = 220
-
+const PARAMETER_SCHEMA = [
+  { id: 'current_layer', name: '当前层', unit: '层' },
+  { id: 'sequence', name: '数据序号', unit: '' },
+  { id: 'record_status', name: '状态参数', unit: '' },
+  { id: 'data_time', name: '采集时间', unit: '' },
+  { id: 'scraper_torque', name: '刮刀扭矩', unit: '%' },
+  { id: 'oxygen', name: '成形室氧含量', unit: '%' },
+  { id: 'ambient_oxygen', name: '环境氧含量', unit: '%' },
+  { id: 'chamber_temperature', name: '成形室温度', unit: '℃' },
+  { id: 'gas_flow', name: '循环气体流量', unit: 'm3/h' },
+  { id: 'fan_speed', name: '风机转速', unit: '%' },
+  { id: 'medium_filter_resistance', name: '中效滤芯阻力', unit: 'mBar' },
+  { id: 'high_filter_resistance', name: '高效滤芯阻力', unit: 'mBar' },
+  { id: 'gas_pressure', name: '气源压力', unit: 'Bar' },
+  { id: 'compressed_air_pressure', name: '压缩空气压力', unit: 'Bar' },
+  { id: 'servo_temperature_x', name: 'X轴伺服温度', unit: '℃' },
+  { id: 'servo_temperature_y', name: 'Y轴伺服温度', unit: '℃' },
+  { id: 'galvo_temperature_x', name: 'X轴振镜温度', unit: '℃' },
+  { id: 'galvo_temperature_y', name: 'Y轴振镜温度', unit: '℃' },
+  { id: 'output_current_x', name: 'X轴输出电流', unit: 'mA' },
+  { id: 'output_current_y', name: 'Y轴输出电流', unit: 'mA' }
+]
 const statusTextMap = {
   '-1': '未开机',
   '0': '健康运行',
@@ -80,10 +101,32 @@ const cloneHealthData = (healthData = {}) => ({
   gas_system: { ...(healthData.gas_system || {}) }
 })
 
+const normalizeParameterValue = (value) => {
+  if (value === undefined || value === null || value === '') return '--'
+  return String(value)
+}
+
+const normalizeParameters = (parameters = [], statusText = '--') => {
+  const source = Array.isArray(parameters) ? parameters : []
+  return PARAMETER_SCHEMA.map((schema) => {
+    const matched = source.find((param) => param.id === schema.id || param.name === schema.name)
+    const value = schema.id === 'record_status'
+      ? normalizeParameterValue(matched?.value || statusText)
+      : normalizeParameterValue(matched?.value)
+    return {
+      id: schema.id,
+      name: schema.name,
+      value,
+      unit: matched?.unit ?? schema.unit
+    }
+  })
+}
+
 const cloneDevice = (device) => ({
   ...device,
   healthData: cloneHealthData(device.healthData),
-  parameters: Array.isArray(device.parameters) ? device.parameters.map((param) => ({ ...param })) : [],
+  parameterSchema: PARAMETER_SCHEMA.map((param) => ({ ...param })),
+  parameters: normalizeParameters(device.parameters, device.statusText),
   diagnosis: device.diagnosis ? { ...device.diagnosis } : null,
   realData: device.realData ? { ...device.realData } : null
 })
@@ -111,9 +154,8 @@ const normalizeDevice = (device, index) => {
     health,
     statusText: device.statusText || statusTextMap[String(statusCode)] || '未知状态',
     thumbnail: device.thumbnail || createGeneratedThumbnail(index + 1),
-    parameters: Array.isArray(device.parameters) && device.parameters.length > 0
-      ? device.parameters
-      : [{ id: 'diagnosis_status', name: '诊断状态码', value: String(statusCode), unit: '' }],
+    parameterSchema: PARAMETER_SCHEMA.map((param) => ({ ...param })),
+    parameters: normalizeParameters(device.parameters, device.statusText || statusTextMap[String(statusCode)] || '--'),
     healthData,
     diagnosis: device.diagnosis || null,
     realData: device.realData || null,
@@ -138,7 +180,8 @@ export const useSlmDeviceStore = defineStore('slmDevices', () => {
   const sourceInfo = ref({
     sourceRoot: '',
     diagnosisPolicy: '',
-    statusCodeMap: {}
+    statusCodeMap: {},
+    parameterSchema: PARAMETER_SCHEMA.map((param) => ({ ...param }))
   })
 
   const onlineCount = computed(() => devices.value.filter((device) => device.online).length)
@@ -168,7 +211,8 @@ export const useSlmDeviceStore = defineStore('slmDevices', () => {
       sourceInfo.value = {
         sourceRoot: payload.sourceRoot || '',
         diagnosisPolicy: payload.diagnosisPolicy || '',
-        statusCodeMap: payload.statusCodeMap || {}
+        statusCodeMap: payload.statusCodeMap || {},
+        parameterSchema: Array.isArray(payload.parameterSchema) ? payload.parameterSchema : PARAMETER_SCHEMA
       }
 
       // 文件级数据库是页面设备列表的唯一权威来源，避免本地缓存重复追加手动设备。
@@ -273,13 +317,14 @@ export const useSlmDeviceStore = defineStore('slmDevices', () => {
     device.statusText = statusCode > 0
       ? (healthData.status_labels || [statusTextMap[String(statusCode)] || '故障']).join('、')
       : (statusTextMap[String(statusCode)] || '未开机')
+    device.parameters = normalizeParameters(device.parameters, device.statusText)
     persist()
   }
 
   const updateDeviceParameters = (id, parameters) => {
     const device = getDeviceById(id)
     if (!device || !Array.isArray(parameters)) return
-    device.parameters = parameters.map((param) => ({ ...param }))
+    device.parameters = normalizeParameters(parameters, device.statusText)
     persist()
   }
 

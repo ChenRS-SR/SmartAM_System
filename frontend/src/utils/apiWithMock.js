@@ -6,6 +6,7 @@
 
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { resolveBackendBaseUrl } from './backendBase'
 import {
   mockPrinterStatus,
   mockTemperatureHistory,
@@ -24,10 +25,11 @@ import {
 
 // 是否启用模拟模式
 const MOCK_MODE = import.meta.env.VITE_MOCK_MODE === 'true' || false
+const API_BASE_URL = resolveBackendBaseUrl()
 
 // 创建 axios 实例
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL: API_BASE_URL,
   timeout: 5000
 })
 
@@ -38,7 +40,7 @@ async function checkBackend() {
   if (backendAvailable !== null) return backendAvailable
   
   try {
-    await axios.get('http://localhost:8000/', { timeout: 2000 })
+    await axios.get(`${API_BASE_URL}/`, { timeout: 2000 })
     backendAvailable = true
     console.log('[API] 后端连接成功，使用真实数据')
     return true

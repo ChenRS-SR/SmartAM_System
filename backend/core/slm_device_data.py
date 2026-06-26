@@ -1,8 +1,8 @@
 """
-SLM 设备群数据仓库。
+SLM/SLS 设备群文件数据库。
 
-该模块只读取项目根目录下的 slm_device_data/manifest.json，不生成兜底设备。
-如果数据目录不存在，接口会明确报错，避免前端误以为仍在使用真实 7103 数据。
+该模块只读取项目根目录下的 manifest.json，不生成兜底设备。
+如果数据目录不存在，接口会明确报错，避免前端误以为仍在使用真实数据。
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ from typing import Any, Dict, List
 from urllib.parse import quote, unquote
 
 
-DEVICE_ROOT_NAME = "SLM"
 SUPPORTED_THUMBNAIL_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".svg")
 THUMBNAIL_MIME_SUFFIX = {
     "png": ".png",
@@ -30,17 +29,28 @@ THUMBNAIL_MIME_SUFFIX = {
 
 
 class SLMDeviceDataStore:
-    """读取由 scripts/build_slm_device_data.py 生成的设备群数据。"""
+    """读取由脚本生成的设备群文件数据库。"""
 
-    def __init__(self, project_root: Path | None = None):
+    def __init__(
+        self,
+        project_root: Path | None = None,
+        data_dir_name: str = "slm_device_data",
+        device_root_name: str = "SLM",
+        public_mount: str = "/slm_device_data",
+        label: str = "SLM",
+    ):
         self.project_root = project_root or Path(__file__).resolve().parents[2]
-        self.data_root = self.project_root / "slm_device_data"
-        self.device_root = self.data_root / DEVICE_ROOT_NAME
+        self.data_dir_name = data_dir_name
+        self.device_root_name = device_root_name
+        self.public_mount = public_mount.rstrip("/")
+        self.label = label
+        self.data_root = self.project_root / data_dir_name
+        self.device_root = self.data_root / device_root_name
         self.manifest_path = self.data_root / "manifest.json"
 
     def load_manifest(self) -> Dict[str, Any]:
         if not self.manifest_path.exists():
-            raise FileNotFoundError(f"SLM设备群数据清单不存在: {self.manifest_path}")
+            raise FileNotFoundError(f"{self.label}设备群数据清单不存在: {self.manifest_path}")
         with self.manifest_path.open("r", encoding="utf-8") as file_obj:
             return json.load(file_obj)
 
@@ -60,7 +70,7 @@ class SLMDeviceDataStore:
         for device in self.list_devices():
             if device.get("id") == device_id or device.get("tag") == device_id:
                 return device
-        raise KeyError(f"未找到SLM设备: {device_id}")
+        raise KeyError(f"未找到{self.label}设备: {device_id}")
 
     def _safe_device_id(self, raw_id: str) -> str:
         safe_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", raw_id.strip()).strip("-").lower()
@@ -80,7 +90,7 @@ class SLMDeviceDataStore:
         return self.device_root / folder_name
 
     def _public_device_path(self, device_dir: Path, filename: str) -> str:
-        return f"/slm_device_data/{DEVICE_ROOT_NAME}/{quote(device_dir.name)}/{filename}"
+        return f"{self.public_mount}/{self.device_root_name}/{quote(device_dir.name)}/{filename}"
 
     def _find_thumbnail_file(self, device_dir: Path) -> Path | None:
         for suffix in SUPPORTED_THUMBNAIL_SUFFIXES:
@@ -128,7 +138,7 @@ class SLMDeviceDataStore:
         thumbnail_file = self._find_thumbnail_file(device_dir)
         if thumbnail_file is not None:
             device["thumbnail"] = self._public_device_path(device_dir, thumbnail_file.name)
-        device["dataDirectory"] = f"slm_device_data/{DEVICE_ROOT_NAME}/{device_dir.name}"
+        device["dataDirectory"] = f"{self.data_dir_name}/{self.device_root_name}/{device_dir.name}"
         device["databaseUpdatedAt"] = time.strftime("%Y-%m-%d %H:%M:%S")
 
         source_manifest = device.get("realData") or {
@@ -137,7 +147,7 @@ class SLMDeviceDataStore:
             "representative_csv": "",
             "preview_csv": "",
         }
-        source_manifest["preview_csv"] = f"{DEVICE_ROOT_NAME}/{device_dir.name}/real_data/preview.csv"
+        source_manifest["preview_csv"] = f"{self.device_root_name}/{device_dir.name}/real_data/preview.csv"
         (real_data_dir / "source_manifest.json").write_text(
             json.dumps(source_manifest, ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -145,7 +155,7 @@ class SLMDeviceDataStore:
         preview_path = real_data_dir / "preview.csv"
         representative_csv = source_manifest.get("representative_csv")
         representative_path = self._resolve_project_path(representative_csv) if representative_csv else None
-        if representative_path and representative_path.exists():
+        if representative_path and representative_path.exists() and not preview_path.exists():
             shutil.copy2(representative_path, preview_path)
         elif not preview_path.exists():
             preview_path.write_text("", encoding="utf-8")
@@ -230,8 +240,18 @@ class SLMDeviceDataStore:
         return self.save_manifest(manifest)
 
 
-_store = SLMDeviceDataStore()
+_slm_store = SLMDeviceDataStore()
+_sls_store = SLMDeviceDataStore(
+    data_dir_name="sls_device_data",
+    device_root_name="SLS",
+    public_mount="/sls_device_data",
+    label="SLS",
+)
 
 
 def get_slm_device_data_store() -> SLMDeviceDataStore:
-    return _store
+    return _slm_store
+
+
+def get_sls_device_data_store() -> SLMDeviceDataStore:
+    return _sls_store

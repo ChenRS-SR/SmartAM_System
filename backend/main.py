@@ -134,6 +134,12 @@ if os.path.exists(slm_device_data_path):
     app.mount("/slm_device_data", StaticFiles(directory=slm_device_data_path), name="slm_device_data")
     print(f"[Main] SLM设备群数据服务已挂载: {slm_device_data_path}")
 
+# SLS设备群数据（与SLM同构的模拟清单与缩略图）
+sls_device_data_path = os.path.join(project_root, "sls_device_data")
+if os.path.exists(sls_device_data_path):
+    app.mount("/sls_device_data", StaticFiles(directory=sls_device_data_path), name="sls_device_data")
+    print(f"[Main] SLS设备群数据服务已挂载: {sls_device_data_path}")
+
 
 # 视频测试页面
 @app.get("/video-test")

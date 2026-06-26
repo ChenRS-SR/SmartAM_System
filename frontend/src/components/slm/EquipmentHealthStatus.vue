@@ -89,6 +89,38 @@
             {{ currentStatusConfig.description }}
           </p>
         </div>
+
+        <div class="diagnosis-status">
+          <h4 class="subsection-title">实时诊断</h4>
+          <div class="diagnosis-grid">
+            <div class="diagnosis-item">
+              <span class="diagnosis-label">模型层</span>
+              <strong>{{ diagnosisDisplay.modelLayerText }}</strong>
+            </div>
+            <div class="diagnosis-item">
+              <span class="diagnosis-label">故障模式</span>
+              <strong>{{ diagnosisDisplay.statusLabel }}</strong>
+            </div>
+            <div class="diagnosis-item">
+              <span class="diagnosis-label">置信度</span>
+              <strong>{{ diagnosisDisplay.confidenceText }}</strong>
+            </div>
+            <div class="diagnosis-item">
+              <span class="diagnosis-label">事件时间</span>
+              <strong>{{ diagnosisDisplay.eventTime || '--' }}</strong>
+            </div>
+          </div>
+          <div v-if="diagnosisDisplay.evidence.length" class="diagnosis-evidence">
+            <span
+              v-for="(item, index) in diagnosisDisplay.evidence"
+              :key="index"
+              class="evidence-chip"
+              :title="item.message || item.text || item"
+            >
+              {{ item.message || item.text || item }}
+            </span>
+          </div>
+        </div>
         
         <!-- 子系统状态 -->
         <div class="subsystems-status">
@@ -189,6 +221,24 @@ const props = defineProps({
   isRunning: {
     type: Boolean,
     default: false
+  },
+  diagnosisData: {
+    type: Object,
+    default: () => ({
+      enabled: true,
+      modelVersion: '',
+      statusCode: -1,
+      statusLabel: '等待实时数据',
+      frontendStatusCode: -1,
+      frontendStatusLabel: '等待实时数据',
+      confidence: null,
+      confidenceText: '--',
+      faultModes: [],
+      eventTime: '',
+      modelLayer: 'waiting',
+      input: { alarmCount: 0, parameterCount: 0 },
+      evidence: []
+    })
   }
 })
 
@@ -300,6 +350,24 @@ const isPowderFault = computed(() => {
 const isGasFault = computed(() => {
   const code = displayStatusCode.value
   return code === 3 || code === 4  // 气体异常或复合故障
+})
+
+const modelLayerMap = {
+  alarm_rule: '报警语义规则',
+  statistical: '统计模型',
+  mock_7103: '7103样本',
+  waiting: '等待数据'
+}
+
+const diagnosisDisplay = computed(() => {
+  const diagnosis = props.diagnosisData || {}
+  return {
+    modelLayerText: modelLayerMap[diagnosis.modelLayer] || diagnosis.modelLayer || '--',
+    statusLabel: diagnosis.statusLabel || diagnosis.frontendStatusLabel || currentStatusConfig.value.label,
+    confidenceText: diagnosis.confidenceText || '--',
+    eventTime: diagnosis.eventTime || '',
+    evidence: Array.isArray(diagnosis.evidence) ? diagnosis.evidence.slice(0, 3) : []
+  }
 })
 
 // 模拟模式切换
@@ -549,6 +617,60 @@ defineExpose({
   font-weight: 600;
   color: #e2e8f0;
   margin-bottom: 12px;
+}
+
+.diagnosis-status {
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.42);
+  border: 1px solid rgba(100, 116, 139, 0.24);
+  border-radius: 8px;
+}
+
+.diagnosis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.diagnosis-item {
+  min-width: 0;
+  padding: 10px;
+  background: rgba(30, 41, 59, 0.46);
+  border-radius: 6px;
+}
+
+.diagnosis-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.diagnosis-item strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.diagnosis-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.evidence-chip {
+  max-width: 100%;
+  padding: 5px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #bae6fd;
+  background: rgba(14, 165, 233, 0.14);
+  border: 1px solid rgba(14, 165, 233, 0.28);
+  border-radius: 6px;
+  font-size: 11px;
 }
 
 /* 子系统状态 */

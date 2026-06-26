@@ -1,0 +1,12 @@
+{
+  "device_id": "slm-b8",
+  "event_time": "2026-06-27 10:20:00",
+  "sequence": 990001,
+  "parameters": {
+    "current_layer": 120,
+    "sequence": 990001,
+    "oxygen": 0.012,
+    "gas_flow": 438.5,
+    "fan_speed": 47.1
+  }
+}

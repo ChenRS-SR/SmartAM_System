@@ -115,6 +115,7 @@
       <EquipmentHealthStatus
         :health-data="healthData"
         :is-running="isRunning"
+        :diagnosis-data="diagnosisData"
       />
     </div>
     
@@ -253,6 +254,45 @@ const latestData = reactive({
   }
 })
 
+const realtimeState = reactive({
+  hasData: false,
+  eventTime: '',
+  receivedAt: '',
+  parameters: [],
+  media: {},
+  diagnosis: null,
+  health: null
+})
+
+const fixedParameterSchema = [
+  { id: 'current_layer', name: '当前层', value: '--', unit: '层' },
+  { id: 'sequence', name: '数据序号', value: '--', unit: '' },
+  { id: 'record_status', name: '状态参数', value: '--', unit: '' },
+  { id: 'data_time', name: '采集时间', value: '--', unit: '' },
+  { id: 'scraper_torque', name: '刮刀扭矩', value: '--', unit: '%' },
+  { id: 'oxygen', name: '成形室氧含量', value: '--', unit: '%' },
+  { id: 'ambient_oxygen', name: '环境氧含量', value: '--', unit: '%' },
+  { id: 'chamber_temperature', name: '成形室温度', value: '--', unit: '℃' },
+  { id: 'gas_flow', name: '循环气体流量', value: '--', unit: 'm3/h' },
+  { id: 'fan_speed', name: '风机转速', value: '--', unit: '%' },
+  { id: 'medium_filter_resistance', name: '中效滤芯阻力', value: '--', unit: 'mBar' },
+  { id: 'high_filter_resistance', name: '高效滤芯阻力', value: '--', unit: 'mBar' },
+  { id: 'gas_pressure', name: '气源压力', value: '--', unit: 'Bar' },
+  { id: 'compressed_air_pressure', name: '压缩空气压力', value: '--', unit: 'Bar' },
+  { id: 'servo_temperature_x', name: 'X轴伺服温度', value: '--', unit: '℃' },
+  { id: 'servo_temperature_y', name: 'Y轴伺服温度', value: '--', unit: '℃' },
+  { id: 'galvo_temperature_x', name: 'X轴振镜温度', value: '--', unit: '℃' },
+  { id: 'galvo_temperature_y', name: 'Y轴振镜温度', value: '--', unit: '℃' },
+  { id: 'output_current_x', name: 'X轴输出电流', value: '--', unit: 'mA' },
+  { id: 'output_current_y', name: 'Y轴输出电流', value: '--', unit: 'mA' }
+]
+const mockRuntimeTick = ref(0)
+const runtimeBase = reactive({
+  deviceId: '',
+  currentLayer: 0,
+  sequence: 0
+})
+
 // 健康数据 - 初始状态为未开机（状态码-1）
 const healthData = reactive({
   status: 'power_off',
@@ -308,8 +348,10 @@ watch([() => route.params.deviceId, () => slmDeviceStore.devices.length], ([devi
 }, { immediate: true })
 
 watch(selectedDevice, (device) => {
-  if (device?.healthData) {
+  if (device?.healthData && settings.use_mock) {
     Object.assign(healthData, device.healthData)
+  } else if (!settings.use_mock && isRunning.value) {
+    resetHealthToWaiting()
   }
 }, { immediate: true })
 
@@ -362,48 +404,210 @@ const applyHealthData = (nextHealth = {}) => {
   syncHealthDataToDevice()
 }
 
+const resetRealtimeState = () => {
+  realtimeState.hasData = false
+  realtimeState.eventTime = ''
+  realtimeState.receivedAt = ''
+  realtimeState.parameters = []
+  realtimeState.media = {}
+  realtimeState.diagnosis = null
+  realtimeState.health = null
+  latestData.camera_ch1 = null
+  lastFrames.CH1 = null
+}
+
+const resetHealthToWaiting = () => {
+  healthData.status = 'power_off'
+  healthData.status_code = -1
+  healthData.status_labels = ['等待实时数据']
+  healthData.laser_system = { status: 'unknown', message: '等待实时数据' }
+  healthData.powder_system = { status: 'unknown', message: '等待实时数据' }
+  healthData.gas_system = { status: 'unknown', message: '等待实时数据' }
+  Object.assign(latestData.health, healthData)
+}
+
+const applyRealtimeSample = (sample = {}) => {
+  realtimeState.hasData = Boolean(sample.hasData)
+  realtimeState.eventTime = sample.eventTime || ''
+  realtimeState.receivedAt = sample.receivedAt || ''
+  realtimeState.parameters = Array.isArray(sample.parameters) ? sample.parameters : []
+  realtimeState.media = sample.media || {}
+  realtimeState.diagnosis = sample.diagnosis || null
+  realtimeState.health = sample.health || null
+  if (realtimeState.media?.ch1?.data_url || realtimeState.media?.ch1?.url) {
+    latestData.camera_ch1 = {
+      ...realtimeState.media.ch1,
+      updated_at: realtimeState.eventTime
+    }
+    lastFrames.CH1 = realtimeState.media.ch1.data_url || realtimeState.media.ch1.url
+    sensorStatus.camera_ch1.connected = true
+  }
+  if (realtimeState.hasData && realtimeState.health) {
+    applyHealthData(realtimeState.health)
+  } else if (!settings.use_mock) {
+    resetHealthToWaiting()
+  }
+}
+
 const formatRuntimeValue = (value, digits = 1) => {
   if (value === undefined || value === null || value === '') return '--'
   if (typeof value === 'number') return Number.isInteger(value) ? value : value.toFixed(digits)
   return value
 }
 
+const padNumber = (value) => String(value).padStart(2, '0')
+
+const formatDateTime = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = padNumber(date.getMonth() + 1)
+  const day = padNumber(date.getDate())
+  const hours = padNumber(date.getHours())
+  const minutes = padNumber(date.getMinutes())
+  const seconds = padNumber(date.getSeconds())
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+const numericValue = (value, fallback = 0) => {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : fallback
+}
+
+const resetRuntimeBase = () => {
+  const params = selectedDevice.value?.parameters || []
+  const layerParam = params.find((param) => param.id === 'current_layer')
+  const sequenceParam = params.find((param) => param.id === 'sequence')
+  runtimeBase.deviceId = selectedDeviceId.value || ''
+  runtimeBase.currentLayer = numericValue(layerParam?.value, currentLayerInfo.value.number || 0)
+  runtimeBase.sequence = numericValue(sequenceParam?.value, latestData.frame_number || 0)
+}
+
+const currentStatusParameterText = () => {
+  const labels = Array.isArray(healthData.status_labels) ? healthData.status_labels.filter(Boolean) : []
+  if (labels.length) return labels.join('、')
+  return selectedDevice.value?.statusText || '--'
+}
+
+watch(selectedDevice, () => {
+  resetRuntimeBase()
+  mockRuntimeTick.value = 0
+}, { immediate: true })
+
+const emptyLiveParameters = () => fixedParameterSchema.map((schema) => ({ ...schema }))
+
+const baseDeviceParameters = () => selectedDevice.value?.parameters?.length
+  ? selectedDevice.value.parameters
+  : fixedParameterSchema
+
+const decimalPlaces = (value) => {
+  const text = String(value)
+  if (!text.includes('.')) return 0
+  return Math.min(text.split('.')[1].length, 3)
+}
+
+const mockNumericValue = (schema, rawValue, index) => {
+  const base = Number(rawValue)
+  if (!Number.isFinite(base)) return rawValue ?? '--'
+  const unit = schema.unit || ''
+  const baseAmplitude = Math.abs(base) * 0.004
+  const unitAmplitude = unit === '℃'
+    ? 0.25
+    : unit === 'Bar' || unit === 'mBar'
+      ? 0.02
+      : unit === '%' || unit === 'm3/h'
+        ? 0.05
+        : 0.1
+  const amplitude = baseAmplitude + unitAmplitude
+  const wave = Math.sin((mockRuntimeTick.value + index) * 0.71) * amplitude
+  const nextValue = base + wave
+  const digits = decimalPlaces(rawValue)
+  return digits === 0 ? String(Math.round(nextValue)) : nextValue.toFixed(digits)
+}
+
+const buildMockLiveParameters = () => {
+  const baseParameters = baseDeviceParameters()
+  return fixedParameterSchema.map((schema, index) => {
+    const matched = baseParameters.find((param) => param.id === schema.id || param.name === schema.name)
+    const baseValue = matched?.value ?? schema.value
+    let value = baseValue
+    if (schema.id === 'current_layer') {
+      value = isRunning.value ? formatRuntimeValue(runtimeBase.currentLayer + Math.floor(mockRuntimeTick.value / 4), 0) : baseValue
+    } else if (schema.id === 'sequence') {
+      value = isRunning.value ? formatRuntimeValue(runtimeBase.sequence + mockRuntimeTick.value * 3, 0) : baseValue
+    } else if (schema.id === 'data_time') {
+      value = isRunning.value ? formatDateTime() : baseValue
+    } else if (schema.id === 'record_status') {
+      value = currentStatusParameterText()
+    } else if (isRunning.value && baseValue !== '--') {
+      value = mockNumericValue(schema, baseValue, index)
+    }
+    return {
+      ...schema,
+      value: value ?? '--',
+      unit: matched?.unit ?? schema.unit
+    }
+  })
+}
+
+const buildRealtimeLiveParameters = () => {
+  if (!realtimeState.hasData) return emptyLiveParameters()
+  const source = Array.isArray(realtimeState.parameters) ? realtimeState.parameters : []
+  return fixedParameterSchema.map((schema) => {
+    const matched = source.find((param) => param.id === schema.id || param.name === schema.name)
+    return {
+      ...schema,
+      value: matched?.value ?? '--',
+      unit: matched?.unit ?? schema.unit
+    }
+  })
+}
+
 const liveParameters = computed(() => {
-  const runtimeMap = isRunning.value
-    ? {
-        current_layer: formatRuntimeValue(currentLayerInfo.value.number, 0),
-        frame_number: formatRuntimeValue(latestData.frame_number, 0),
-        max_temperature: formatRuntimeValue(latestData.statistics?.max_temperature ?? latestData.statistics?.max_temp ?? latestData.thermal?.max_temperature),
-        avg_temperature: formatRuntimeValue(latestData.statistics?.avg_temperature ?? latestData.statistics?.mean_temperature ?? latestData.thermal?.avg_temperature)
-      }
-    : {}
+  return settings.use_mock ? buildMockLiveParameters() : buildRealtimeLiveParameters()
+})
 
-  const baseParameters = selectedDevice.value?.parameters?.length
-    ? selectedDevice.value.parameters
-    : [
-        { id: 'current_layer', name: '当前层', value: '--', unit: '层' },
-        { id: 'frame_number', name: '视频帧', value: '--', unit: '帧' },
-        { id: 'max_temperature', name: '最高温度', value: '--', unit: '℃' }
-      ]
-
-  const nextParameters = baseParameters.map((param) => ({
-    ...param,
-    value: runtimeMap[param.id] ?? param.value
-  }))
-
-  if (isRunning.value && !nextParameters.some((param) => param.id === 'frame_number')) {
-    nextParameters.push({ id: 'frame_number', name: '视频帧', value: runtimeMap.frame_number, unit: '帧' })
+const diagnosisData = computed(() => {
+  if (settings.use_mock) {
+    const diagnosis = selectedDevice.value?.diagnosis || {}
+    return {
+      enabled: true,
+      modelVersion: '7103静态样本',
+      statusCode: diagnosis.rawStatusCode ?? selectedDevice.value?.healthData?.status_code ?? -1,
+      statusLabel: selectedDevice.value?.statusText || '模拟样本',
+      frontendStatusCode: selectedDevice.value?.healthData?.status_code ?? -1,
+      frontendStatusLabel: selectedDevice.value?.statusText || '模拟样本',
+      confidence: diagnosis.confidence ?? null,
+      confidenceText: diagnosis.confidence ? `${(diagnosis.confidence * 100).toFixed(1)}%` : '--',
+      faultModes: diagnosis.categories || [],
+      eventTime: isRunning.value ? formatDateTime() : selectedDevice.value?.updatedAt || '',
+      modelLayer: 'mock_7103',
+      input: { alarmCount: 0, parameterCount: liveParameters.value.filter((item) => item.value !== '--').length },
+      evidence: diagnosis.evidence || []
+    }
   }
-  return nextParameters
+  if (realtimeState.hasData && realtimeState.diagnosis) return realtimeState.diagnosis
+  return {
+    enabled: true,
+    modelVersion: '',
+    statusCode: -1,
+    statusLabel: '等待实时数据',
+    frontendStatusCode: -1,
+    frontendStatusLabel: '等待实时数据',
+    confidence: null,
+    confidenceText: '--',
+    faultModes: [],
+    eventTime: '',
+    modelLayer: 'waiting',
+    input: { alarmCount: 0, parameterCount: 0 },
+    evidence: []
+  }
 })
 
 let lastParameterSignature = ''
 watch(liveParameters, (parameters) => {
-  if (selectedDeviceId.value) {
+  if (selectedDeviceId.value && settings.use_mock) {
     const signature = JSON.stringify(parameters)
     if (signature === lastParameterSignature) return
     lastParameterSignature = signature
-    slmDeviceStore.updateDeviceParameters(selectedDeviceId.value, parameters)
   }
 }, { deep: true })
 
@@ -444,19 +648,13 @@ const fetchStatus = async () => {
       isRunning.value = response.data.is_running
       applySensorStatus(response.data.sensor_status || {})
       
-      // 如果正在采集且当前状态为未开机(-1)，则更新为开机正常状态(0)
+      // 模拟模式使用7103样本状态；真实模式等待外部实时接口事件。
       if (isRunning.value && healthData.status_code === -1) {
-        console.log('[Dashboard] 刷新状态：采集运行中，更新健康状态为开机正常')
-        healthData.status = 'healthy'
-        healthData.status_code = 0
-        healthData.status_labels = ['系统健康']
-        healthData.laser_system = { status: 'healthy', message: '健康' }
-        healthData.powder_system = { status: 'healthy', message: '健康' }
-        healthData.gas_system = { status: 'healthy', message: '健康' }
-        syncHealthDataToDevice()
-        
-        // 通知后端更新健康状态
-        await updateHealthStatusOnBackend(0, ['系统健康'])
+        if (settings.use_mock && selectedDevice.value?.healthData) {
+          applyHealthData(selectedDevice.value.healthData)
+        } else if (!settings.use_mock) {
+          resetHealthToWaiting()
+        }
       }
       
       // 如果采集刚停止（wasRunning && !isRunning），立即重置健康状态为未开机
@@ -553,6 +751,7 @@ const toggleAcquisition = async () => {
       isRunning.value = false
       streamKey.value = Date.now()
       closeWebSocket()
+      resetRealtimeState()
       
       await new Promise(resolve => setTimeout(resolve, 1500))
       
@@ -594,8 +793,16 @@ const toggleAcquisition = async () => {
       console.log('[Dashboard] 启动响应:', response.data)
       
       if (response.data.success) {
+        resetRuntimeBase()
+        mockRuntimeTick.value = 0
+        resetRealtimeState()
         isRunning.value = true
         streamKey.value = Date.now()
+        if (settings.use_mock && selectedDevice.value?.healthData) {
+          applyHealthData(selectedDevice.value.healthData)
+        } else if (!settings.use_mock) {
+          resetHealthToWaiting()
+        }
         const modeText = settings.use_mock ? '模拟模式' : '真实硬件模式'
         ElMessage.success(`采集已启动 (${modeText})`)
         connectWebSocket()
@@ -681,7 +888,7 @@ const handleWebSocketData = (data) => {
     latestData.statistics = data.statistics
   }
   // 更新健康状态
-  if (data.health) {
+  if (data.health && settings.use_mock) {
     console.log('[Dashboard] 收到健康状态:', data.health)
     applyHealthData(data.health)
   }
@@ -770,8 +977,14 @@ const restartAcquisitionWithNewVideoConfig = async () => {
     })
     
     if (response.data.success) {
+      resetRuntimeBase()
+      mockRuntimeTick.value = 0
+      resetRealtimeState()
       isRunning.value = true
       streamKey.value = Date.now()
+      if (selectedDevice.value?.healthData) {
+        applyHealthData(selectedDevice.value.healthData)
+      }
       connectWebSocket()
       console.log('[Dashboard] 采集已使用新视频配置重启')
       ElMessage.success('视频源已更新')
@@ -808,8 +1021,16 @@ const saveSettings = async () => {
       })
       
       if (response.data.success) {
+        resetRuntimeBase()
+        mockRuntimeTick.value = 0
+        resetRealtimeState()
         isRunning.value = true  // 更新状态
         streamKey.value = Date.now()  // 更新streamKey强制刷新视频流
+        if (settings.use_mock && selectedDevice.value?.healthData) {
+          applyHealthData(selectedDevice.value.healthData)
+        } else if (!settings.use_mock) {
+          resetHealthToWaiting()
+        }
         connectWebSocket()
         ElMessage.success('采集已重启，新设置已生效')
       }
@@ -878,8 +1099,8 @@ let healthCheckTimer = null
 
 // 从后端获取健康状态（用于检测诊断模块输出）
 const fetchBackendHealthStatus = async () => {
-  // 只有在采集运行中才获取
-  if (!isRunning.value) return
+  // 真实硬件模式下健康状态由实时数据接口的模型诊断结果驱动。
+  if (!isRunning.value || !settings.use_mock) return
   
   try {
     const response = await axios.get('/api/slm/health/status')
@@ -933,6 +1154,70 @@ const fetchVideoFileModeConfig = async () => {
 // WebSocket
 let ws = null
 let reconnectTimer = null
+let mockParameterTimer = null
+let realtimePollTimer = null
+
+const stopMockParameterTicker = () => {
+  if (mockParameterTimer) {
+    clearInterval(mockParameterTimer)
+    mockParameterTimer = null
+  }
+}
+
+const refreshMockParameterTicker = () => {
+  stopMockParameterTicker()
+  if (!isRunning.value || !settings.use_mock) return
+  mockParameterTimer = setInterval(() => {
+    mockRuntimeTick.value += 1
+    currentLayerInfo.value = {
+      ...currentLayerInfo.value,
+      number: runtimeBase.currentLayer + Math.floor(mockRuntimeTick.value / 4)
+    }
+    latestData.frame_number = runtimeBase.sequence + mockRuntimeTick.value * 3
+  }, 1000)
+}
+
+const fetchRealtimeSample = async () => {
+  if (settings.use_mock || !selectedDeviceId.value) return
+  try {
+    const response = await axios.get(`/api/slm/realtime/data/${encodeURIComponent(selectedDeviceId.value)}`)
+    if (response.data.success && response.data.sample) {
+      applyRealtimeSample(response.data.sample)
+    }
+  } catch (error) {
+    console.error('[Dashboard] 获取实时参数失败:', error)
+  }
+}
+
+const stopRealtimePoller = () => {
+  if (realtimePollTimer) {
+    clearInterval(realtimePollTimer)
+    realtimePollTimer = null
+  }
+}
+
+const refreshRealtimePoller = () => {
+  stopRealtimePoller()
+  if (settings.use_mock || !selectedDeviceId.value) {
+    if (!settings.use_mock) resetRealtimeState()
+    return
+  }
+  fetchRealtimeSample()
+  realtimePollTimer = setInterval(fetchRealtimeSample, 1000)
+}
+
+watch([isRunning, () => settings.use_mock, selectedDeviceId], () => {
+  if (isRunning.value) {
+    resetRuntimeBase()
+    if (settings.use_mock && selectedDevice.value?.healthData) {
+      applyHealthData(selectedDevice.value.healthData)
+    } else if (!settings.use_mock) {
+      resetHealthToWaiting()
+    }
+  }
+  refreshMockParameterTicker()
+  refreshRealtimePoller()
+}, { immediate: true })
 
 onMounted(async () => {
   try {
@@ -958,6 +1243,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   closeWebSocket()
+  stopMockParameterTicker()
+  stopRealtimePoller()
   // 清理健康状态检查定时器
   if (healthCheckTimer) {
     clearInterval(healthCheckTimer)
@@ -1060,9 +1347,11 @@ onUnmounted(() => {
 }
 
 .parameter-value {
+  min-width: 0;
   color: #f8fafc;
   font-size: 22px;
   line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 .parameter-unit {

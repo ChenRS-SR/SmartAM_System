@@ -1,22 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// FDM 页面
-import FDMDashboard from '../views/fdm/Dashboard.vue'
-import FDMAnalysis from '../views/fdm/Analysis.vue'
-import FDMControl from '../views/fdm/Control.vue'
-import FDMSettings from '../views/fdm/Settings.vue'
-
 // SLM 页面
 import SLMDeviceGroup from '../views/slm/DeviceGroup.vue'
 import SLMDashboard from '../views/slm/Dashboard.vue'
-import SLMAnalysis from '../views/slm/Analysis.vue'
-import SLMControl from '../views/slm/Control.vue'
 import SLMSettings from '../views/slm/Settings.vue'
 
 // SLS 页面
+import SLSDeviceGroup from '../views/sls/DeviceGroup.vue'
 import SLSDashboard from '../views/sls/Dashboard.vue'
-import SLSAnalysis from '../views/sls/Analysis.vue'
-import SLSControl from '../views/sls/Control.vue'
+import SLSSettings from '../views/sls/Settings.vue'
 
 // 其他页面
 import DeviceSelect from '../views/DeviceSelect.vue'
@@ -29,32 +21,6 @@ const routes = [
     name: 'DeviceSelect',
     component: DeviceSelect,
     meta: { title: '选择设备', public: true }
-  },
-  
-  // FDM 路由
-  {
-    path: '/fdm/dashboard',
-    name: 'FDMDashboard',
-    component: FDMDashboard,
-    meta: { title: '仪表盘', device: 'fdm' }
-  },
-  {
-    path: '/fdm/analysis',
-    name: 'FDMAnalysis',
-    component: FDMAnalysis,
-    meta: { title: '数据分析', device: 'fdm' }
-  },
-  {
-    path: '/fdm/control',
-    name: 'FDMControl',
-    component: FDMControl,
-    meta: { title: '系统控制', device: 'fdm' }
-  },
-  {
-    path: '/fdm/settings',
-    name: 'FDMSettings',
-    component: FDMSettings,
-    meta: { title: '设置', device: 'fdm' }
   },
   
   // SLM 路由
@@ -71,18 +37,6 @@ const routes = [
     meta: { title: '打印状态监测', device: 'slm' }
   },
   {
-    path: '/slm/analysis',
-    name: 'SLMAnalysis',
-    component: SLMAnalysis,
-    meta: { title: '数据分析', device: 'slm' }
-  },
-  {
-    path: '/slm/control',
-    name: 'SLMControl',
-    component: SLMControl,
-    meta: { title: '系统控制', device: 'slm' }
-  },
-  {
     path: '/slm/settings',
     name: 'SLMSettings',
     component: SLMSettings,
@@ -92,21 +46,21 @@ const routes = [
   // SLS 路由
   {
     path: '/sls/dashboard',
-    name: 'SLSDashboard',
+    name: 'SLSDeviceGroup',
+    component: SLSDeviceGroup,
+    meta: { title: '设备群监测', device: 'sls' }
+  },
+  {
+    path: '/sls/device/:deviceId?',
+    name: 'SLSDeviceDashboard',
     component: SLSDashboard,
-    meta: { title: '仪表盘', device: 'sls' }
+    meta: { title: '打印状态监测', device: 'sls' }
   },
   {
-    path: '/sls/analysis',
-    name: 'SLSAnalysis',
-    component: SLSAnalysis,
-    meta: { title: '数据分析', device: 'sls' }
-  },
-  {
-    path: '/sls/control',
-    name: 'SLSControl',
-    component: SLSControl,
-    meta: { title: '系统控制', device: 'sls' }
+    path: '/sls/settings',
+    name: 'SLSSettings',
+    component: SLSSettings,
+    meta: { title: '设置', device: 'sls' }
   },
   
   // 登录
@@ -119,16 +73,36 @@ const routes = [
   
   // 旧路由重定向（兼容）
   {
+    path: '/fdm/:pathMatch(.*)*',
+    redirect: '/'
+  },
+  {
+    path: '/slm/analysis',
+    redirect: '/slm/dashboard'
+  },
+  {
+    path: '/slm/control',
+    redirect: '/slm/dashboard'
+  },
+  {
+    path: '/sls/analysis',
+    redirect: '/sls/dashboard'
+  },
+  {
+    path: '/sls/control',
+    redirect: '/sls/dashboard'
+  },
+  {
     path: '/analysis',
-    redirect: '/fdm/analysis'
+    redirect: '/'
   },
   {
     path: '/control',
-    redirect: '/fdm/control'
+    redirect: '/'
   },
   {
     path: '/settings',
-    redirect: '/fdm/settings'
+    redirect: '/'
   }
 ]
 

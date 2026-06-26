@@ -1,0 +1,293 @@
+{
+  "id": "sls-s07",
+  "tag": "S07",
+  "dataTag": "SLS-S07",
+  "databaseTag": "华中数控-SLS-S07",
+  "owner": "华中数控",
+  "name": "华中数控SLS S07",
+  "model": "华中数控 SLS",
+  "serial": "S07",
+  "location": "SLS 模拟设备群",
+  "online": true,
+  "health": "fault",
+  "statusText": "落粉轴故障",
+  "thumbnail": "/sls_device_data/SLS/%E5%8D%8E%E4%B8%AD%E6%95%B0%E6%8E%A7SLS%20S07/thumbnail.jpg",
+  "dataDirectory": "sls_device_data/SLS/华中数控SLS S07",
+  "parameterSchema": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "unit": "层"
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "unit": "%"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "unit": "m3/h"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "unit": "mA"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "value": "5491",
+      "unit": "层"
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "481827",
+      "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "value": "落粉轴故障",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "value": "2024-05-07 14:23:57",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "value": "17.441",
+      "unit": "%"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "value": "0.038",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "value": "11.981",
+      "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "value": "42.173",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "value": "649.148",
+      "unit": "m3/h"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "value": "72.697",
+      "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "value": "57.412",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "value": "8.914",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "value": "4.763",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "value": "2.399",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "value": "--",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "value": "--",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "value": "--",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "value": "--",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "value": "--",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "value": "--",
+      "unit": "mA"
+    }
+  ],
+  "updatedAt": "2024-05-07 14:23:57",
+  "healthData": {
+    "status": "powder_fault",
+    "status_code": 1,
+    "status_labels": [
+      "落粉轴故障"
+    ],
+    "laser_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "powder_system": {
+      "status": "fault",
+      "message": "铺粉/刮刀系统异常"
+    },
+    "gas_system": {
+      "status": "healthy",
+      "message": "健康"
+    }
+  },
+  "diagnosis": {
+    "source": "SLM同构模拟案例",
+    "rawStatusCode": 5,
+    "rawStatusLabel": "落粉轴故障",
+    "rawStatusLabels": [
+      "落粉轴故障",
+      "落粉轴故障证据:落粉轴扭矩故障、落粉轴故障、落粉轴扭矩"
+    ],
+    "frontendStatusCode": 1,
+    "frontendStatusLabel": "铺粉/刮刀系统异常",
+    "categories": [
+      "powder_axis_fault"
+    ],
+    "confidence": 0.86,
+    "evidence": [
+      {
+        "source": "filename",
+        "text": "2024-05-07 08-53-36 落粉轴故障 故障暂停，落粉轴扭矩故障",
+        "file": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv"
+      }
+    ],
+    "copiedFromDevice": "slm-b17"
+  },
+  "realData": {
+    "source_case_dir": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010",
+    "source_files": [
+      "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv",
+      "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/设备信息_设备信息.csv"
+    ],
+    "representative_csv": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv",
+    "preview_csv": "SLS/华中数控SLS S07/real_data/preview.csv",
+    "copiedFrom": "slm-b17"
+  }
+}

@@ -6,6 +6,7 @@
 
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { resolveBackendBaseUrl } from './backendBase'
 import {
   mockPrinterStatus,
   mockTemperatureHistory,
@@ -29,7 +30,7 @@ const FORCE_MOCK = import.meta.env.VITE_MOCK_MODE === 'true' || false
 const AUTO_MOCK_FALLBACK = true
 
 // 后端地址
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = resolveBackendBaseUrl()
 
 // ==================== 后端检测 ====================
 

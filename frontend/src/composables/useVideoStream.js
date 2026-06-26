@@ -4,6 +4,7 @@
  */
 import { ref, onMounted, onUnmounted } from 'vue'
 import { FORCE_MOCK } from '@/utils/api'
+import { resolveBackendBaseUrl } from '@/utils/backendBase'
 
 // 生成模拟视频帧（使用 Canvas）
 function generateMockFrame(type = 'combined') {
@@ -111,14 +112,16 @@ export function useVideoStream(streamType = 'combined') {
     
     // 尝试真实流
     try {
-      const response = await fetch(`http://localhost:8000/video_feed/${streamType === 'combined' ? '' : streamType}`, {
+      const backendBaseUrl = resolveBackendBaseUrl()
+      const streamPath = `/video_feed${streamType === 'combined' ? '' : '/' + streamType}`
+      const response = await fetch(`${backendBaseUrl}${streamPath}`, {
         method: 'HEAD',
         mode: 'no-cors',
         cache: 'no-cache'
       })
       
       // 如果能连接，使用真实流
-      streamUrl.value = `http://localhost:8000/video_feed${streamType === 'combined' ? '' : '/' + streamType}`
+      streamUrl.value = `${backendBaseUrl}${streamPath}`
       isConnected.value = true
       isMock.value = false
     } catch (e) {

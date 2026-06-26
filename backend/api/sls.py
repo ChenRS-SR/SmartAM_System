@@ -7,7 +7,7 @@ SLS设备API路由
 
 import asyncio
 import base64
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException, Body
 from fastapi.responses import StreamingResponse, JSONResponse
 from typing import Optional, List
 import json
@@ -23,10 +23,17 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from core.sls import get_sls_acquisition, SLSAcquisition
 
+from core.slm_device_data import get_sls_device_data_store
+
 router = APIRouter(prefix="/sls", tags=["SLS"])
 
 # 全局采集实例
 _acquisition_instance: Optional[SLSAcquisition] = None
+
+
+def get_device_data_store():
+    """获取SLS同构设备群文件数据库。"""
+    return get_sls_device_data_store()
 
 
 def get_acquisition() -> Optional[SLSAcquisition]:
@@ -155,6 +162,91 @@ def get_health_labels(status_code: int) -> List[str]:
     if status_code == 3 or status_code == 4:
         labels.append("温度异常")
     return labels
+
+
+# ========== 设备群监测数据（SLS同构模拟数据） ==========
+
+@router.get("/device-group/manifest")
+async def get_device_group_manifest():
+    """获取SLS设备群数据清单。"""
+    try:
+        manifest = get_device_data_store().load_manifest()
+        return {"success": True, "manifest": manifest}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/device-group/devices")
+async def list_device_group_devices():
+    """获取SLS设备群卡片列表。"""
+    try:
+        store = get_device_data_store()
+        manifest = store.load_manifest()
+        return {
+            "success": True,
+            "sourceRoot": manifest.get("sourceRoot"),
+            "diagnosisPolicy": manifest.get("diagnosisPolicy"),
+            "statusCodeMap": manifest.get("statusCodeMap", {}),
+            "parameterSchema": manifest.get("parameterSchema", []),
+            "devices": manifest.get("devices", []),
+        }
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/device-group/devices/{device_id}")
+async def get_device_group_device(device_id: str):
+    """获取单台SLS设备的诊断、参数和模拟数据路径。"""
+    try:
+        device = get_device_data_store().get_device(device_id)
+        return {"success": True, "device": device}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.post("/device-group/devices")
+async def create_device_group_device(device: dict = Body(...)):
+    """新增SLS设备并写入文件级模拟数据库。"""
+    try:
+        saved_device = get_device_data_store().upsert_device(device)
+        return {"success": True, "device": saved_device}
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.patch("/device-group/devices/{device_id}")
+async def update_device_group_device(device_id: str, patch: dict = Body(...)):
+    """更新SLS设备卡片信息，并同步到manifest和单设备JSON。"""
+    try:
+        saved_device = get_device_data_store().patch_device(device_id, patch)
+        return {"success": True, "device": saved_device}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/device-group/sync")
+async def sync_device_group_database(payload: dict = Body(...)):
+    """把页面当前SLS设备列表完整同步到文件级模拟数据库。"""
+    devices = payload.get("devices")
+    if not isinstance(devices, list):
+        raise HTTPException(status_code=400, detail="devices必须是数组")
+    try:
+        manifest = get_device_data_store().sync_devices(devices)
+        return {
+            "success": True,
+            "deviceCount": manifest.get("deviceCount", 0),
+            "databaseUpdatedAt": manifest.get("databaseUpdatedAt"),
+        }
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/start")

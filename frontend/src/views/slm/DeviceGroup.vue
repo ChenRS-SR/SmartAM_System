@@ -85,6 +85,8 @@
               v-for="param in previewParameters(device)"
               :key="param.id || param.name"
               class="preview-item"
+              :class="{ 'status-preview-item': param.id === 'record_status' || param.name === '状态参数' }"
+              :title="param.id === 'record_status' || param.name === '状态参数' ? param.value : ''"
             >
               <span>{{ param.name }}</span>
               <strong>{{ param.value }}</strong>
@@ -563,6 +565,7 @@ onMounted(async () => {
 }
 
 .preview-item {
+  min-width: 0;
   min-height: 62px;
   padding: 8px;
   border: 1px solid rgba(100, 116, 139, 0.2);
@@ -571,6 +574,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  overflow: hidden;
 }
 
 .preview-item span {
@@ -579,10 +583,20 @@ onMounted(async () => {
 }
 
 .preview-item strong {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
   margin-top: 3px;
   color: #f8fafc;
   font-size: 18px;
   line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-preview-item strong {
+  font-size: 16px;
 }
 
 .preview-item em {

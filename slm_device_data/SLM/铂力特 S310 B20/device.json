@@ -10,15 +10,117 @@
   "location": "7103 现场数据设备群",
   "online": true,
   "health": "healthy",
-  "statusText": "健康运行",
+  "statusText": "健康",
   "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B20/thumbnail.jpg",
   "dataDirectory": "slm_device_data/SLM/铂力特 S310 B20",
+  "parameterSchema": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "unit": "层"
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "unit": "%"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "unit": "m3/h"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "unit": "mA"
+    }
+  ],
   "parameters": [
     {
       "id": "current_layer",
       "name": "当前层",
       "value": "2020",
-      "unit": ""
+      "unit": "层"
     },
     {
       "id": "sequence",
@@ -27,22 +129,22 @@
       "unit": ""
     },
     {
+      "id": "record_status",
+      "name": "状态参数",
+      "value": "健康",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "value": "2024-11-03 02:10:42",
+      "unit": ""
+    },
+    {
       "id": "scraper_torque",
       "name": "刮刀扭矩",
       "value": "13.262",
       "unit": "%"
-    },
-    {
-      "id": "compressed_air_pressure",
-      "name": "压缩空气压力",
-      "value": "5.263",
-      "unit": "Bar"
-    },
-    {
-      "id": "gas_pressure",
-      "name": "气源压力",
-      "value": "5.122",
-      "unit": "Bar"
     },
     {
       "id": "oxygen",
@@ -57,10 +159,82 @@
       "unit": "%"
     },
     {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "value": "34.693",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "value": "418.842",
+      "unit": "m3/h"
+    },
+    {
       "id": "fan_speed",
       "name": "风机转速",
       "value": "46.896",
       "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "value": "2.578",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "value": "7.169",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "value": "5.122",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "value": "5.263",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "value": "43.7",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "value": "44.6",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "value": "44",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "value": "44",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "value": "43.7",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "value": "44.6",
+      "unit": "mA"
     }
   ],
   "updatedAt": "2024-11-03 02:10:42",
@@ -87,6 +261,9 @@
     "source": "7103最近样本",
     "rawStatusCode": 0,
     "rawStatusLabel": "健康",
+    "rawStatusLabels": [
+      "健康"
+    ],
     "frontendStatusCode": 0,
     "frontendStatusLabel": "健康",
     "categories": [],
@@ -100,6 +277,10 @@
       "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512/设备信息_设备信息.csv"
     ],
     "representative_csv": "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512/B20_20241101-13-31_3378层_样本数据.csv",
+    "parameter_csvs": [
+      "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512/B20_20241101-13-31_3378层_样本数据.csv",
+      "7103/26_5_22/B20(40)/20241101-13-31/20250612100512/伺服温度所有峰值_主参数合并.csv"
+    ],
     "preview_csv": "SLM/铂力特 S310 B20/real_data/preview.csv"
   }
 }

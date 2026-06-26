@@ -4,8 +4,9 @@
  */
 
 import axios from 'axios'
+import { resolveBackendBaseUrl } from './backendBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = resolveBackendBaseUrl()
 
 // 测试结果类型
 export const TestResult = {

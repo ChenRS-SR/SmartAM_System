@@ -1,0 +1,290 @@
+{
+  "id": "sls-s00",
+  "tag": "S00",
+  "dataTag": "SLS-S00",
+  "databaseTag": "华中数控-SLS-S00",
+  "owner": "华中数控",
+  "name": "华中数控SLS S00",
+  "model": "华中数控 SLS",
+  "serial": "S00",
+  "location": "SLS 模拟设备群",
+  "online": true,
+  "health": "healthy",
+  "statusText": "健康",
+  "thumbnail": "/sls_device_data/SLS/%E5%8D%8E%E4%B8%AD%E6%95%B0%E6%8E%A7SLS%20S00/thumbnail.jpg",
+  "dataDirectory": "sls_device_data/SLS/华中数控SLS S00",
+  "parameterSchema": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "unit": "层"
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "unit": "%"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "unit": "m3/h"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "unit": "mA"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "value": "174",
+      "unit": "层"
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "75624",
+      "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "value": "健康",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "value": "2025-06-06 03:48:29",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "value": "0.02",
+      "unit": "%"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "value": "0.001",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "value": "0",
+      "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "value": "41.377",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "value": "--",
+      "unit": "m3/h"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "value": "76.397",
+      "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "value": "14.703",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "value": "7.661",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "value": "3.56",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "value": "4.269",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "value": "41.1",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "value": "39.7",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "value": "43.9",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "value": "43.9",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "value": "8",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "value": "-20",
+      "unit": "mA"
+    }
+  ],
+  "updatedAt": "2025-06-06 03:48:29",
+  "healthData": {
+    "status": "healthy",
+    "status_code": 0,
+    "status_labels": [
+      "健康"
+    ],
+    "laser_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "powder_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "gas_system": {
+      "status": "healthy",
+      "message": "健康"
+    }
+  },
+  "diagnosis": {
+    "source": "SLM同构模拟案例",
+    "rawStatusCode": 0,
+    "rawStatusLabel": "健康",
+    "rawStatusLabels": [
+      "健康"
+    ],
+    "frontendStatusCode": 0,
+    "frontendStatusLabel": "健康",
+    "categories": [],
+    "confidence": 1.0,
+    "evidence": [],
+    "copiedFromDevice": "slm-b5"
+  },
+  "realData": {
+    "source_case_dir": "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828",
+    "source_files": [
+      "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度X0_max.csv",
+      "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度X1_max.csv",
+      "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度Y0_max.csv",
+      "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度Y1_max.csv",
+      "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度峰值_温度及其他参数_合并.csv",
+      "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/伺服温度所有峰值_主参数合并.csv",
+      "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/报警日志.csv",
+      "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250122-11-52/20250616162828/设备信息.csv"
+    ],
+    "representative_csv": "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20250605-14-57/20250616102434/20260526_055849_scraper_故障_温度及其他参数.csv",
+    "preview_csv": "SLS/华中数控SLS S00/real_data/preview.csv",
+    "copiedFrom": "slm-b5"
+  }
+}

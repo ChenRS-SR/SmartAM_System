@@ -10,61 +10,239 @@
   "location": "7103 现场数据设备群",
   "online": true,
   "health": "fault",
-  "statusText": "气氛循环异常",
+  "statusText": "灰桶/收粉/卸灰故障",
   "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B45/thumbnail.jpg",
   "dataDirectory": "slm_device_data/SLM/铂力特 S310 B45",
-  "parameters": [
+  "parameterSchema": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "unit": "层"
+    },
     {
       "id": "sequence",
       "name": "数据序号",
-      "value": "73217",
       "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "unit": "%"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "unit": "m3/h"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "unit": "Bar"
     },
     {
       "id": "servo_temperature_x",
       "name": "X轴伺服温度",
-      "value": "43.6",
       "unit": "℃"
     },
     {
       "id": "servo_temperature_y",
       "name": "Y轴伺服温度",
-      "value": "46.7",
       "unit": "℃"
     },
     {
       "id": "galvo_temperature_x",
       "name": "X轴振镜温度",
-      "value": "43.9",
       "unit": "℃"
     },
     {
       "id": "galvo_temperature_y",
       "name": "Y轴振镜温度",
-      "value": "43.9",
       "unit": "℃"
     },
     {
       "id": "output_current_x",
       "name": "X轴输出电流",
-      "value": "185",
       "unit": "mA"
     },
     {
       "id": "output_current_y",
       "name": "Y轴输出电流",
-      "value": "-48",
       "unit": "mA"
     }
   ],
-  "updatedAt": "2025/2/26 19:58:39",
+  "parameters": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "value": "4968",
+      "unit": "层"
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "811242",
+      "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "value": "灰桶/收粉/卸灰故障",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "value": "2025-05-18 18:29:22",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "value": "22.441",
+      "unit": "%"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "value": "0.001",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "value": "18.678",
+      "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "value": "38.151",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "value": "479.771",
+      "unit": "m3/h"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "value": "48.597",
+      "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "value": "7.482",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "value": "1.508",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "value": "6.165",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "value": "5.003",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "value": "50.3",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "value": "54.6",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "value": "44",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "value": "45",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "value": "-96",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "value": "345",
+      "unit": "mA"
+    }
+  ],
+  "updatedAt": "2025-05-18 18:29:22",
   "healthData": {
     "status": "gas_fault",
     "status_code": 3,
     "status_labels": [
-      "气氛循环系统异常",
-      "灰桶/收粉/卸灰故障",
-      "灰桶/收粉/卸灰故障证据:左侧收粉桶满"
+      "灰桶/收粉/卸灰故障"
     ],
     "laser_system": {
       "status": "healthy",
@@ -83,6 +261,10 @@
     "source": "7103最近样本",
     "rawStatusCode": 6,
     "rawStatusLabel": "灰桶/收粉/卸灰故障",
+    "rawStatusLabels": [
+      "灰桶/收粉/卸灰故障",
+      "灰桶/收粉/卸灰故障证据:左侧收粉桶满"
+    ],
     "frontendStatusCode": 3,
     "frontendStatusLabel": "气氛循环系统异常",
     "categories": [
@@ -107,7 +289,11 @@
       "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/报警日志.csv",
       "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/设备信息.csv"
     ],
-    "representative_csv": "7103/26_5_22/B45(973个零件)/20250225-10-04/20250618155248/伺服温度X0_max.csv",
+    "representative_csv": "7103/26_5_22/B45(973个零件)/20250513-15-16/20250617162859/20260525_221031_valve_故障_温度及其他参数.csv",
+    "parameter_csvs": [
+      "7103/26_5_22/B45(973个零件)/20250513-15-16/20250617162859/20260525_221031_valve_故障_温度及其他参数.csv",
+      "7103/26_5_22/B45(973个零件)/20250605-09-22/20250618150821/伺服温度所有峰值_主参数合并.csv"
+    ],
     "preview_csv": "SLM/铂力特 S310 B45/real_data/preview.csv"
   }
 }

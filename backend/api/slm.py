@@ -14,6 +14,7 @@ import time
 
 from core.slm import get_slm_acquisition, reset_slm_acquisition, SLMAcquisition
 from core.slm_device_data import get_slm_device_data_store
+from core.slm_realtime import get_slm_realtime_store
 
 router = APIRouter(prefix="/slm", tags=["SLM"])
 
@@ -21,6 +22,11 @@ router = APIRouter(prefix="/slm", tags=["SLM"])
 def get_device_data_store():
     """获取7103设备群数据仓库。"""
     return get_slm_device_data_store()
+
+
+def get_realtime_store():
+    """获取SLM实时参数和诊断结果缓存。"""
+    return get_slm_realtime_store()
 
 # 获取SLM采集实例（使用slm_acquisition模块的单例）
 def get_acquisition(create_if_none: bool = True, use_mock: bool = False, check_mode: bool = False) -> Optional[SLMAcquisition]:
@@ -275,6 +281,7 @@ async def list_device_group_devices():
             "sourceRoot": manifest.get("sourceRoot"),
             "diagnosisPolicy": manifest.get("diagnosisPolicy"),
             "statusCodeMap": manifest.get("statusCodeMap", {}),
+            "parameterSchema": manifest.get("parameterSchema", []),
             "devices": manifest.get("devices", [])
         }
     except FileNotFoundError as exc:
@@ -356,6 +363,39 @@ async def apply_device_group_health(device_id: str):
         "device_id": device_id,
         "health": acquisition._health_state.to_dict()
     }
+
+
+# ========== 外部实时参数接入与模型诊断 ==========
+
+@router.get("/realtime/schema")
+async def get_realtime_schema():
+    """获取外部实时数据接入协议中的参数闭集和状态码映射。"""
+    return {"success": True, **get_realtime_store().schema()}
+
+
+@router.post("/realtime/data")
+async def submit_realtime_data(payload: dict = Body(...)):
+    """接收外部系统推送的单台SLM实时事件，并立即执行故障诊断。"""
+    try:
+        sample = get_realtime_store().submit(payload)
+        return {"success": True, "sample": sample}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/realtime/data/{device_id}")
+async def get_realtime_data(device_id: str):
+    """读取单台SLM设备最近一次外部实时事件。"""
+    return {"success": True, "sample": get_realtime_store().latest(device_id)}
+
+
+@router.delete("/realtime/data/{device_id}")
+async def clear_realtime_data(device_id: str):
+    """清空单台SLM设备实时事件缓存，用于接入调试。"""
+    get_realtime_store().clear(device_id)
+    return {"success": True, "device_id": device_id}
 
 
 # ========== 视频录制与诊断 ==========

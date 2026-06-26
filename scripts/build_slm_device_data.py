@@ -67,25 +67,27 @@ DEVICE_OWNER_OVERRIDES = {
     "B17": "华科",
 }
 
-PARAMETER_FIELDS = (
-    ("current_layer", "层数", "当前层"),
-    ("sequence", "序号", "数据序号"),
-    ("scraper_torque", "刮刀扭矩", "刮刀扭矩"),
-    ("compressed_air_pressure", "压缩空气压力", "压缩空气压力"),
-    ("gas_pressure", "气源压力", "气源压力"),
-    ("oxygen", "成形室氧含量", "成形室氧含量"),
-    ("ambient_oxygen", "环境氧含量", "环境氧含量"),
-    ("fan_speed", "风机转速", "风机转速"),
-    ("chamber_temperature", "成形室温度", "成形室温度"),
-    ("gas_flow", "循环气体实时流量", "循环气体流量"),
-    ("medium_filter_resistance", "中效滤芯阻力", "中效滤芯阻力"),
-    ("high_filter_resistance", "高效滤芯阻力", "高效滤芯阻力"),
-    ("servo_temperature_x", "伺服温度[X轴]", "X轴伺服温度"),
-    ("servo_temperature_y", "伺服温度[Y轴]", "Y轴伺服温度"),
-    ("galvo_temperature_x", "振镜温度[X轴]", "X轴振镜温度"),
-    ("galvo_temperature_y", "振镜温度[Y轴]", "Y轴振镜温度"),
-    ("output_current_x", "输出电流[X轴]", "X轴输出电流"),
-    ("output_current_y", "输出电流[Y轴]", "Y轴输出电流"),
+PARAMETER_SCHEMA = (
+    {"id": "current_layer", "name": "当前层", "unit": "层", "keywords": ("层数", "当前层")},
+    {"id": "sequence", "name": "数据序号", "unit": "", "keywords": ("序号", "数据序号")},
+    {"id": "record_status", "name": "状态参数", "unit": "", "keywords": ()},
+    {"id": "data_time", "name": "采集时间", "unit": "", "keywords": ("时间", "采集时间")},
+    {"id": "scraper_torque", "name": "刮刀扭矩", "unit": "%", "keywords": ("刮刀扭矩",)},
+    {"id": "oxygen", "name": "成形室氧含量", "unit": "%", "keywords": ("成形室氧含量",)},
+    {"id": "ambient_oxygen", "name": "环境氧含量", "unit": "%", "keywords": ("环境氧含量",)},
+    {"id": "chamber_temperature", "name": "成形室温度", "unit": "℃", "keywords": ("成形室温度",)},
+    {"id": "gas_flow", "name": "循环气体流量", "unit": "m3/h", "keywords": ("循环气体实时流量",)},
+    {"id": "fan_speed", "name": "风机转速", "unit": "%", "keywords": ("风机转速",)},
+    {"id": "medium_filter_resistance", "name": "中效滤芯阻力", "unit": "mBar", "keywords": ("中效滤芯阻力",)},
+    {"id": "high_filter_resistance", "name": "高效滤芯阻力", "unit": "mBar", "keywords": ("高效滤芯阻力",)},
+    {"id": "gas_pressure", "name": "气源压力", "unit": "Bar", "keywords": ("过滤器气源压力", "气源压力")},
+    {"id": "compressed_air_pressure", "name": "压缩空气压力", "unit": "Bar", "keywords": ("压缩空气压力",)},
+    {"id": "servo_temperature_x", "name": "X轴伺服温度", "unit": "℃", "keywords": ("伺服温度[X轴]", "0#伺服温度[X轴]")},
+    {"id": "servo_temperature_y", "name": "Y轴伺服温度", "unit": "℃", "keywords": ("伺服温度[Y轴]", "0#伺服温度[Y轴]")},
+    {"id": "galvo_temperature_x", "name": "X轴振镜温度", "unit": "℃", "keywords": ("振镜温度[X轴]", "0#振镜温度[X轴]")},
+    {"id": "galvo_temperature_y", "name": "Y轴振镜温度", "unit": "℃", "keywords": ("振镜温度[Y轴]", "0#振镜温度[Y轴]")},
+    {"id": "output_current_x", "name": "X轴输出电流", "unit": "mA", "keywords": ("输出电流[X轴]", "0#输出电流[X轴]")},
+    {"id": "output_current_y", "name": "Y轴输出电流", "unit": "mA", "keywords": ("输出电流[Y轴]", "0#输出电流[Y轴]")},
 )
 
 
@@ -131,7 +133,7 @@ def case_time_key(case_dir: str) -> Tuple[str, str]:
 
 
 def select_latest_status_by_device(report: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-    """设备群页面展示“当前感”状态，因此每台设备取最近一次诊断样本。"""
+    """设备群状态取最近诊断样本，参数候选保留同设备所有真实采集文件。"""
 
     grouped: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for case in report.get("cases", []):
@@ -142,10 +144,22 @@ def select_latest_status_by_device(report: Dict[str, Any]) -> Dict[str, Dict[str
     if not grouped:
         return report.get("device_latest_status", {})
 
-    return {
-        device_id: max(cases, key=lambda item: case_time_key(item.get("case_dir", "")))
-        for device_id, cases in grouped.items()
-    }
+    latest_status: Dict[str, Dict[str, Any]] = {}
+    for device_id, cases in grouped.items():
+        latest_case = dict(max(cases, key=lambda item: case_time_key(item.get("case_dir", ""))))
+        all_source_files: List[str] = []
+        all_case_dirs: List[str] = []
+        for case in cases:
+            case_dir = case.get("case_dir")
+            if case_dir and case_dir not in all_case_dirs:
+                all_case_dirs.append(case_dir)
+            for source_file in case.get("source_files", []):
+                if source_file not in all_source_files:
+                    all_source_files.append(source_file)
+        latest_case["all_source_files"] = all_source_files
+        latest_case["all_case_dirs"] = all_case_dirs
+        latest_status[device_id] = latest_case
+    return latest_status
 
 
 def normalize_frontend_status(categories: Iterable[str], raw_status_code: int) -> int:
@@ -256,67 +270,146 @@ def read_last_data_row(csv_path: Path) -> Tuple[List[str], Dict[str, str]]:
         return headers, last_row
 
 
-def is_numeric_data_csv(csv_path: Path) -> bool:
-    name = csv_path.name
-    if any(skip in name for skip in ("设备信息", "报警日志", "打印日志")):
-        return False
-    try:
-        headers, row = read_last_data_row(csv_path)
-    except Exception:
-        return False
-    joined = "".join(headers)
-    return bool(row) and any(word in joined for word in ("层数", "时间", "刮刀", "压力", "氧含量", "温度", "风机"))
+def parameter_schemas() -> List[Dict[str, Any]]:
+    return [item for item in PARAMETER_SCHEMA if item["id"] != "record_status"]
 
 
-def pick_representative_csv(status: Dict[str, Any]) -> Optional[Path]:
-    source_files = [resolve_project_path(item) for item in status.get("source_files", [])]
-    for csv_path in source_files:
-        if csv_path.exists() and is_numeric_data_csv(csv_path):
-            return csv_path
-
-    case_dir = resolve_project_path(status.get("case_dir", ""))
-    if case_dir.exists():
-        for csv_path in sorted(case_dir.rglob("*.csv")):
-            if is_numeric_data_csv(csv_path):
-                return csv_path
-
-        device_tag = status.get("device_id", "")
-        for parent in [case_dir, *case_dir.parents]:
-            if device_tag and device_tag in parent.name:
-                for csv_path in sorted(parent.rglob("*.csv")):
-                    if is_numeric_data_csv(csv_path):
-                        return csv_path
-                break
+def find_parameter_header(headers: List[str], keywords: Tuple[str, ...]) -> Optional[str]:
+    for keyword in keywords:
+        exact_header = next(
+            (
+                item
+                for item in headers
+                if split_name_unit(item)[0].lower() == keyword.lower()
+            ),
+            None,
+        )
+        if exact_header:
+            return exact_header
+    for keyword in keywords:
+        header = next((item for item in headers if keyword.lower() in item.lower()), None)
+        if header:
+            return header
     return None
 
 
-def build_parameters(csv_path: Optional[Path]) -> Tuple[List[Dict[str, str]], Optional[str], Optional[str]]:
-    if csv_path is None:
-        return [], None, None
+def parameter_coverage_score(headers: List[str]) -> int:
+    return sum(
+        1
+        for param_schema in parameter_schemas()
+        if find_parameter_header(headers, tuple(param_schema["keywords"]))
+    )
 
-    headers, row = read_last_data_row(csv_path)
-    parameters: List[Dict[str, str]] = []
-    used_headers: set[str] = set()
 
-    for param_id, keyword, display_name in PARAMETER_FIELDS:
-        header = next((item for item in headers if keyword.lower() in item.lower()), None)
-        if not header or header in used_headers:
-            continue
-        used_headers.add(header)
-        _, unit = split_name_unit(header)
-        parameters.append(
-            {
-                "id": param_id,
-                "name": display_name,
+def csv_parameter_score(csv_path: Path) -> int:
+    name = csv_path.name
+    if any(skip in name for skip in ("设备信息", "报警日志", "打印日志")):
+        return 0
+    try:
+        headers, row = read_last_data_row(csv_path)
+    except Exception:
+        return 0
+    if not row:
+        return 0
+    return parameter_coverage_score(headers)
+
+
+def collect_candidate_csvs(status: Dict[str, Any]) -> List[Path]:
+    """从同设备所有诊断样本里收集候选CSV，避免最近样本缺表导致参数全空。"""
+
+    candidate_paths: List[Path] = []
+
+    def append_candidate(path: Path) -> None:
+        if path.suffix.lower() == ".csv" and path.exists() and path not in candidate_paths:
+            candidate_paths.append(path)
+
+    for item in [*status.get("source_files", []), *status.get("all_source_files", [])]:
+        append_candidate(resolve_project_path(item))
+
+    for raw_dir in [status.get("case_dir", ""), *status.get("all_case_dirs", [])]:
+        case_dir = resolve_project_path(raw_dir)
+        if case_dir.exists():
+            for csv_path in sorted(case_dir.rglob("*.csv")):
+                append_candidate(csv_path)
+
+    scored = [
+        (csv_parameter_score(csv_path), case_time_key(str(csv_path)), csv_path)
+        for csv_path in candidate_paths
+    ]
+    scored = [item for item in scored if item[0] > 0]
+    scored.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    return [csv_path for _, _, csv_path in scored]
+
+
+def empty_parameter(param_schema: Dict[str, Any]) -> Dict[str, str]:
+    return {
+        "id": str(param_schema["id"]),
+        "name": str(param_schema["name"]),
+        "value": "--",
+        "unit": str(param_schema["unit"]),
+    }
+
+
+def build_parameters(csv_paths: List[Path]) -> Tuple[List[Dict[str, str]], Optional[str], Optional[str], List[str]]:
+    """输出固定闭集参数；采集表缺失的字段保留为 --。"""
+
+    schemas = parameter_schemas()
+    parameters = [empty_parameter(item) for item in schemas]
+    data_time: Optional[str] = None
+    representative_csv_path = project_relative_text(csv_paths[0]) if csv_paths else None
+    used_csv_paths: List[str] = []
+
+    for csv_path in csv_paths:
+        headers, row = read_last_data_row(csv_path)
+        csv_used = False
+        if data_time is None:
+            data_time = row.get("时间") or row.get("采集时间")
+        for index, param_schema in enumerate(schemas):
+            if parameters[index]["value"] != "--":
+                continue
+            header = find_parameter_header(headers, tuple(param_schema["keywords"]))
+            if not header:
+                continue
+            _, header_unit = split_name_unit(header)
+            parameters[index] = {
+                "id": str(param_schema["id"]),
+                "name": str(param_schema["name"]),
                 "value": format_value(row.get(header, "")),
-                "unit": unit,
+                "unit": header_unit or str(param_schema["unit"]),
             }
-        )
-        if len(parameters) >= 8:
+            csv_used = True
+        if csv_used:
+            used_csv_paths.append(project_relative_text(csv_path))
+        if all(parameter["value"] != "--" for parameter in parameters):
             break
 
-    data_time = row.get("时间") or row.get("采集时间")
-    return parameters, data_time, project_relative_text(csv_path)
+    return parameters, data_time, representative_csv_path, used_csv_paths
+
+
+def build_status_labels(status: Dict[str, Any], frontend_label: str) -> List[str]:
+    raw_labels = [
+        str(label).strip()
+        for label in status.get("status_labels", [])
+        if str(label).strip()
+    ]
+    raw_status_label = str(status.get("status_label") or "").strip()
+    labels: List[str] = []
+    for label in [raw_status_label, *raw_labels]:
+        if "证据:" in label:
+            continue
+        if label and label not in labels:
+            labels.append(label)
+    return labels or [frontend_label]
+
+
+def build_record_status_parameter(status_labels: List[str]) -> Dict[str, str]:
+    status_schema = next(item for item in PARAMETER_SCHEMA if item["id"] == "record_status")
+    return {
+        "id": str(status_schema["id"]),
+        "name": str(status_schema["name"]),
+        "value": "、".join(status_labels[:3]) if status_labels else "--",
+        "unit": str(status_schema["unit"]),
+    }
 
 
 def write_preview_csv(source: Optional[Path], target: Path, max_rows: int = 120) -> None:
@@ -389,27 +482,24 @@ def build_device_record(device_tag: str, status: Dict[str, Any], output_dir: Pat
     device_dir = output_dir / DEVICE_ROOT_NAME / device_folder
     device_dir.mkdir(parents=True, exist_ok=True)
 
-    representative_csv = pick_representative_csv(status)
-    parameters, data_time, representative_csv_path = build_parameters(representative_csv)
-    if not parameters:
-        parameters = [{"id": "diagnosis_status", "name": "诊断状态码", "value": str(frontend_status_code), "unit": ""}]
-
-    status_labels = [frontend_label]
-    for label in status.get("status_labels", [])[:4]:
-        if label not in status_labels:
-            status_labels.append(label)
+    candidate_csvs = collect_candidate_csvs(status)
+    parameters, data_time, representative_csv_path, parameter_csv_paths = build_parameters(candidate_csvs)
+    status_labels = build_status_labels(status, frontend_label)
+    parameters.insert(2, build_record_status_parameter(status_labels))
     health_data = build_health_data(frontend_status_code, status_labels, categories)
 
     thumbnail_name = copy_thumbnail_asset(device_dir)
 
     preview_path = device_dir / "real_data" / "preview.csv"
     preview_path.parent.mkdir(parents=True, exist_ok=True)
+    representative_csv = candidate_csvs[0] if candidate_csvs else None
     write_preview_csv(representative_csv, preview_path)
 
     source_manifest = {
         "source_case_dir": status.get("case_dir"),
         "source_files": status.get("source_files", []),
         "representative_csv": representative_csv_path,
+        "parameter_csvs": parameter_csv_paths,
         "preview_csv": str(preview_path.relative_to(DEFAULT_OUTPUT)),
     }
     write_json(device_dir / "real_data" / "source_manifest.json", source_manifest)
@@ -426,9 +516,13 @@ def build_device_record(device_tag: str, status: Dict[str, Any], output_dir: Pat
         "location": "7103 现场数据设备群",
         "online": True,
         "health": style["health"],
-        "statusText": style["text"],
+        "statusText": status_labels[0],
         "thumbnail": f"/slm_device_data/{DEVICE_ROOT_NAME}/{quote(device_folder)}/{thumbnail_name}",
         "dataDirectory": f"slm_device_data/{DEVICE_ROOT_NAME}/{device_folder}",
+        "parameterSchema": [
+            {"id": item["id"], "name": item["name"], "unit": item["unit"]}
+            for item in PARAMETER_SCHEMA
+        ],
         "parameters": parameters,
         "updatedAt": data_time or status.get("diagnosed_at"),
         "healthData": health_data,
@@ -436,6 +530,7 @@ def build_device_record(device_tag: str, status: Dict[str, Any], output_dir: Pat
             "source": "7103最近样本",
             "rawStatusCode": raw_status_code,
             "rawStatusLabel": status.get("status_label"),
+            "rawStatusLabels": status.get("status_labels", []),
             "frontendStatusCode": frontend_status_code,
             "frontendStatusLabel": frontend_label,
             "categories": categories,
@@ -467,6 +562,10 @@ def main() -> int:
         "diagnosisPolicy": "每台设备取 7103 中最近一次诊断样本，并归并到前端 0-4 状态码。",
         "statusCodeMap": {str(key): value for key, value in STATUS_CODE_MAP_0_4.items()},
         "categoryToFrontendCode": CATEGORY_TO_FRONTEND_CODE,
+        "parameterSchema": [
+            {"id": item["id"], "name": item["name"], "unit": item["unit"]}
+            for item in PARAMETER_SCHEMA
+        ],
         "deviceCount": len(devices),
         "devices": devices,
     }

@@ -29,8 +29,20 @@
           </div>
         </div>
         <div class="video-container">
+          <video
+            v-if="sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected && ch1MediaType === 'video'"
+            :src="ch1StreamUrl"
+            class="video-stream"
+            :class="{ 'paused': displayPaused }"
+            autoplay
+            muted
+            loop
+            playsinline
+            controls
+            @error="onCh1Error"
+          />
           <img 
-            v-if="sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected"
+            v-else-if="sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected"
             :src="ch1StreamUrl" 
             class="video-stream"
             :class="{ 'paused': displayPaused }"
@@ -224,7 +236,16 @@ const props = defineProps({
 const roiStore = useROIStore()
 
 // 视频流URL - 使用SLM视频流接口
-const ch1StreamUrl = computed(() => `/api/slm/stream/camera/CH1?t=${props.streamKey}`)
+const ch1RealtimeMedia = computed(() => props.latestData?.camera_ch1 || {})
+const ch1RealtimeUrl = computed(() => ch1RealtimeMedia.value.data_url || ch1RealtimeMedia.value.url || '')
+const ch1MediaType = computed(() => {
+  if (!ch1RealtimeUrl.value) return 'stream'
+  const mediaType = ch1RealtimeMedia.value.media_type || ch1RealtimeMedia.value.type || ''
+  if (mediaType) return mediaType
+  return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(ch1RealtimeUrl.value) ? 'video' : 'image'
+})
+
+const ch1StreamUrl = computed(() => ch1RealtimeUrl.value || `/api/slm/stream/camera/CH1?t=${props.streamKey}`)
 const ch2StreamUrl = computed(() => `/api/slm/stream/camera/CH2?t=${props.streamKey}`)
 const thermalStreamUrl = computed(() => `/api/slm/stream/thermal?t=${props.streamKey}`)
 
