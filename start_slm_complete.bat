@@ -105,7 +105,7 @@ if not exist "node_modules" (
         exit /b 1
     )
 )
-start "SmartAM Frontend" cmd /k "npm run dev -- --host 0.0.0.0 --port 5173"
+start "SmartAM Frontend" cmd /k "npm run dev"
 
 :: 等待前端开发服务器启动。
 echo   Waiting for frontend to start (3 seconds)...
@@ -116,12 +116,15 @@ echo [5/5] Services startup complete!
 echo =========================================
 echo  Backend: http://%LOCAL_IP%:8000
 echo  Frontend: http://%LOCAL_IP%:5173
-echo  Full Interface: http://%LOCAL_IP%:5173
+echo  Full Interface: http://%LOCAL_IP%:5173/slm/dashboard
 echo =========================================
 echo.
-echo Opening browser...
-timeout /t 2 /nobreak >nul
-start "" "http://%LOCAL_IP%:5173"
+echo Press any key to open browser...
+pause >nul
+
+:: Vite dev server already opens the browser once through the current remote/editor environment.
+:: This manual open keeps the old LAN entry for machines that can directly reach %LOCAL_IP%.
+start http://%LOCAL_IP%:5173/slm/dashboard
 
 echo.
 echo Note: Closing this window will NOT stop the services
