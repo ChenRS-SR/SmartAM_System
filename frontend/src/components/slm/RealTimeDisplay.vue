@@ -2,35 +2,36 @@
   <div class="realtime-display">
     <!-- 通道状态指示器 -->
     <div class="channel-status-bar">
-      <div class="status-item" :class="{ 'connected': sensorStatus.camera_ch1?.connected }">
+      <div class="status-item" :class="{ connected: sensorStatus.camera_ch1?.connected, waiting: !useMockMode }">
         <span class="status-dot"></span>
-        <span>CH1 {{ sensorStatus.camera_ch1?.connected ? '已连接' : '未连接' }}</span>
+        <span>CH1 {{ channelStatusText('camera_ch1') }}</span>
       </div>
-      <div class="status-item" :class="{ 'connected': sensorStatus.camera_ch2?.connected }">
+      <div class="status-item" :class="{ connected: sensorStatus.camera_ch2?.connected, waiting: !useMockMode }">
         <span class="status-dot"></span>
-        <span>CH2 {{ sensorStatus.camera_ch2?.connected ? '已连接' : '未连接' }}</span>
+        <span>CH2 {{ channelStatusText('camera_ch2') }}</span>
       </div>
-      <div class="status-item" :class="{ 'connected': sensorStatus.thermal?.connected }">
+      <div class="status-item" :class="{ connected: sensorStatus.thermal?.connected, waiting: !useMockMode }">
         <span class="status-dot"></span>
-        <span>CH3 {{ sensorStatus.thermal?.connected ? '已连接' : '未连接' }}</span>
+        <span>CH3 {{ channelStatusText('thermal') }}</span>
       </div>
     </div>
 
     <!-- 视频流区域 - 三个并排 -->
     <div class="video-grid">
       <!-- CH1 主摄像头 -->
-      <div class="video-panel" :class="{ 'disabled': !sensorStatus.camera_ch1?.enabled, 'connected': sensorStatus.camera_ch1?.connected }">
+      <div class="video-panel" :class="{ disabled: useMockMode && !sensorStatus.camera_ch1?.enabled, connected: sensorStatus.camera_ch1?.connected }">
         <div class="panel-header">
           <span class="panel-title">CH1 主摄</span>
           <div class="panel-badges">
-            <el-tag v-if="!sensorStatus.camera_ch1?.enabled" type="info" size="small">已禁用</el-tag>
+            <el-tag v-if="!useMockMode" type="info" size="small">{{ realtimeTagText }}</el-tag>
+            <el-tag v-else-if="!sensorStatus.camera_ch1?.enabled" type="info" size="small">已禁用</el-tag>
             <el-tag v-else-if="!sensorStatus.camera_ch1?.connected" type="danger" size="small">未连接</el-tag>
             <el-tag v-else type="success" size="small">已连接</el-tag>
           </div>
         </div>
         <div class="video-container">
           <video
-            v-if="sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected && ch1MediaType === 'video'"
+            v-if="sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected && ch1HasStream && ch1MediaType === 'video'"
             :src="ch1StreamUrl"
             class="video-stream"
             :class="{ 'paused': displayPaused }"
@@ -42,17 +43,17 @@
             @error="onCh1Error"
           />
           <img 
-            v-else-if="sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected"
+            v-else-if="sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected && ch1HasStream"
             :src="ch1StreamUrl" 
             class="video-stream"
             :class="{ 'paused': displayPaused }"
             alt="CH1 Stream"
             @error="onCh1Error"
           />
-          <div v-else class="video-placeholder" :class="{ 'error': sensorStatus.camera_ch1?.enabled && !sensorStatus.camera_ch1?.connected }">
+          <div v-else class="video-placeholder" :class="{ error: useMockMode && sensorStatus.camera_ch1?.enabled && !sensorStatus.camera_ch1?.connected }">
             <el-icon :size="40"><VideoCamera /></el-icon>
-            <span>{{ sensorStatus.camera_ch1?.enabled ? '未连接' : '已禁用' }}</span>
-            <span v-if="sensorStatus.camera_ch1?.enabled && !sensorStatus.camera_ch1?.connected" class="sub-text">请检查USB摄像头</span>
+            <span>{{ placeholderText('camera_ch1') }}</span>
+            <span class="sub-text">{{ placeholderHint('camera_ch1') }}</span>
           </div>
           <!-- 暂停遮罩 -->
           <div v-if="displayPaused && sensorStatus.camera_ch1?.enabled && sensorStatus.camera_ch1?.connected" class="pause-overlay">
@@ -80,28 +81,29 @@
       </div>
       
       <!-- CH2 副摄像头 -->
-      <div class="video-panel" :class="{ 'disabled': !sensorStatus.camera_ch2?.enabled, 'connected': sensorStatus.camera_ch2?.connected }">
+      <div class="video-panel" :class="{ disabled: useMockMode && !sensorStatus.camera_ch2?.enabled, connected: sensorStatus.camera_ch2?.connected }">
         <div class="panel-header">
           <span class="panel-title">CH2 副摄</span>
           <div class="panel-badges">
-            <el-tag v-if="!sensorStatus.camera_ch2?.enabled" type="info" size="small">已禁用</el-tag>
+            <el-tag v-if="!useMockMode" type="info" size="small">{{ realtimeTagText }}</el-tag>
+            <el-tag v-else-if="!sensorStatus.camera_ch2?.enabled" type="info" size="small">已禁用</el-tag>
             <el-tag v-else-if="!sensorStatus.camera_ch2?.connected" type="danger" size="small">未连接</el-tag>
             <el-tag v-else type="success" size="small">已连接</el-tag>
           </div>
         </div>
         <div class="video-container">
           <img 
-            v-if="sensorStatus.camera_ch2?.enabled && sensorStatus.camera_ch2?.connected"
+            v-if="sensorStatus.camera_ch2?.enabled && sensorStatus.camera_ch2?.connected && ch2HasStream"
             :src="ch2StreamUrl" 
             class="video-stream"
             :class="{ 'paused': displayPaused }"
             alt="CH2 Stream"
             @error="onCh2Error"
           />
-          <div v-else class="video-placeholder" :class="{ 'error': sensorStatus.camera_ch2?.enabled && !sensorStatus.camera_ch2?.connected }">
+          <div v-else class="video-placeholder" :class="{ error: useMockMode && sensorStatus.camera_ch2?.enabled && !sensorStatus.camera_ch2?.connected }">
             <el-icon :size="40"><VideoCamera /></el-icon>
-            <span>{{ sensorStatus.camera_ch2?.enabled ? '未连接' : '已禁用' }}</span>
-            <span v-if="sensorStatus.camera_ch2?.enabled && !sensorStatus.camera_ch2?.connected" class="sub-text">请检查USB摄像头</span>
+            <span>{{ placeholderText('camera_ch2') }}</span>
+            <span class="sub-text">{{ placeholderHint('camera_ch2') }}</span>
           </div>
           <!-- 暂停遮罩 -->
           <div v-if="displayPaused && sensorStatus.camera_ch2?.enabled && sensorStatus.camera_ch2?.connected" class="pause-overlay">
@@ -129,31 +131,32 @@
       </div>
       
       <!-- 红外热像 -->
-      <div class="video-panel thermal-panel" :class="{ 'disabled': !sensorStatus.thermal?.enabled, 'connected': sensorStatus.thermal?.connected }">
+      <div class="video-panel thermal-panel" :class="{ disabled: useMockMode && !sensorStatus.thermal?.enabled, connected: sensorStatus.thermal?.connected }">
         <div class="panel-header">
           <span class="panel-title">CH3 红外</span>
           <div class="panel-badges">
             <el-tag v-if="latestData?.thermal?.temp_max" type="warning" size="small">
               {{ latestData.thermal.temp_max.toFixed(1) }}°C
             </el-tag>
-            <el-tag v-if="!sensorStatus.thermal?.enabled" type="info" size="small">已禁用</el-tag>
+            <el-tag v-if="!useMockMode" type="info" size="small">{{ realtimeTagText }}</el-tag>
+            <el-tag v-else-if="!sensorStatus.thermal?.enabled" type="info" size="small">已禁用</el-tag>
             <el-tag v-else-if="!sensorStatus.thermal?.connected" type="danger" size="small">未连接</el-tag>
             <el-tag v-else type="success" size="small">已连接</el-tag>
           </div>
         </div>
         <div class="video-container">
           <img 
-            v-if="sensorStatus.thermal?.enabled && sensorStatus.thermal?.connected"
+            v-if="sensorStatus.thermal?.enabled && sensorStatus.thermal?.connected && thermalHasStream"
             :src="thermalStreamUrl" 
             class="video-stream"
             :class="{ 'paused': displayPaused }"
             alt="Thermal Stream"
             @error="onThermalError"
           />
-          <div v-else class="video-placeholder" :class="{ 'error': sensorStatus.thermal?.enabled && !sensorStatus.thermal?.connected }">
+          <div v-else class="video-placeholder" :class="{ error: useMockMode && sensorStatus.thermal?.enabled && !sensorStatus.thermal?.connected }">
             <el-icon :size="40"><HotWater /></el-icon>
-            <span>{{ sensorStatus.thermal?.enabled ? '未连接' : '已禁用' }}</span>
-            <span v-if="sensorStatus.thermal?.enabled && !sensorStatus.thermal?.connected" class="sub-text">请检查PIX Connect</span>
+            <span>{{ placeholderText('thermal') }}</span>
+            <span class="sub-text">{{ placeholderHint('thermal') }}</span>
           </div>
           <!-- 暂停遮罩 -->
           <div v-if="displayPaused && sensorStatus.thermal?.enabled && sensorStatus.thermal?.connected" class="pause-overlay">
@@ -229,6 +232,14 @@ const props = defineProps({
   lastFrames: {
     type: Object,
     default: () => ({ CH1: null, CH2: null, thermal: null })
+  },
+  useMockMode: {
+    type: Boolean,
+    default: false
+  },
+  waitingForRealtime: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -245,9 +256,30 @@ const ch1MediaType = computed(() => {
   return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(ch1RealtimeUrl.value) ? 'video' : 'image'
 })
 
-const ch1StreamUrl = computed(() => ch1RealtimeUrl.value || `/api/slm/stream/camera/CH1?t=${props.streamKey}`)
-const ch2StreamUrl = computed(() => `/api/slm/stream/camera/CH2?t=${props.streamKey}`)
-const thermalStreamUrl = computed(() => `/api/slm/stream/thermal?t=${props.streamKey}`)
+const ch1StreamUrl = computed(() => ch1RealtimeUrl.value || (props.useMockMode ? `/api/slm/stream/camera/CH1?t=${props.streamKey}` : ''))
+const ch2StreamUrl = computed(() => props.useMockMode ? `/api/slm/stream/camera/CH2?t=${props.streamKey}` : '')
+const thermalStreamUrl = computed(() => props.useMockMode ? `/api/slm/stream/thermal?t=${props.streamKey}` : '')
+const ch1HasStream = computed(() => Boolean(ch1StreamUrl.value))
+const ch2HasStream = computed(() => Boolean(ch2StreamUrl.value))
+const thermalHasStream = computed(() => Boolean(thermalStreamUrl.value))
+const realtimeTagText = computed(() => props.waitingForRealtime ? '等待数据' : '等待图像')
+
+const channelStatusText = (key) => {
+  if (!props.useMockMode) return props.waitingForRealtime ? '等待数据传输' : '等待图像数据'
+  if (!props.sensorStatus[key]?.enabled) return '已禁用'
+  return props.sensorStatus[key]?.connected ? '已连接' : '未连接'
+}
+
+const placeholderText = (key) => {
+  if (!props.useMockMode) return props.waitingForRealtime ? '等待数据传输' : '等待图像数据'
+  return props.sensorStatus[key]?.enabled ? '未连接' : '已禁用'
+}
+
+const placeholderHint = (key) => {
+  if (!props.useMockMode) return props.waitingForRealtime ? '外部接口推送后显示实时图像' : '本次实时事件未包含图像'
+  if (!props.sensorStatus[key]?.enabled) return ''
+  return key === 'thermal' ? '请检查PIX Connect' : '请检查USB摄像头'
+}
 
 const onCh1Error = () => console.error('CH1视频流错误')
 const onCh2Error = () => console.error('CH2视频流错误')
@@ -344,6 +376,10 @@ function getROILabelStyle(roi) {
   color: #22c55e;
 }
 
+.status-item.waiting {
+  color: #94a3b8;
+}
+
 .status-dot {
   width: 8px;
   height: 8px;
@@ -354,6 +390,11 @@ function getROILabelStyle(roi) {
 .status-item.connected .status-dot {
   background: #22c55e;
   box-shadow: 0 0 8px #22c55e;
+}
+
+.status-item.waiting .status-dot {
+  background: #64748b;
+  box-shadow: none;
 }
 
 /* 视频网格 - 三个并排 */

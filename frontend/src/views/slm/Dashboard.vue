@@ -59,8 +59,8 @@
     <section class="parameter-panel">
       <div class="panel-header">
         <span>实时参数</span>
-        <el-tag size="small" :type="selectedDevice?.online ? 'success' : 'info'">
-          {{ selectedDevice?.online ? '在线' : '离线' }}
+        <el-tag size="small" :type="selectedDisplayOnline ? 'success' : 'info'">
+          {{ selectedDisplayOnline ? '在线' : '待连接' }}
         </el-tag>
       </div>
       <div class="parameter-grid">
@@ -84,6 +84,8 @@
         :stream-key="streamKey"
         :display-paused="displayPaused"
         :last-frames="lastFrames"
+        :use-mock-mode="settings.use_mock"
+        :waiting-for-realtime="waitingForRealtimeData"
       />
     </div>
     
@@ -111,6 +113,7 @@
       <EquipmentHealthStatus
         :health-data="healthData"
         :is-running="isRunning"
+        :is-mock-mode="settings.use_mock"
         :diagnosis-data="diagnosisData"
       />
     </div>
@@ -130,6 +133,7 @@ import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vu
 import RegulationControl from '../../components/slm/RegulationControl.vue'
 import FeatureCurvePanel from '../../components/slm/FeatureCurvePanel.vue'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
+import { readSlmBenchSettings } from '../../utils/slmBenchSettings'
 
 const route = useRoute()
 const router = useRouter()
@@ -138,6 +142,7 @@ const slmDeviceStore = useSlmDeviceStore()
 const selectedDeviceId = ref(route.params.deviceId || '')
 const selectedDevice = computed(() => slmDeviceStore.getDeviceById(selectedDeviceId.value) || slmDeviceStore.firstDevice)
 const selectedDeviceName = computed(() => selectedDevice.value?.name || 'SLM设备')
+const selectedDisplayOnline = computed(() => settings.use_mock ? selectedDevice.value?.online : realtimeState.hasData)
 
 // 状态
 const isRunning = ref(false)
@@ -154,8 +159,8 @@ const lastFrames = reactive({      // 暂停时显示的最后一帧
 // 传感器状态
 const sensorStatus = reactive({
   camera_ch1: { enabled: true, connected: false },
-  camera_ch2: { enabled: true, connected: false },
-  thermal: { enabled: true, connected: false }
+  camera_ch2: { enabled: false, connected: false },
+  thermal: { enabled: false, connected: false }
 })
 
 // 最新数据
@@ -225,20 +230,9 @@ const healthData = reactive({
   gas_system: { status: 'unknown', message: '未检测' }
 })
 
-const BENCH_SETTINGS_STORAGE_KEY = 'slm_hust_bench_settings'
-const defaultBenchSettings = {
-  camera_ch1_index: 0,  // 默认自动检测
-  camera_ch2_index: 1,  // 默认自动检测
-  use_mock: false  // 默认使用真实硬件
-}
-
-function readBenchSettings() {
-  const rawSettings = localStorage.getItem(BENCH_SETTINGS_STORAGE_KEY)
-  return rawSettings ? { ...defaultBenchSettings, ...JSON.parse(rawSettings) } : { ...defaultBenchSettings }
-}
-
 // 华科实验台连接设置在设置页维护，监测页启动采集时只读取已保存配置。
-const settings = reactive(readBenchSettings())
+const settings = reactive(readSlmBenchSettings())
+const waitingForRealtimeData = computed(() => !settings.use_mock && !realtimeState.hasData)
 
 // RegulationControl 引用
 const regulationControl = ref(null)
@@ -273,12 +267,16 @@ watch([() => route.params.deviceId, () => slmDeviceStore.devices.length], ([devi
   ensureSelectedDevice(deviceId)
 }, { immediate: true })
 
-watch(selectedDevice, (device) => {
-  if (device?.healthData && settings.use_mock) {
-    Object.assign(healthData, device.healthData)
-  } else if (!settings.use_mock && isRunning.value) {
+const syncMockHealthFromSelectedDevice = () => {
+  if (selectedDevice.value?.healthData && settings.use_mock) {
+    applyHealthData(selectedDevice.value.healthData)
+  } else if (!settings.use_mock) {
     resetHealthToWaiting()
   }
+}
+
+watch([selectedDevice, () => settings.use_mock], () => {
+  syncMockHealthFromSelectedDevice()
 }, { immediate: true })
 
 const goToDeviceGroup = () => {
@@ -289,16 +287,29 @@ const switchDevice = (deviceId) => {
   router.push(`/slm/device/${deviceId}`)
 }
 
-const applySensorStatus = (status = {}) => {
+const applySensorStatus = (status = {}, options = {}) => {
   const sensorKeys = ['camera_ch1', 'camera_ch2', 'thermal']
   sensorKeys.forEach((key) => {
     if (status[key]) {
+      const nextStatus = { ...status[key] }
+      if (!options.syncEnabled) {
+        delete nextStatus.enabled
+      }
       sensorStatus[key] = {
         ...sensorStatus[key],
-        ...status[key]
+        ...nextStatus
       }
     }
   })
+}
+
+const applyModeSensorDefaults = () => {
+  sensorStatus.camera_ch1.enabled = true
+  sensorStatus.camera_ch1.connected = false
+  sensorStatus.camera_ch2.enabled = false
+  sensorStatus.camera_ch2.connected = false
+  sensorStatus.thermal.enabled = false
+  sensorStatus.thermal.connected = false
 }
 
 const syncHealthDataToDevice = () => {
@@ -313,7 +324,7 @@ const syncHealthDataToDevice = () => {
   }
 }
 
-const applyHealthData = (nextHealth = {}) => {
+function applyHealthData(nextHealth = {}) {
   healthData.status = nextHealth.status || healthData.status
   healthData.status_code = nextHealth.status_code !== undefined ? nextHealth.status_code : healthData.status_code
   healthData.status_labels = nextHealth.status_labels || healthData.status_labels
@@ -340,9 +351,10 @@ const resetRealtimeState = () => {
   realtimeState.health = null
   latestData.camera_ch1 = null
   lastFrames.CH1 = null
+  sensorStatus.camera_ch1.connected = false
 }
 
-const resetHealthToWaiting = () => {
+function resetHealthToWaiting() {
   healthData.status = 'power_off'
   healthData.status_code = -1
   healthData.status_labels = ['等待实时数据']
@@ -360,14 +372,24 @@ const applyRealtimeSample = (sample = {}) => {
   realtimeState.media = sample.media || {}
   realtimeState.diagnosis = sample.diagnosis || null
   realtimeState.health = sample.health || null
-  if (realtimeState.media?.ch1?.data_url || realtimeState.media?.ch1?.url) {
+  const hasCh1Media = Boolean(realtimeState.media?.ch1?.data_url || realtimeState.media?.ch1?.url)
+  if (hasCh1Media) {
     latestData.camera_ch1 = {
       ...realtimeState.media.ch1,
       updated_at: realtimeState.eventTime
     }
     lastFrames.CH1 = realtimeState.media.ch1.data_url || realtimeState.media.ch1.url
     sensorStatus.camera_ch1.connected = true
+    sensorStatus.camera_ch1.enabled = true
+  } else {
+    latestData.camera_ch1 = null
+    lastFrames.CH1 = null
+    sensorStatus.camera_ch1.connected = false
   }
+  sensorStatus.camera_ch2.enabled = false
+  sensorStatus.camera_ch2.connected = false
+  sensorStatus.thermal.enabled = false
+  sensorStatus.thermal.connected = false
   if (realtimeState.hasData && realtimeState.health) {
     applyHealthData(realtimeState.health)
   } else if (!settings.use_mock) {
@@ -544,10 +566,10 @@ const onVideoSourceChanged = (sourceInfo) => {
   streamKey.value = Date.now()
   
   // 如果正在运行，更新传感器状态为已连接
-  if (sourceInfo.isPlaying) {
+  if (settings.use_mock && sourceInfo.isPlaying) {
     sensorStatus.camera_ch1.connected = true
-    sensorStatus.camera_ch2.connected = true
-    sensorStatus.thermal.connected = true
+    sensorStatus.camera_ch2.connected = sensorStatus.camera_ch2.enabled
+    sensorStatus.thermal.connected = sensorStatus.thermal.enabled
   }
 }
 
@@ -564,15 +586,17 @@ const fetchStatus = async () => {
     if (response.data) {
       const wasRunning = isRunning.value
       isRunning.value = response.data.is_running
-      applySensorStatus(response.data.sensor_status || {})
+      if (settings.use_mock) {
+        applySensorStatus(response.data.sensor_status || {})
+      } else {
+        applyModeSensorDefaults()
+      }
       
       // 模拟模式使用7103样本状态；真实模式等待外部实时接口事件。
-      if (isRunning.value && healthData.status_code === -1) {
-        if (settings.use_mock && selectedDevice.value?.healthData) {
-          applyHealthData(selectedDevice.value.healthData)
-        } else if (!settings.use_mock) {
-          resetHealthToWaiting()
-        }
+      if (settings.use_mock && selectedDevice.value?.healthData) {
+        applyHealthData(selectedDevice.value.healthData)
+      } else if (!settings.use_mock && !realtimeState.hasData) {
+        resetHealthToWaiting()
       }
       
       // 如果采集刚停止（wasRunning && !isRunning），立即重置健康状态为未开机
@@ -585,7 +609,7 @@ const fetchStatus = async () => {
         healthData.powder_system = { status: 'unknown', message: '未检测' }
         healthData.gas_system = { status: 'unknown', message: '未检测' }
         syncHealthDataToDevice()
-        
+
         // 重置后端健康状态缓存
         lastBackendHealthCode = -1
         
@@ -680,8 +704,11 @@ const toggleAcquisition = async () => {
         isRunning.value = true
         streamKey.value = Date.now()
         if (settings.use_mock && selectedDevice.value?.healthData) {
+          applyModeSensorDefaults()
+          sensorStatus.camera_ch1.connected = true
           applyHealthData(selectedDevice.value.healthData)
         } else if (!settings.use_mock) {
+          applyModeSensorDefaults()
           resetHealthToWaiting()
         }
         const modeText = settings.use_mock ? '模拟模式' : '真实硬件模式'
@@ -757,7 +784,7 @@ const closeWebSocket = () => {
 // 处理WebSocket数据
 const handleWebSocketData = (data) => {
   // 更新传感器状态
-  if (data.sensor_status) {
+  if (settings.use_mock && data.sensor_status) {
     applySensorStatus(data.sensor_status)
   }
 
@@ -796,35 +823,37 @@ const refreshStatus = async () => {
   fetchStatus()
   
   // 检查视频文件模式配置是否变化
-  try {
-    const response = await axios.get('/api/slm/video_file_mode/config')
-    if (response.data.success) {
-      const config = response.data
-      // 生成视频文件配置的简单哈希（路径拼接）
-      const videoFilesStr = JSON.stringify(config.video_files || {})
-      
-      // 检测配置是否变化
-      const configChanged = (
-        config.enabled !== currentVideoConfig.value.enabled ||
-        videoFilesStr !== currentVideoConfig.value.videoFilesHash
-      )
-      
-      if (configChanged) {
-        console.log('[Dashboard] 检测到视频文件配置变化，需要重启采集')
-        // 更新当前配置
-        currentVideoConfig.value = {
-          enabled: config.enabled,
-          videoFilesHash: videoFilesStr,
-          folder: config.video_files ? Object.values(config.video_files)[0] : ''
+  if (settings.use_mock) {
+    try {
+      const response = await axios.get('/api/slm/video_file_mode/config')
+      if (response.data.success) {
+        const config = response.data
+        // 生成视频文件配置的简单哈希（路径拼接）
+        const videoFilesStr = JSON.stringify(config.video_files || {})
+
+        // 检测配置是否变化
+        const configChanged = (
+          config.enabled !== currentVideoConfig.value.enabled ||
+          videoFilesStr !== currentVideoConfig.value.videoFilesHash
+        )
+
+        if (configChanged) {
+          console.log('[Dashboard] 检测到视频文件配置变化，需要重启采集')
+          // 更新当前配置
+          currentVideoConfig.value = {
+            enabled: config.enabled,
+            videoFilesHash: videoFilesStr,
+            folder: config.video_files ? Object.values(config.video_files)[0] : ''
+          }
+
+          // 自动重启采集以应用新配置（无论是否正在运行）
+          ElMessage.info('检测到视频源变化，正在重启采集...')
+          await restartAcquisitionWithNewVideoConfig()
         }
-        
-        // 自动重启采集以应用新配置（无论是否正在运行）
-        ElMessage.info('检测到视频源变化，正在重启采集...')
-        await restartAcquisitionWithNewVideoConfig()
       }
+    } catch (error) {
+      console.error('[Dashboard] 检查视频文件配置失败:', error)
     }
-  } catch (error) {
-    console.error('[Dashboard] 检查视频文件配置失败:', error)
   }
   
   // 强制刷新视频流（更新streamKey使URL变化，防止缓存）
@@ -864,6 +893,8 @@ const restartAcquisitionWithNewVideoConfig = async () => {
       isRunning.value = true
       streamKey.value = Date.now()
       if (selectedDevice.value?.healthData) {
+        applyModeSensorDefaults()
+        sensorStatus.camera_ch1.connected = true
         applyHealthData(selectedDevice.value.healthData)
       }
       connectWebSocket()
@@ -971,10 +1002,8 @@ const fetchVideoFileModeConfig = async () => {
         folder: config.video_files ? Object.values(config.video_files)[0] : ''
       }
       
-      if (config.enabled) {
-        // 如果视频文件模式已启用，自动切换到模拟模式
-        settings.use_mock = true
-        console.log('[Dashboard] 检测到视频文件模式已启用，自动切换到模拟模式')
+      if (config.enabled && settings.use_mock) {
+        console.log('[Dashboard] 模拟视频文件模式已启用')
       }
     }
   } catch (error) {
@@ -987,6 +1016,10 @@ let ws = null
 let reconnectTimer = null
 let mockParameterTimer = null
 let realtimePollTimer = null
+
+const refreshBenchSettings = () => {
+  Object.assign(settings, readSlmBenchSettings())
+}
 
 const stopMockParameterTicker = () => {
   if (mockParameterTimer) {
@@ -1050,8 +1083,20 @@ watch([isRunning, () => settings.use_mock, selectedDeviceId], () => {
   refreshRealtimePoller()
 }, { immediate: true })
 
+watch(() => settings.use_mock, () => {
+  applyModeSensorDefaults()
+  if (settings.use_mock) {
+    resetRealtimeState()
+    syncMockHealthFromSelectedDevice()
+  } else {
+    resetRealtimeState()
+    resetHealthToWaiting()
+  }
+})
+
 onMounted(async () => {
-  Object.assign(settings, readBenchSettings())
+  refreshBenchSettings()
+  applyModeSensorDefaults()
 
   try {
     await slmDeviceStore.loadDevicesFromBackend()
@@ -1071,6 +1116,8 @@ onMounted(async () => {
   healthCheckTimer = setInterval(() => {
     fetchBackendHealthStatus()
   }, 3000)
+  window.addEventListener('focus', refreshBenchSettings)
+  window.addEventListener('storage', refreshBenchSettings)
 })
 
 onUnmounted(() => {
@@ -1082,6 +1129,8 @@ onUnmounted(() => {
     clearInterval(healthCheckTimer)
     healthCheckTimer = null
   }
+  window.removeEventListener('focus', refreshBenchSettings)
+  window.removeEventListener('storage', refreshBenchSettings)
 })
 </script>
 

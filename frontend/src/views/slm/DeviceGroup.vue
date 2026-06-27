@@ -22,31 +22,34 @@
     <section class="source-bar">
       <span>数据源</span>
       <strong>{{ deviceStore.sourceInfo.sourceRoot || '正在加载 7103 数据' }}</strong>
+      <el-tag size="small" :type="isMockMode ? 'warning' : 'info'">
+        {{ isMockMode ? '模拟模式' : '真实模式' }}
+      </el-tag>
       <el-tag size="small" type="info">状态码 0-4</el-tag>
     </section>
 
     <section class="fleet-summary">
       <div class="summary-item">
         <span class="summary-label">设备总数</span>
-        <strong>{{ deviceStore.devices.length }}</strong>
+        <strong>{{ displayDevices.length }}</strong>
       </div>
       <div class="summary-item">
         <span class="summary-label">在线</span>
-        <strong>{{ deviceStore.onlineCount }}</strong>
+        <strong>{{ fleetStats.online }}</strong>
       </div>
       <div class="summary-item">
         <span class="summary-label">健康</span>
-        <strong>{{ deviceStore.healthyCount }}</strong>
+        <strong>{{ fleetStats.healthy }}</strong>
       </div>
       <div class="summary-item danger">
         <span class="summary-label">故障</span>
-        <strong>{{ deviceStore.faultCount }}</strong>
+        <strong>{{ fleetStats.fault }}</strong>
       </div>
     </section>
 
     <section v-loading="deviceStore.loading" class="device-grid">
       <article
-        v-for="device in deviceStore.devices"
+        v-for="device in displayDevices"
         :key="device.id"
         class="device-card"
         :class="{ offline: !device.online, fault: device.online && device.health === 'fault' }"
@@ -70,7 +73,7 @@
               <el-button
                 text
                 class="icon-btn"
-                @click.stop="openEditDialog(device)"
+                @click.stop="openEditDialog(deviceStore.getDeviceById(device.id) || device)"
               >
                 <el-icon><EditPen /></el-icon>
               </el-button>
@@ -98,7 +101,7 @@
               {{ device.databaseTag }}
             </el-tag>
             <el-tag :type="device.online ? 'success' : 'info'" size="small">
-              {{ device.online ? '在线' : '离线' }}
+              {{ device.online ? '在线' : '待连接' }}
             </el-tag>
             <el-tag :type="healthTagType(device)" size="small">
               {{ device.statusText }}
@@ -182,11 +185,12 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { EditPen, Plus, Refresh, Upload } from '@element-plus/icons-vue'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
+import { readSlmBenchSettings } from '../../utils/slmBenchSettings'
 
 const router = useRouter()
 const deviceStore = useSlmDeviceStore()
@@ -195,6 +199,8 @@ const dialogVisible = ref(false)
 const editingDeviceId = ref('')
 const savingDevice = ref(false)
 const syncingDatabase = ref(false)
+const benchSettings = ref(readSlmBenchSettings())
+const realtimeSamples = ref({})
 const deviceForm = reactive({
   name: '',
   model: '铂力特 S310',
@@ -208,6 +214,73 @@ const deviceForm = reactive({
   thumbnail: ''
 })
 
+let realtimePollTimer = null
+const REALTIME_POLL_INTERVAL_MS = 1000
+
+const isMockMode = computed(() => benchSettings.value.use_mock)
+
+const emptyParameters = (device, statusText = '待连接') => {
+  const schema = Array.isArray(device.parameterSchema) && device.parameterSchema.length
+    ? device.parameterSchema
+    : (device.parameters || [])
+  return schema.map((param) => ({
+    id: param.id,
+    name: param.name,
+    value: param.id === 'record_status' || param.name === '状态参数' ? statusText : '--',
+    unit: param.unit || ''
+  }))
+}
+
+const createWaitingHealthData = () => ({
+  status: 'power_off',
+  status_code: -1,
+  status_labels: ['等待数据传输'],
+  laser_system: { status: 'unknown', message: '等待数据传输' },
+  powder_system: { status: 'unknown', message: '等待数据传输' },
+  gas_system: { status: 'unknown', message: '等待数据传输' }
+})
+
+const toWaitingDevice = (device) => ({
+  ...device,
+  online: false,
+  health: 'power_off',
+  statusText: '待连接',
+  healthData: createWaitingHealthData(),
+  parameters: emptyParameters(device)
+})
+
+const toRealtimeDevice = (device, sample) => {
+  if (!sample?.hasData) return toWaitingDevice(device)
+  const healthData = sample.health || createWaitingHealthData()
+  const statusCode = Number(healthData.status_code ?? -1)
+  const statusText = (healthData.status_labels || []).filter(Boolean).join('、')
+    || sample.diagnosis?.frontendStatusLabel
+    || sample.diagnosis?.statusLabel
+    || (statusCode === 0 ? '健康运行' : '故障')
+  return {
+    ...device,
+    online: statusCode !== -1,
+    health: statusCode > 0 ? 'fault' : (statusCode === 0 ? 'healthy' : 'power_off'),
+    statusText,
+    healthData,
+    parameters: Array.isArray(sample.parameters) && sample.parameters.length ? sample.parameters : emptyParameters(device, statusText),
+    diagnosis: sample.diagnosis || device.diagnosis,
+    updatedAt: sample.eventTime || sample.receivedAt || device.updatedAt,
+    realData: sample
+  }
+}
+
+const displayDevices = computed(() => {
+  if (isMockMode.value) return deviceStore.devices
+  return deviceStore.devices.map((device) => toRealtimeDevice(device, realtimeSamples.value[device.id]))
+})
+
+const fleetStats = computed(() => ({
+  online: displayDevices.value.filter((device) => device.online).length,
+  healthy: displayDevices.value.filter((device) => device.online && device.health === 'healthy').length,
+  fault: displayDevices.value.filter((device) => device.online && device.health === 'fault').length
+}))
+
 const previewParameters = (device) => device.parameters.slice(0, 3)
 
 const statusClass = (device) => {
@@ -216,7 +289,7 @@ const statusClass = (device) => {
 }
 
 const statusText = (device) => {
-  if (!device.online) return '离线'
+  if (!device.online) return '待连接'
   return device.health === 'fault' ? '故障' : '健康'
 }
 
@@ -320,12 +393,71 @@ const syncFileDatabase = async () => {
   }
 }
 
+const fetchRealtimeFleetSamples = async () => {
+  if (isMockMode.value || !deviceStore.devices.length) return
+
+  const sampleEntries = await Promise.all(deviceStore.devices.map(async (device) => {
+    const response = await fetch(`/api/slm/realtime/data/${encodeURIComponent(device.id)}`)
+    if (!response.ok) throw new Error(`实时数据接口异常: ${response.status}`)
+    const payload = await response.json()
+    return [device.id, payload.sample || { hasData: false }]
+  }))
+
+  realtimeSamples.value = Object.fromEntries(sampleEntries)
+}
+
+const stopRealtimePolling = () => {
+  if (realtimePollTimer) {
+    clearInterval(realtimePollTimer)
+    realtimePollTimer = null
+  }
+}
+
+const startRealtimePolling = () => {
+  stopRealtimePolling()
+  if (isMockMode.value) {
+    realtimeSamples.value = {}
+    return
+  }
+  fetchRealtimeFleetSamples().catch((error) => {
+    console.error('[DeviceGroup] 获取实时设备群状态失败:', error)
+  })
+  realtimePollTimer = setInterval(() => {
+    fetchRealtimeFleetSamples().catch((error) => {
+      console.error('[DeviceGroup] 获取实时设备群状态失败:', error)
+    })
+  }, REALTIME_POLL_INTERVAL_MS)
+}
+
+const refreshBenchSettings = () => {
+  const previousMode = benchSettings.value.use_mock
+  benchSettings.value = readSlmBenchSettings()
+  if (previousMode !== benchSettings.value.use_mock) {
+    startRealtimePolling()
+  }
+}
+
+watch(() => deviceStore.devices.map((device) => device.id).join(','), () => {
+  startRealtimePolling()
+})
+
 onMounted(async () => {
   try {
     await deviceStore.loadDevicesFromBackend()
   } catch (error) {
     ElMessage.error(error.message || '加载7103设备群数据失败')
   }
+
+  refreshBenchSettings()
+  startRealtimePolling()
+  window.addEventListener('focus', refreshBenchSettings)
+  window.addEventListener('storage', refreshBenchSettings)
+})
+
+onUnmounted(() => {
+  stopRealtimePolling()
+  window.removeEventListener('focus', refreshBenchSettings)
+  window.removeEventListener('storage', refreshBenchSettings)
 })
 </script>
 

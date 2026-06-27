@@ -338,24 +338,13 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { VideoCamera, Search, Check, Refresh, Crop } from '@element-plus/icons-vue'
 import ROIConfigPanel from '../../components/slm/ROIConfigPanel.vue'
+import { readSlmBenchSettings, writeSlmBenchSettings } from '../../utils/slmBenchSettings'
 
 // API 基础地址
 const API_BASE = '/api/slm'
 
-const BENCH_SETTINGS_STORAGE_KEY = 'slm_hust_bench_settings'
-const defaultBenchSettings = {
-  camera_ch1_index: 0,
-  camera_ch2_index: 1,
-  use_mock: false
-}
-
-function readBenchSettings() {
-  const rawSettings = localStorage.getItem(BENCH_SETTINGS_STORAGE_KEY)
-  return rawSettings ? { ...defaultBenchSettings, ...JSON.parse(rawSettings) } : { ...defaultBenchSettings }
-}
-
 // 华科实验台连接设置，供设备状态监测页启动采集时读取。
-const benchSettings = reactive(readBenchSettings())
+const benchSettings = reactive(readSlmBenchSettings())
 const availableCameras = ref([])
 const camerasLoading = ref(false)
 
@@ -458,11 +447,7 @@ async function fetchCameras() {
 }
 
 function saveBenchSettings() {
-  localStorage.setItem(BENCH_SETTINGS_STORAGE_KEY, JSON.stringify({
-    camera_ch1_index: benchSettings.camera_ch1_index,
-    camera_ch2_index: benchSettings.camera_ch2_index,
-    use_mock: benchSettings.use_mock
-  }))
+  writeSlmBenchSettings(benchSettings)
   ElMessage.success('华科实验台连接设置已保存')
 }
 

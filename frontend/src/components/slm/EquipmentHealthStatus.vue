@@ -4,14 +4,6 @@
       <div class="card-header">
         <span class="header-title">SLM设备健康状态</span>
         <div class="header-actions">
-          <!-- 模拟模式开关 -->
-          <el-switch
-            v-model="isMockMode"
-            active-text="模拟"
-            inactive-text="真实"
-            size="small"
-            @change="onMockModeChange"
-          />
           <el-tag 
             :type="currentStatusConfig.tagType" 
             size="small"
@@ -23,33 +15,6 @@
         </div>
       </div>
     </template>
-    
-    <!-- 模拟控制面板 -->
-    <div v-if="isMockMode" class="mock-control-panel">
-      <el-divider content-position="left">
-        <el-icon><Setting /></el-icon> 模拟控制
-      </el-divider>
-      <div class="mock-controls">
-        <div class="mock-item">
-          <span class="mock-label">状态码:</span>
-          <el-input-number 
-            v-model="mockStatusCode" 
-            :min="-1" 
-            :max="4" 
-            :step="1"
-            size="small"
-            @change="onMockStatusChange"
-          />
-          <span class="mock-hint">(-1=未开机, 0=健康, 1=刮刀磨损, 2=激光异常, 3=气体异常, 4=复合故障)</span>
-        </div>
-        <div class="mock-item">
-          <span class="mock-label">当前模拟:</span>
-          <el-tag size="small" :type="currentStatusConfig.tagType">
-            {{ currentStatusConfig.label }}
-          </el-tag>
-        </div>
-      </div>
-    </div>
 
     <div class="health-content">
       <!-- 左侧：设备状态图 -->
@@ -127,15 +92,15 @@
           <h4 class="subsection-title">子系统状态</h4>
           
           <!-- 光路与激光系统 -->
-          <div class="subsystem-item" :class="{ 'fault': isLaserFault, 'disabled': !isRunning }">
+          <div class="subsystem-item" :class="{ fault: isLaserFault, disabled: !systemActive }">
             <div class="subsystem-header">
-              <div class="subsystem-icon" :class="{ 'fault': isLaserFault, 'disabled': !isRunning }">
+              <div class="subsystem-icon" :class="{ fault: isLaserFault, disabled: !systemActive }">
                 <el-icon><Sunny /></el-icon>
               </div>
               <div class="subsystem-info">
                 <span class="subsystem-name">光路与激光系统</span>
                 <span class="subsystem-status" :class="{ 'fault': isLaserFault }">
-                  {{ isRunning ? (isLaserFault ? '激光功率异常' : '工作正常') : '未检测' }}
+                  {{ systemActive ? (isLaserFault ? '激光功率异常' : '工作正常') : '未检测' }}
                 </span>
               </div>
               <el-tag :type="isLaserFault ? 'danger' : 'success'" size="small">
@@ -145,15 +110,15 @@
           </div>
           
           <!-- 铺粉运动系统 -->
-          <div class="subsystem-item" :class="{ 'fault': isPowderFault, 'disabled': !isRunning }">
+          <div class="subsystem-item" :class="{ fault: isPowderFault, disabled: !systemActive }">
             <div class="subsystem-header">
-              <div class="subsystem-icon" :class="{ 'fault': isPowderFault, 'disabled': !isRunning }">
+              <div class="subsystem-icon" :class="{ fault: isPowderFault, disabled: !systemActive }">
                 <el-icon><FirstAidKit /></el-icon>
               </div>
               <div class="subsystem-info">
                 <span class="subsystem-name">铺粉运动系统</span>
                 <span class="subsystem-status" :class="{ 'fault': isPowderFault }">
-                  {{ isRunning ? (isPowderFault ? '刮刀磨损' : '工作正常') : '未检测' }}
+                  {{ systemActive ? (isPowderFault ? '刮刀磨损' : '工作正常') : '未检测' }}
                 </span>
               </div>
               <el-tag :type="isPowderFault ? 'danger' : 'success'" size="small">
@@ -163,15 +128,15 @@
           </div>
           
           <!-- 保护氛围系统 -->
-          <div class="subsystem-item" :class="{ 'fault': isGasFault, 'disabled': !isRunning }">
+          <div class="subsystem-item" :class="{ fault: isGasFault, disabled: !systemActive }">
             <div class="subsystem-header">
-              <div class="subsystem-icon" :class="{ 'fault': isGasFault, 'disabled': !isRunning }">
+              <div class="subsystem-icon" :class="{ fault: isGasFault, disabled: !systemActive }">
                 <el-icon><WindPower /></el-icon>
               </div>
               <div class="subsystem-info">
                 <span class="subsystem-name">保护氛围系统</span>
                 <span class="subsystem-status" :class="{ 'fault': isGasFault }">
-                  {{ isRunning ? (isGasFault ? '气体异常' : '工作正常') : '未检测' }}
+                  {{ systemActive ? (isGasFault ? '气体异常' : '工作正常') : '未检测' }}
                 </span>
               </div>
               <el-tag :type="isGasFault ? 'danger' : 'success'" size="small">
@@ -203,8 +168,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { Warning, Sunny, FirstAidKit, WindPower, Setting } from '@element-plus/icons-vue'
+import { computed } from 'vue'
+import { Warning, Sunny, FirstAidKit, WindPower } from '@element-plus/icons-vue'
 
 const props = defineProps({
   healthData: {
@@ -219,6 +184,10 @@ const props = defineProps({
     })
   },
   isRunning: {
+    type: Boolean,
+    default: false
+  },
+  isMockMode: {
     type: Boolean,
     default: false
   },
@@ -241,10 +210,6 @@ const props = defineProps({
     })
   }
 })
-
-// 模拟模式
-const isMockMode = ref(false)
-const mockStatusCode = ref(-1)
 
 // 状态码映射配置
 const statusCodeMap = {
@@ -318,11 +283,14 @@ const statusCodeMap = {
 
 // 计算当前显示的状态码
 const displayStatusCode = computed(() => {
-  if (isMockMode.value) {
-    return mockStatusCode.value
+  const diagnosisCode = props.diagnosisData?.frontendStatusCode
+  if (props.isMockMode && diagnosisCode !== undefined && diagnosisCode !== null) {
+    return Number(diagnosisCode)
   }
   return props.healthData?.status_code ?? -1
 })
+
+const systemActive = computed(() => props.isRunning || props.isMockMode || displayStatusCode.value !== -1)
 
 // 计算当前状态配置
 const currentStatusConfig = computed(() => {
@@ -370,20 +338,6 @@ const diagnosisDisplay = computed(() => {
   }
 })
 
-// 模拟模式切换
-const onMockModeChange = (val) => {
-  if (val) {
-    // 开启模拟模式时，使用当前状态码作为初始值
-    mockStatusCode.value = props.healthData?.status_code ?? -1
-  }
-}
-
-// 模拟状态变化
-const onMockStatusChange = (val) => {
-  console.log(`[EquipmentHealth] 模拟状态码切换为: ${val}`)
-  // 这里可以触发事件通知父组件
-}
-
 // 图片加载错误处理
 const onImageError = (e) => {
   console.error('[EquipmentHealth] 图片加载失败:', e.target.src)
@@ -391,23 +345,10 @@ const onImageError = (e) => {
   e.target.src = '/state_picture/power_off.png'
 }
 
-// 监听真实健康数据变化（非模拟模式时）
-watch(() => props.healthData?.status_code, (newCode) => {
-  if (!isMockMode.value && newCode !== undefined) {
-    console.log(`[EquipmentHealth] 真实状态码更新: ${newCode}`)
-  }
-})
-
 // 暴露方法给父组件
 defineExpose({
   // 获取当前状态配置（供测试用）
-  getCurrentStatusConfig: () => currentStatusConfig.value,
-  // 设置模拟状态码
-  setMockStatusCode: (code) => {
-    if (isMockMode.value) {
-      mockStatusCode.value = code
-    }
-  }
+  getCurrentStatusConfig: () => currentStatusConfig.value
 })
 </script>
 
@@ -438,39 +379,6 @@ defineExpose({
 .status-tag {
   min-width: 80px;
   text-align: center;
-}
-
-/* 模拟控制面板 */
-.mock-control-panel {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: rgba(30, 41, 59, 0.5);
-  border-radius: 8px;
-  border: 1px dashed rgba(100, 116, 139, 0.5);
-}
-
-.mock-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.mock-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.mock-label {
-  font-size: 13px;
-  color: #94a3b8;
-  min-width: 70px;
-}
-
-.mock-hint {
-  font-size: 11px;
-  color: #64748b;
 }
 
 /* 健康内容区域 */
@@ -773,11 +681,6 @@ defineExpose({
   .status-image-container {
     max-width: 400px;
     margin: 0 auto;
-  }
-  
-  .mock-item {
-    flex-direction: column;
-    align-items: flex-start;
   }
 }
 </style>
