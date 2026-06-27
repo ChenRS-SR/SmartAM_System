@@ -1,9 +1,98 @@
 <template>
   <div class="slm-settings">
     <h2 class="page-title">SLM 设置</h2>
+
+    <!-- 华科实验台连接设置 -->
+    <el-card class="settings-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <el-icon size="20"><VideoCamera /></el-icon>
+          <span>华科实验台连接设置</span>
+          <el-tag :type="benchSettings.use_mock ? 'warning' : 'success'" size="small" effect="dark">
+            {{ benchSettings.use_mock ? '模拟数据' : '真实硬件' }}
+          </el-tag>
+        </div>
+      </template>
+
+      <div class="settings-content">
+        <el-alert
+          title="实验台采集连接参数"
+          description="这里集中维护华科实验台 USB 摄像头、红外热像仪和调试模式设置；设备状态监测页启动采集时读取此处保存的配置。"
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 20px;"
+        />
+
+        <el-form :model="benchSettings" label-width="140px" size="default">
+          <el-divider content-position="left">摄像头设置 (USB)</el-divider>
+          <el-form-item label="CH1主摄像头">
+            <div class="camera-select-row">
+              <el-select v-model="benchSettings.camera_ch1_index" style="width: 240px" :loading="camerasLoading">
+                <el-option
+                  v-for="cam in availableCameras"
+                  :key="`ch1-${cam.index}`"
+                  :label="formatCameraLabel(cam)"
+                  :value="cam.index"
+                />
+                <el-option v-if="availableCameras.length === 0 && !camerasLoading" label="未检测到摄像头" :value="-1" disabled />
+                <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
+              </el-select>
+              <el-button type="primary" @click="fetchCameras" :loading="camerasLoading">
+                <el-icon><Refresh /></el-icon>
+                刷新
+              </el-button>
+            </div>
+          </el-form-item>
+          <el-form-item label="CH2副摄像头">
+            <el-select v-model="benchSettings.camera_ch2_index" style="width: 240px" :loading="camerasLoading">
+              <el-option
+                v-for="cam in availableCameras"
+                :key="`ch2-${cam.index}`"
+                :label="formatCameraLabel(cam)"
+                :value="cam.index"
+              />
+              <el-option v-if="availableCameras.length === 0 && !camerasLoading" label="未检测到摄像头" :value="-1" disabled />
+              <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
+            </el-select>
+          </el-form-item>
+
+          <el-divider content-position="left">红外热像仪</el-divider>
+          <el-form-item>
+            <el-alert
+              type="info"
+              :closable="false"
+              show-icon
+            >
+              <template #title>
+                红外热像仪通过 PIX Connect SDK 连接，不需要 COM 口
+              </template>
+              <template #default>
+                请确认 PIX Connect 软件已安装并启动、热像仪设备已连接，并在 PIX Connect 中启用 IPC 通信。
+              </template>
+            </el-alert>
+          </el-form-item>
+
+          <el-divider content-position="left">调试模式</el-divider>
+          <el-form-item label="使用模拟数据">
+            <el-switch v-model="benchSettings.use_mock" />
+            <span class="form-hint inline-hint">
+              开启后无需连接真实硬件，用于界面测试
+            </span>
+          </el-form-item>
+
+          <el-form-item>
+            <el-button type="primary" @click="saveBenchSettings">
+              <el-icon><Check /></el-icon>
+              保存连接设置
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+    </el-card>
     
     <!-- 模拟模式设置 -->
-    <el-card class="settings-card" shadow="never">
+    <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
       <template #header>
         <div class="card-header">
           <el-icon size="20"><VideoCamera /></el-icon>
@@ -253,6 +342,23 @@ import ROIConfigPanel from '../../components/slm/ROIConfigPanel.vue'
 // API 基础地址
 const API_BASE = '/api/slm'
 
+const BENCH_SETTINGS_STORAGE_KEY = 'slm_hust_bench_settings'
+const defaultBenchSettings = {
+  camera_ch1_index: 0,
+  camera_ch2_index: 1,
+  use_mock: false
+}
+
+function readBenchSettings() {
+  const rawSettings = localStorage.getItem(BENCH_SETTINGS_STORAGE_KEY)
+  return rawSettings ? { ...defaultBenchSettings, ...JSON.parse(rawSettings) } : { ...defaultBenchSettings }
+}
+
+// 华科实验台连接设置，供设备状态监测页启动采集时读取。
+const benchSettings = reactive(readBenchSettings())
+const availableCameras = ref([])
+const camerasLoading = ref(false)
+
 // 视频文件配置
 const videoFileConfig = reactive({
   enableCorrection: true,
@@ -312,6 +418,53 @@ const channelDetails = computed(() => {
     output_size: info.output_size ? `${info.output_size[0]} x ${info.output_size[1]}` : '-'
   }))
 })
+
+function formatCameraLabel(camera) {
+  const resolution = camera.resolution?.length === 2
+    ? `${camera.resolution[0]}x${camera.resolution[1]}`
+    : '未知分辨率'
+  return `摄像头 ${camera.index} (${resolution})`
+}
+
+async function fetchCameras() {
+  camerasLoading.value = true
+  try {
+    const response = await fetch(`${API_BASE}/cameras`)
+    const result = await response.json()
+
+    if (result.success) {
+      availableCameras.value = result.cameras || []
+
+      // 只在当前保存的索引不存在时，按检测顺序填入可用摄像头。
+      const availableIndices = availableCameras.value.map(camera => camera.index)
+      const ch1Valid = availableIndices.includes(benchSettings.camera_ch1_index)
+      const ch2Valid = availableIndices.includes(benchSettings.camera_ch2_index)
+
+      if (availableCameras.value.length >= 2) {
+        if (!ch1Valid) benchSettings.camera_ch1_index = availableCameras.value[0].index
+        if (!ch2Valid) benchSettings.camera_ch2_index = availableCameras.value[1].index
+      } else if (availableCameras.value.length === 1) {
+        if (!ch1Valid) benchSettings.camera_ch1_index = availableCameras.value[0].index
+      }
+    } else {
+      ElMessage.warning(result.message || '摄像头检测失败')
+    }
+  } catch (error) {
+    console.error('获取摄像头失败:', error)
+    ElMessage.error('摄像头检测失败: ' + error.message)
+  } finally {
+    camerasLoading.value = false
+  }
+}
+
+function saveBenchSettings() {
+  localStorage.setItem(BENCH_SETTINGS_STORAGE_KEY, JSON.stringify({
+    camera_ch1_index: benchSettings.camera_ch1_index,
+    camera_ch2_index: benchSettings.camera_ch2_index,
+    use_mock: benchSettings.use_mock
+  }))
+  ElMessage.success('华科实验台连接设置已保存')
+}
 
 // ROI配置回调
 function onROIConfigLoaded(config) {
@@ -538,6 +691,7 @@ async function reloadCalibration() {
 
 // 初始化
 onMounted(() => {
+  fetchCameras()
   refreshConfig()
   // 自动扫描一次
   scanVideoFiles()
@@ -584,6 +738,18 @@ onMounted(() => {
   font-size: 12px;
   color: #64748b;
   margin-top: 5px;
+}
+
+.inline-hint {
+  margin-left: 10px;
+  margin-top: 0;
+}
+
+.camera-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .current-config {

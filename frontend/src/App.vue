@@ -136,14 +136,14 @@ const deviceTypeIcon = computed(() => {
 // SLM 菜单
 const slmMenuItems = [
   { name: '设备群监测', path: '/slm/dashboard', icon: 'Grid' },
-  { name: '打印状态监测', path: '/slm/device', icon: 'Monitor' },
+  { name: '设备状态监测', path: '/slm/device', icon: 'Monitor' },
   { name: '设置', path: '/slm/settings', icon: 'Setting' },
 ]
 
 // SLS 菜单
 const slsMenuItems = [
   { name: '设备群监测', path: '/sls/dashboard', icon: 'Grid' },
-  { name: '打印状态监测', path: '/sls/device', icon: 'Monitor' },
+  { name: '设备状态监测', path: '/sls/device', icon: 'Monitor' },
   { name: '设置', path: '/sls/settings', icon: 'Setting' },
 ]
 

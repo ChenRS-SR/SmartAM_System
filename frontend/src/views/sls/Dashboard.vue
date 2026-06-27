@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="dashboard-header">
       <div class="title-block">
-        <h1 class="page-title">{{ selectedDeviceName }} 打印状态监测</h1>
+        <h1 class="page-title">{{ selectedDeviceName }} 设备状态监测</h1>
         <div class="device-subtitle">
           {{ selectedDevice?.dataTag || 'SLS设备' }} · {{ selectedDevice?.model || 'SLS 设备' }} · {{ selectedDevice?.location || '未设置位置' }}
         </div>

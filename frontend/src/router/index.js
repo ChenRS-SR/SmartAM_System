@@ -34,7 +34,7 @@ const routes = [
     path: '/slm/device/:deviceId?',
     name: 'SLMDeviceDashboard',
     component: SLMDashboard,
-    meta: { title: '打印状态监测', device: 'slm' }
+    meta: { title: '设备状态监测', device: 'slm' }
   },
   {
     path: '/slm/settings',
@@ -54,7 +54,7 @@ const routes = [
     path: '/sls/device/:deviceId?',
     name: 'SLSDeviceDashboard',
     component: SLSDashboard,
-    meta: { title: '打印状态监测', device: 'sls' }
+    meta: { title: '设备状态监测', device: 'sls' }
   },
   {
     path: '/sls/settings',

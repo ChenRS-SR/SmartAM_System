@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="dashboard-header">
       <div class="title-block">
-        <h1 class="page-title">{{ selectedDeviceName }} 打印状态监测</h1>
+        <h1 class="page-title">{{ selectedDeviceName }} 设备状态监测</h1>
         <div class="device-subtitle">
           {{ selectedDevice?.dataTag || '7103设备' }} · {{ selectedDevice?.model || 'SLM 设备' }} · {{ selectedDevice?.location || '未设置位置' }}
         </div>
@@ -44,10 +44,6 @@
           :loading="starting"
         >
           {{ isRunning ? '停止采集' : '开始采集' }}
-        </el-button>
-        <el-button @click="showSettings = true">
-          <el-icon><Setting /></el-icon>
-          设置
         </el-button>
       </div>
     </div>
@@ -118,86 +114,13 @@
         :diagnosis-data="diagnosisData"
       />
     </div>
-    
-    <!-- 设置对话框 -->
-    <el-dialog
-      v-model="showSettings"
-      title="采集设置"
-      width="550px"
-      destroy-on-close
-    >
-      <el-form :model="settings" label-width="140px">
-        <!-- 摄像头设置 -->
-        <el-divider content-position="left">摄像头设置 (USB)</el-divider>
-        <el-form-item label="CH1主摄像头">
-          <el-select v-model="settings.camera_ch1_index" style="width: 200px" :loading="camerasLoading">
-            <el-option
-              v-for="cam in availableCameras"
-              :key="cam.index"
-              :label="`摄像头 ${cam.index} (${cam.resolution?.[0] || '?'}x${cam.resolution?.[1] || '?'})`"
-              :value="cam.index"
-            />
-            <el-option v-if="availableCameras.length === 0 && !camerasLoading" label="未检测到摄像头" :value="-1" disabled />
-            <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
-          </el-select>
-          <el-button type="primary" size="small" @click="fetchCameras" style="margin-left: 10px" :loading="camerasLoading">
-            <el-icon><Refresh /></el-icon> 刷新
-          </el-button>
-        </el-form-item>
-        <el-form-item label="CH2副摄像头">
-          <el-select v-model="settings.camera_ch2_index" style="width: 200px" :loading="camerasLoading">
-            <el-option
-              v-for="cam in availableCameras"
-              :key="cam.index"
-              :label="`摄像头 ${cam.index} (${cam.resolution?.[0] || '?'}x${cam.resolution?.[1] || '?'})`"
-              :value="cam.index"
-            />
-            <el-option v-if="availableCameras.length === 0 && !camerasLoading" label="未检测到摄像头" :value="-1" disabled />
-            <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
-          </el-select>
-        </el-form-item>
-        
-        <!-- 红外热像仪 -->
-        <el-divider content-position="left">红外热像仪</el-divider>
-        <el-form-item>
-          <el-alert
-            type="info"
-            :closable="false"
-            show-icon
-          >
-            <template #title>
-              红外热像仪通过PIX Connect SDK连接，不需要COM口
-            </template>
-            <template #default>
-              请确保：<br>
-              1. PIX Connect软件已安装并启动<br>
-              2. 热像仪设备已连接<br>
-              3. 在PIX Connect中启用IPC通信
-            </template>
-          </el-alert>
-        </el-form-item>
-        
-        <!-- 模拟模式 -->
-        <el-divider content-position="left">调试模式</el-divider>
-        <el-form-item label="使用模拟数据">
-          <el-switch v-model="settings.use_mock" />
-          <span style="margin-left: 10px; color: #909399; font-size: 12px;">
-            开启后无需连接真实硬件，用于界面测试
-          </span>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showSettings = false">取消</el-button>
-        <el-button type="primary" @click="saveSettings">保存</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Setting, Refresh } from '@element-plus/icons-vue'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
@@ -219,7 +142,6 @@ const selectedDeviceName = computed(() => selectedDevice.value?.name || 'SLM设�
 // 状态
 const isRunning = ref(false)
 const starting = ref(false)
-const showSettings = ref(false)
 const wsConnected = ref(false)
 const streamKey = ref(Date.now())  // 用于强制刷新视频流
 const displayPaused = ref(false)   // 显示暂停状态（录制时节省带宽）
@@ -303,16 +225,20 @@ const healthData = reactive({
   gas_system: { status: 'unknown', message: '未检测' }
 })
 
-// 设置
-const settings = reactive({
+const BENCH_SETTINGS_STORAGE_KEY = 'slm_hust_bench_settings'
+const defaultBenchSettings = {
   camera_ch1_index: 0,  // 默认自动检测
   camera_ch2_index: 1,  // 默认自动检测
   use_mock: false  // 默认使用真实硬件
-})
+}
 
-// 可用摄像头列表
-const availableCameras = ref([])
-const camerasLoading = ref(false)
+function readBenchSettings() {
+  const rawSettings = localStorage.getItem(BENCH_SETTINGS_STORAGE_KEY)
+  return rawSettings ? { ...defaultBenchSettings, ...JSON.parse(rawSettings) } : { ...defaultBenchSettings }
+}
+
+// 华科实验台连接设置在设置页维护，监测页启动采集时只读取已保存配置。
+const settings = reactive(readBenchSettings())
 
 // RegulationControl 引用
 const regulationControl = ref(null)
@@ -611,14 +537,6 @@ watch(liveParameters, (parameters) => {
   }
 }, { deep: true })
 
-// 当设置对话框打开时自动检测硬件
-watch(showSettings, (val) => {
-  if (val) {
-    // 对话框打开时自动检测
-    fetchCameras()
-  }
-})
-
 // 视频源改变时的处理
 const onVideoSourceChanged = (sourceInfo) => {
   console.log('[Dashboard] 视频源已改变:', sourceInfo)
@@ -692,43 +610,6 @@ const updateHealthStatusOnBackend = async (statusCode, labels) => {
     console.log(`[Dashboard] 后端健康状态已更新: ${statusCode}`)
   } catch (error) {
     console.error('[Dashboard] 更新后端健康状态失败:', error)
-  }
-}
-
-// 获取可用摄像头
-const fetchCameras = async () => {
-  camerasLoading.value = true
-  try {
-    const response = await axios.get('/api/slm/cameras')
-    if (response.data.success) {
-      availableCameras.value = response.data.cameras
-      
-      // 检查当前选择是否有效，无效则自动设置
-      const availableIndices = response.data.cameras.map(c => c.index)
-      const ch1Valid = availableIndices.includes(settings.camera_ch1_index)
-      const ch2Valid = availableIndices.includes(settings.camera_ch2_index)
-      
-      // 自动设置摄像头索引（仅在未运行时且当前选择无效）
-      if (!isRunning.value) {
-        if (response.data.cameras.length >= 2) {
-          if (!ch1Valid) settings.camera_ch1_index = response.data.cameras[0].index
-          if (!ch2Valid) settings.camera_ch2_index = response.data.cameras[1].index
-        } else if (response.data.cameras.length === 1) {
-          if (!ch1Valid) settings.camera_ch1_index = response.data.cameras[0].index
-        }
-      }
-      
-      if (response.data.cameras.length > 0) {
-        console.log('检测到摄像头:', response.data.cameras)
-      }
-    } else {
-      ElMessage.warning(response.data.message || '摄像头检测失败')
-    }
-  } catch (error) {
-    console.error('获取摄像头失败:', error)
-    ElMessage.error('摄像头检测失败: ' + (error.response?.data?.message || error.message))
-  } finally {
-    camerasLoading.value = false
   }
 }
 
@@ -995,56 +876,6 @@ const restartAcquisitionWithNewVideoConfig = async () => {
   }
 }
 
-// 保存设置
-const saveSettings = async () => {
-  // 如果正在采集，需要先停止再重新启动以应用新设置
-  if (isRunning.value) {
-    ElMessage.warning('设置已更改，正在重启采集以应用新配置...')
-    
-    try {
-      // 停止当前采集
-      await axios.post('/api/slm/stop')
-      isRunning.value = false  // 更新状态
-      streamKey.value = Date.now()  // 强制刷新视频流
-      closeWebSocket()
-      
-      // 等待资源释放
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // 重新启动采集
-      const response = await axios.post('/api/slm/start', null, {
-        params: {
-          camera_ch1_index: settings.camera_ch1_index,
-          camera_ch2_index: settings.camera_ch2_index,
-          use_mock: settings.use_mock
-        }
-      })
-      
-      if (response.data.success) {
-        resetRuntimeBase()
-        mockRuntimeTick.value = 0
-        resetRealtimeState()
-        isRunning.value = true  // 更新状态
-        streamKey.value = Date.now()  // 更新streamKey强制刷新视频流
-        if (settings.use_mock && selectedDevice.value?.healthData) {
-          applyHealthData(selectedDevice.value.healthData)
-        } else if (!settings.use_mock) {
-          resetHealthToWaiting()
-        }
-        connectWebSocket()
-        ElMessage.success('采集已重启，新设置已生效')
-      }
-    } catch (error) {
-      ElMessage.error('重启采集失败: ' + (error.response?.data?.message || error.message))
-      isRunning.value = false
-    }
-  } else {
-    ElMessage.success('设置已保存，将在下次启动采集时生效')
-  }
-  
-  showSettings.value = false
-}
-
 // 处理诊断结果
 const handleDiagnosisComplete = (result) => {
   console.log('[Dashboard] 诊断结果:', result)
@@ -1220,6 +1051,8 @@ watch([isRunning, () => settings.use_mock, selectedDeviceId], () => {
 }, { immediate: true })
 
 onMounted(async () => {
+  Object.assign(settings, readBenchSettings())
+
   try {
     await slmDeviceStore.loadDevicesFromBackend()
     ensureSelectedDevice()
@@ -1228,7 +1061,6 @@ onMounted(async () => {
   }
 
   fetchStatus()
-  fetchCameras()
   fetchVideoFileModeConfig()  // 获取视频文件模式配置
   
   if (isRunning.value) {
