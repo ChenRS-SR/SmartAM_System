@@ -188,7 +188,7 @@ async def list_device_group_devices():
             "diagnosisPolicy": manifest.get("diagnosisPolicy"),
             "statusCodeMap": manifest.get("statusCodeMap", {}),
             "parameterSchema": manifest.get("parameterSchema", []),
-            "devices": manifest.get("devices", []),
+            "devices": store.list_devices(),
         }
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=str(exc))

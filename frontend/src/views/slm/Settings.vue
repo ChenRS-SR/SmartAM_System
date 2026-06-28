@@ -91,144 +91,32 @@
       </div>
     </el-card>
     
-    <!-- 模拟模式设置 -->
+    <!-- 设备目录模拟视频扫描 -->
     <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
       <template #header>
         <div class="card-header">
           <el-icon size="20"><VideoCamera /></el-icon>
-          <span>视频模拟设置</span>
-          <el-tag v-if="videoFileMode.enabled" type="success" size="small" effect="dark">已启用</el-tag>
-          <el-tag v-else type="info" size="small">未启用</el-tag>
+          <span>设备模拟视频扫描</span>
+          <el-tag type="info" size="small">由设备文件数据库决定</el-tag>
         </div>
       </template>
       
       <div class="settings-content">
         <el-alert
-          title="视频文件模拟模式"
-          description="使用本地视频文件替代真实摄像头。系统会自动扫描 simulation_record 文件夹中的视频文件。"
+          title="模拟视频按设备目录自动扫描"
+          description="在单台设备数据库目录下放入 mock_video/CH1、mock_video/CH2、mock_video/CH3 文件夹；每个通道文件夹内放一个支持格式的视频即可自动接入。"
           type="info"
           :closable="false"
           show-icon
           style="margin-bottom: 20px;"
         />
-        
-        <!-- 自动扫描按钮 -->
-        <el-form label-width="120px" size="default">
-          <el-form-item>
-            <el-select v-model="scanFolder" style="width: 180px; margin-right: 10px;">
-              <el-option label="normal (默认)" value="normal" />
-              <el-option label="scene_underpower" value="scene_underpower" />
-              <el-option label="scene_overpower" value="scene_overpower" />
-              <el-option label="scene_underpower_critical" value="scene_underpower_critical" />
-              <el-option label="根目录" value="" />
-            </el-select>
-            <el-button type="primary" @click="scanVideoFiles" :loading="scanning">
-              <el-icon><Search /></el-icon>
-              自动扫描视频文件
-            </el-button>
-            <span class="form-hint" style="margin-left: 10px;">
-              扫描 simulation_record/{{ scanFolder || '' }} 文件夹
-            </span>
-          </el-form-item>
-        </el-form>
-        
-        <!-- 扫描结果显示 -->
-        <div v-if="scannedVideos.CH1 || scannedVideos.CH2 || scannedVideos.CH3" class="scan-result">
-          <el-descriptions :column="1" border size="small">
-            <el-descriptions-item v-if="scannedVideos.CH1" label="CH1 视频">
-              <el-tag type="success" size="small">找到</el-tag>
-              {{ scannedVideos.CH1.filename }}
-            </el-descriptions-item>
-            <el-descriptions-item v-else label="CH1 视频">
-              <el-tag type="warning" size="small">未找到</el-tag>
-            </el-descriptions-item>
-            
-            <el-descriptions-item v-if="scannedVideos.CH2" label="CH2 视频">
-              <el-tag type="success" size="small">找到</el-tag>
-              {{ scannedVideos.CH2.filename }}
-            </el-descriptions-item>
-            <el-descriptions-item v-else label="CH2 视频">
-              <el-tag type="warning" size="small">未找到</el-tag>
-            </el-descriptions-item>
-            
-            <el-descriptions-item v-if="scannedVideos.CH3" label="CH3 视频">
-              <el-tag type="success" size="small">找到</el-tag>
-              {{ scannedVideos.CH3.filename }}
-            </el-descriptions-item>
-            <el-descriptions-item v-else label="CH3 视频">
-              <el-tag type="warning" size="small">未找到</el-tag>
-            </el-descriptions-item>
-          </el-descriptions>
-        </div>
-        
-        <!-- 畸变矫正 -->
-        <el-form :model="videoFileConfig" label-width="120px" size="default" style="margin-top: 20px;">
-          <el-form-item label="畸变矫正">
-            <el-switch
-              v-model="videoFileConfig.enableCorrection"
-              active-text="启用"
-              inactive-text="禁用"
-            />
-            <div class="form-hint">
-              使用 calibration_points.json 中的标定数据进行透视变换矫正
-            </div>
-          </el-form-item>
-          
-          <!-- FPS 控制滑块 -->
-          <el-form-item label="播放帧率">
-            <div class="fps-slider-container">
-              <el-slider
-                v-model="videoFileConfig.fps"
-                :min="1"
-                :max="60"
-                :step="1"
-                show-stops
-                :marks="{1: '1', 10: '10', 20: '20', 30: '30', 60: '60'}"
-                style="width: 300px;"
-              />
-              <span class="fps-value">{{ videoFileConfig.fps }} FPS</span>
-            </div>
-            <div class="form-hint">
-              控制视频播放速度 (1-60 FPS)，默认 10 FPS（匹配视频实际帧率）
-            </div>
-          </el-form-item>
-          
-          <el-form-item>
-            <el-button 
-              type="primary" 
-              @click="applyVideoFileMode"
-              :loading="applying"
-              :disabled="!hasValidVideoFiles"
-            >
-              <el-icon><Check /></el-icon>
-              应用设置
-            </el-button>
-            <el-button 
-              @click="disableVideoFileMode"
-              :loading="disabling"
-              :disabled="!videoFileMode.enabled"
-            >
-              禁用模拟
-            </el-button>
-            <el-button @click="refreshConfig">
-              <el-icon><Refresh /></el-icon>
-              刷新状态
-            </el-button>
-          </el-form-item>
-        </el-form>
-        
-        <!-- 当前配置状态 -->
-        <div v-if="videoFileMode.enabled" class="current-config">
-          <el-divider />
-          <h4>当前配置</h4>
-          <el-descriptions :column="1" border size="small">
-            <el-descriptions-item label="CH1">{{ videoFileMode.video_files.CH1 || '未设置' }}</el-descriptions-item>
-            <el-descriptions-item label="CH2">{{ videoFileMode.video_files.CH2 || '未设置' }}</el-descriptions-item>
-            <el-descriptions-item label="CH3">{{ videoFileMode.video_files.CH3 || '未设置' }}</el-descriptions-item>
-            <el-descriptions-item label="畸变矫正">{{ videoFileMode.correction_enabled ? '启用' : '禁用' }}</el-descriptions-item>
-            <el-descriptions-item label="播放帧率">{{ videoFileMode.fps || 30 }} FPS</el-descriptions-item>
-          </el-descriptions>
-        </div>
+
+        <el-table :data="mockCaseRows" border size="small">
+          <el-table-column prop="name" label="设备" min-width="180" />
+          <el-table-column prop="caseLabel" label="扫描结果" min-width="160" />
+          <el-table-column prop="folder" label="目录结构" min-width="260" />
+          <el-table-column prop="status" label="状态" width="120" />
+        </el-table>
       </div>
     </el-card>
     
@@ -336,38 +224,20 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { VideoCamera, Search, Check, Refresh, Crop } from '@element-plus/icons-vue'
+import { VideoCamera, Check, Refresh, Crop } from '@element-plus/icons-vue'
 import ROIConfigPanel from '../../components/slm/ROIConfigPanel.vue'
 import { readSlmBenchSettings, writeSlmBenchSettings } from '../../utils/slmBenchSettings'
+import { useSlmDeviceStore } from '../../stores/slmDevices'
+import { getDeviceMockCase } from '../../utils/slmMockCases'
 
 // API 基础地址
 const API_BASE = '/api/slm'
+const slmDeviceStore = useSlmDeviceStore()
 
 // 华科实验台连接设置，供设备状态监测页启动采集时读取。
 const benchSettings = reactive(readSlmBenchSettings())
 const availableCameras = ref([])
 const camerasLoading = ref(false)
-
-// 视频文件配置
-const videoFileConfig = reactive({
-  enableCorrection: true,
-  fps: 10  // 默认10fps，匹配视频实际帧率
-})
-
-// 扫描到的视频文件
-const scannedVideos = reactive({
-  CH1: null,
-  CH2: null,
-  CH3: null
-})
-
-// 当前视频文件模式状态
-const videoFileMode = reactive({
-  enabled: false,
-  video_files: {},
-  correction_enabled: true,
-  fps: 30
-})
 
 // 畸变矫正信息
 const correctionInfo = reactive({
@@ -379,20 +249,12 @@ const correctionInfo = reactive({
 const calibrationFilePath = ref('')
 
 // 加载状态
-const applying = ref(false)
-const disabling = ref(false)
-const scanning = ref(false)
-const scanFolder = ref('normal')  // 默认扫描 normal 文件夹
 const reloadingCalibration = ref(false)
 
 // ROI配置状态
 const roiConfigured = ref(false)
 
 // 计算属性
-const hasValidVideoFiles = computed(() => {
-  return scannedVideos.CH1 || scannedVideos.CH2 || scannedVideos.CH3
-})
-
 const calibratedChannels = computed(() => {
   return Object.keys(correctionInfo.channels).filter(ch => 
     correctionInfo.channels[ch]?.calibrated
@@ -407,6 +269,18 @@ const channelDetails = computed(() => {
     output_size: info.output_size ? `${info.output_size[0]} x ${info.output_size[1]}` : '-'
   }))
 })
+
+const mockCaseRows = computed(() => slmDeviceStore.devices.map((device) => {
+  const mockCase = getDeviceMockCase(device)
+  return {
+    id: device.id,
+    name: device.name,
+    hasCase: Boolean(mockCase),
+    caseLabel: mockCase?.label || '暂不支持接入',
+    folder: mockCase ? `${device.dataDirectory}/mock_video/CH1..CH3` : '--',
+    status: mockCase?.supported ? '已接入' : '未接入'
+  }
+}))
 
 function formatCameraLabel(camera) {
   const resolution = camera.resolution?.length === 2
@@ -459,148 +333,6 @@ function onROIConfigLoaded(config) {
 
 function onROIConfigCleared() {
   roiConfigured.value = false
-}
-
-// 扫描视频文件
-async function scanVideoFiles() {
-  scanning.value = true
-  
-  try {
-    const folderParam = scanFolder.value ? `?folder=${scanFolder.value}` : ''
-    const response = await fetch(`${API_BASE}/video_file_mode/scan${folderParam}`)
-    const result = await response.json()
-    
-    if (result.success) {
-      // 更新扫描结果
-      scannedVideos.CH1 = result.videos.CH1 || null
-      scannedVideos.CH2 = result.videos.CH2 || null
-      scannedVideos.CH3 = result.videos.CH3 || null
-      
-      const foundCount = [scannedVideos.CH1, scannedVideos.CH2, scannedVideos.CH3].filter(v => v).length
-      ElMessage.success(`扫描完成，找到 ${foundCount} 个视频文件`)
-    } else {
-      ElMessage.error(result.message || '扫描失败')
-    }
-  } catch (error) {
-    console.error('扫描视频文件失败:', error)
-    ElMessage.error('扫描视频文件失败: ' + error.message)
-  } finally {
-    scanning.value = false
-  }
-}
-
-// 应用视频文件模式
-async function applyVideoFileMode() {
-  if (!hasValidVideoFiles.value) {
-    ElMessage.warning('请先扫描视频文件')
-    return
-  }
-  
-  applying.value = true
-  
-  try {
-    // 构建视频文件字典
-    const videoFiles = {}
-    if (scannedVideos.CH1) videoFiles.CH1 = scannedVideos.CH1.path
-    if (scannedVideos.CH2) videoFiles.CH2 = scannedVideos.CH2.path
-    if (scannedVideos.CH3) videoFiles.CH3 = scannedVideos.CH3.path
-    
-    const response = await fetch(`${API_BASE}/video_file_mode/setup`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        video_files: videoFiles,
-        enable_correction: videoFileConfig.enableCorrection
-      })
-    })
-    
-    const result = await response.json()
-    
-    if (result.success) {
-      ElMessage.success('视频文件模拟模式已启用')
-      // 设置 FPS
-      await setVideoFileFps()
-      await refreshConfig()
-    } else {
-      ElMessage.error(result.message || '设置失败')
-    }
-  } catch (error) {
-    console.error('应用设置失败:', error)
-    ElMessage.error('应用设置失败: ' + error.message)
-  } finally {
-    applying.value = false
-  }
-}
-
-// 禁用视频文件模式
-async function disableVideoFileMode() {
-  disabling.value = true
-  
-  try {
-    const response = await fetch(`${API_BASE}/video_file_mode/disable`, {
-      method: 'POST'
-    })
-    
-    const result = await response.json()
-    
-    if (result.success) {
-      ElMessage.success('视频文件模拟模式已禁用')
-      videoFileMode.enabled = false
-      videoFileMode.video_files = {}
-    } else {
-      ElMessage.error(result.message || '禁用失败')
-    }
-  } catch (error) {
-    console.error('禁用失败:', error)
-    ElMessage.error('禁用失败: ' + error.message)
-  } finally {
-    disabling.value = false
-  }
-}
-
-// 设置视频文件 FPS
-async function setVideoFileFps() {
-  try {
-    const response = await fetch(`${API_BASE}/video_file_mode/fps?fps=${videoFileConfig.fps}`, {
-      method: 'POST'
-    })
-    
-    const result = await response.json()
-    
-    if (result.success) {
-      ElMessage.success(`播放帧率已设置为 ${videoFileConfig.fps} FPS`)
-    } else {
-      console.log('FPS 设置提示:', result.message)
-    }
-  } catch (error) {
-    console.error('设置 FPS 失败:', error)
-  }
-}
-
-// 刷新配置
-async function refreshConfig() {
-  try {
-    // 获取视频文件模式配置
-    const modeResponse = await fetch(`${API_BASE}/video_file_mode/config`)
-    const modeResult = await modeResponse.json()
-    
-    if (modeResult.success) {
-      videoFileMode.enabled = modeResult.enabled
-      videoFileMode.video_files = modeResult.video_files || {}
-      videoFileMode.correction_enabled = modeResult.correction_enabled
-      videoFileMode.fps = modeResult.fps || 30
-      // 同步到配置表单
-      videoFileConfig.fps = modeResult.fps || 10
-    }
-    
-    // 获取畸变矫正信息
-    await loadCorrectionInfo()
-  } catch (error) {
-    console.error('刷新配置失败:', error)
-    ElMessage.error('刷新配置失败: ' + error.message)
-  }
 }
 
 // 加载畸变矫正信息
@@ -677,9 +409,10 @@ async function reloadCalibration() {
 // 初始化
 onMounted(() => {
   fetchCameras()
-  refreshConfig()
-  // 自动扫描一次
-  scanVideoFiles()
+  loadCorrectionInfo()
+  slmDeviceStore.loadDevicesFromBackend().catch((error) => {
+    ElMessage.error(error.message || '加载设备模拟用例绑定失败')
+  })
 })
 </script>
 
@@ -712,13 +445,6 @@ onMounted(() => {
   padding: 10px 0;
 }
 
-.scan-result {
-  margin: 20px 0;
-  padding: 15px;
-  background: rgba(30, 41, 59, 0.5);
-  border-radius: 8px;
-}
-
 .form-hint {
   font-size: 12px;
   color: #64748b;
@@ -735,15 +461,6 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.current-config {
-  margin-top: 20px;
-}
-
-.current-config h4 {
-  color: #e2e8f0;
-  margin-bottom: 15px;
 }
 
 .correction-info {
@@ -769,36 +486,4 @@ onMounted(() => {
   color: #e2e8f0 !important;
 }
 
-.fps-slider-container {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.fps-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #409eff;
-  min-width: 60px;
-}
-
-:deep(.el-slider__runway) {
-  background-color: rgba(100, 116, 139, 0.3);
-}
-
-:deep(.el-slider__bar) {
-  background-color: #409eff;
-}
-
-:deep(.el-slider__button) {
-  border-color: #409eff;
-}
-
-:deep(.el-slider__stop) {
-  background-color: rgba(100, 116, 139, 0.5);
-}
-
-:deep(.el-slider__marks-text) {
-  color: #94a3b8;
-}
 </style>

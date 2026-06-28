@@ -33,7 +33,7 @@ const statusTextMap = {
   '0': '健康运行',
   '1': '铺粉/刮刀异常',
   '2': '激光系统异常',
-  '3': '气氛循环异常',
+  '3': '温度监测异常',
   '4': '复合故障'
 }
 
@@ -42,7 +42,7 @@ const statusNameMap = {
   '0': 'healthy',
   '1': 'powder_fault',
   '2': 'laser_fault',
-  '3': 'gas_fault',
+  '3': 'temp_fault',
   '4': 'compound_fault'
 }
 
@@ -72,23 +72,23 @@ const buildHealthData = (statusCode, labels = []) => {
     status_labels: statusLabels,
     laser_system: { status: 'healthy', message: '健康' },
     powder_system: { status: 'healthy', message: '健康' },
-    gas_system: { status: 'healthy', message: '健康' }
+    temp_system: { status: 'healthy', message: '健康' }
   }
 
   if (code === -1) {
     healthData.laser_system = { status: 'unknown', message: '未检测' }
     healthData.powder_system = { status: 'unknown', message: '未检测' }
-    healthData.gas_system = { status: 'unknown', message: '未检测' }
+    healthData.temp_system = { status: 'unknown', message: '未检测' }
   } else if (code === 1) {
     healthData.powder_system = { status: 'fault', message: '铺粉/刮刀系统异常' }
   } else if (code === 2) {
     healthData.laser_system = { status: 'fault', message: '激光器/水冷机异常' }
   } else if (code === 3) {
-    healthData.gas_system = { status: 'fault', message: '气氛循环系统异常' }
+    healthData.temp_system = { status: 'fault', message: '温度监测系统异常' }
   } else if (code === 4) {
     healthData.laser_system = { status: 'fault', message: '需检查' }
     healthData.powder_system = { status: 'fault', message: '需检查' }
-    healthData.gas_system = { status: 'fault', message: '需检查' }
+    healthData.temp_system = { status: 'fault', message: '需检查' }
   }
   return healthData
 }
@@ -98,7 +98,7 @@ const cloneHealthData = (healthData = {}) => ({
   status_labels: [...(healthData.status_labels || [])],
   laser_system: { ...(healthData.laser_system || {}) },
   powder_system: { ...(healthData.powder_system || {}) },
-  gas_system: { ...(healthData.gas_system || {}) }
+  temp_system: { ...(healthData.temp_system || {}) }
 })
 
 const normalizeParameterValue = (value) => {
@@ -127,6 +127,8 @@ const cloneDevice = (device) => ({
   healthData: cloneHealthData(device.healthData),
   parameterSchema: PARAMETER_SCHEMA.map((param) => ({ ...param })),
   parameters: normalizeParameters(device.parameters, device.statusText),
+  mockCase: device.mockCase ? JSON.parse(JSON.stringify(device.mockCase)) : null,
+  mockVideo: device.mockVideo ? JSON.parse(JSON.stringify(device.mockVideo)) : null,
   diagnosis: device.diagnosis ? { ...device.diagnosis } : null,
   realData: device.realData ? { ...device.realData } : null
 })
@@ -134,8 +136,8 @@ const cloneDevice = (device) => ({
 const normalizeDevice = (device, index) => {
   const sourceStatusCode = device.healthData?.status_code ?? (device.online === false ? -1 : 0)
   const statusCode = Number(sourceStatusCode)
-  const online = device.online !== false && statusCode !== -1
-  const health = online ? (statusCode > 0 ? 'fault' : 'healthy') : 'power_off'
+  const online = device.online !== false
+  const health = online ? (statusCode > 0 ? 'fault' : (statusCode === 0 ? 'healthy' : 'power_off')) : 'power_off'
   const healthData = device.healthData
     ? cloneHealthData(device.healthData)
     : buildHealthData(statusCode, device.statusText ? [device.statusText] : [])
@@ -156,6 +158,8 @@ const normalizeDevice = (device, index) => {
     thumbnail: device.thumbnail || createGeneratedThumbnail(index + 1),
     parameterSchema: PARAMETER_SCHEMA.map((param) => ({ ...param })),
     parameters: normalizeParameters(device.parameters, device.statusText || statusTextMap[String(statusCode)] || '--'),
+    mockCase: device.mockCase || null,
+    mockVideo: device.mockVideo || null,
     healthData,
     diagnosis: device.diagnosis || null,
     realData: device.realData || null,
@@ -228,7 +232,11 @@ export const useSlsDeviceStore = defineStore('slsDevices', () => {
     }
   }
 
-  const toPlainDevice = (device) => JSON.parse(JSON.stringify(device))
+  const toPlainDevice = (device) => {
+    const plainDevice = JSON.parse(JSON.stringify(device))
+    delete plainDevice.mockVideo
+    return plainDevice
+  }
 
   const writeDeviceToBackend = async (device, method = 'PATCH') => {
     const url = method === 'POST'
@@ -276,13 +284,14 @@ export const useSlsDeviceStore = defineStore('slsDevices', () => {
     if (index === -1) return
 
     const shouldPatchHealth = 'online' in patch || 'health' in patch || 'statusText' in patch
-    const statusCode = patch.online === false
+    const patchOnline = patch.online !== undefined ? patch.online !== false : devices.value[index].online !== false
+    const statusCode = !patchOnline
       ? -1
       : (patch.health === 'fault' ? (devices.value[index].healthData?.status_code > 0 ? devices.value[index].healthData.status_code : 4) : 0)
     const healthPatch = shouldPatchHealth
       ? { healthData: buildHealthData(statusCode, [patch.statusText || statusTextMap[String(statusCode)]]) }
       : {}
-    const merged = normalizeDevice({ ...devices.value[index], ...patch, ...healthPatch }, index)
+    const merged = normalizeDevice({ ...devices.value[index], ...patch, online: patchOnline, ...healthPatch }, index)
     const savedDevice = await writeDeviceToBackend(merged, 'PATCH')
     devices.value[index] = cloneDevice(savedDevice)
     persist()
@@ -312,7 +321,7 @@ export const useSlsDeviceStore = defineStore('slsDevices', () => {
 
     const statusCode = Number(healthData.status_code ?? -1)
     device.healthData = cloneHealthData(healthData)
-    device.online = statusCode !== -1
+    device.online = device.online !== false
     device.health = statusCode > 0 ? 'fault' : (statusCode === 0 ? 'healthy' : 'power_off')
     device.statusText = statusCode > 0
       ? (healthData.status_labels || [statusTextMap[String(statusCode)] || '故障']).join('、')

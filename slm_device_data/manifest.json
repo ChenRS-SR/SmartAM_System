@@ -128,8 +128,1166 @@
       "unit": "mA"
     }
   ],
-  "deviceCount": 25,
+  "deviceCount": 29,
   "devices": [
+    {
+      "id": "huake-slm-01",
+      "tag": "HUST-SLM-01",
+      "dataTag": "HUST-SLM-01",
+      "databaseTag": "华科-HUST-SLM-01",
+      "owner": "华科",
+      "name": "华科SLM 01",
+      "model": "华科 SLM 实验台",
+      "serial": "HUST-SLM-01",
+      "location": "华科实验台模拟用例",
+      "online": true,
+      "health": "healthy",
+      "statusText": "健康",
+      "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
+      "parameterSchema": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "unit": "层"
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "unit": ""
+        },
+        {
+          "id": "record_status",
+          "name": "状态参数",
+          "unit": ""
+        },
+        {
+          "id": "data_time",
+          "name": "采集时间",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "unit": "%"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "unit": "%"
+        },
+        {
+          "id": "chamber_temperature",
+          "name": "成形室温度",
+          "unit": "℃"
+        },
+        {
+          "id": "gas_flow",
+          "name": "循环气体流量",
+          "unit": "m3/h"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "unit": "%"
+        },
+        {
+          "id": "medium_filter_resistance",
+          "name": "中效滤芯阻力",
+          "unit": "mBar"
+        },
+        {
+          "id": "high_filter_resistance",
+          "name": "高效滤芯阻力",
+          "unit": "mBar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "unit": "Bar"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "unit": "Bar"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "unit": "mA"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "--",
+          "unit": "层"
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "--",
+          "unit": ""
+        },
+        {
+          "id": "record_status",
+          "name": "状态参数",
+          "value": "健康",
+          "unit": ""
+        },
+        {
+          "id": "data_time",
+          "name": "采集时间",
+          "value": "--",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "chamber_temperature",
+          "name": "成形室温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "gas_flow",
+          "name": "循环气体流量",
+          "value": "--",
+          "unit": "m3/h"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "medium_filter_resistance",
+          "name": "中效滤芯阻力",
+          "value": "--",
+          "unit": "mBar"
+        },
+        {
+          "id": "high_filter_resistance",
+          "name": "高效滤芯阻力",
+          "value": "--",
+          "unit": "mBar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "--",
+          "unit": "Bar"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "--",
+          "unit": "Bar"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "value": "--",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "value": "--",
+          "unit": "mA"
+        }
+      ],
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "健康"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "设备绑定模拟用例",
+        "rawStatusCode": 0,
+        "rawStatusLabel": "健康",
+        "rawStatusLabels": [
+          "健康"
+        ],
+        "frontendStatusCode": 0,
+        "frontendStatusLabel": "健康",
+        "categories": [],
+        "confidence": 1,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "simulation_record/normal",
+        "source_files": [],
+        "representative_csv": "",
+        "parameter_csvs": [],
+        "preview_csv": "SLM/华科SLM 01/real_data/preview.csv"
+      },
+      "updatedAt": "2026-06-27 12:50:00",
+      "mockCase": {
+        "id": "normal",
+        "name": "Normal",
+        "label": "正常打印",
+        "folder": "normal"
+      },
+      "dataDirectory": "slm_device_data/SLM/华科SLM 01",
+      "source": "mock_case",
+      "databaseUpdatedAt": "2026-06-27 12:50:00"
+    },
+    {
+      "id": "huake-slm-02",
+      "tag": "HUST-SLM-02",
+      "dataTag": "HUST-SLM-02",
+      "databaseTag": "华科-HUST-SLM-02",
+      "owner": "华科",
+      "name": "华科SLM 02",
+      "model": "华科 SLM 实验台",
+      "serial": "HUST-SLM-02",
+      "location": "华科实验台模拟用例",
+      "online": true,
+      "health": "fault",
+      "statusText": "激光功率过高",
+      "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
+      "parameterSchema": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "unit": "层"
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "unit": ""
+        },
+        {
+          "id": "record_status",
+          "name": "状态参数",
+          "unit": ""
+        },
+        {
+          "id": "data_time",
+          "name": "采集时间",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "unit": "%"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "unit": "%"
+        },
+        {
+          "id": "chamber_temperature",
+          "name": "成形室温度",
+          "unit": "℃"
+        },
+        {
+          "id": "gas_flow",
+          "name": "循环气体流量",
+          "unit": "m3/h"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "unit": "%"
+        },
+        {
+          "id": "medium_filter_resistance",
+          "name": "中效滤芯阻力",
+          "unit": "mBar"
+        },
+        {
+          "id": "high_filter_resistance",
+          "name": "高效滤芯阻力",
+          "unit": "mBar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "unit": "Bar"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "unit": "Bar"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "unit": "mA"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "--",
+          "unit": "层"
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "--",
+          "unit": ""
+        },
+        {
+          "id": "record_status",
+          "name": "状态参数",
+          "value": "激光功率过高",
+          "unit": ""
+        },
+        {
+          "id": "data_time",
+          "name": "采集时间",
+          "value": "--",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "chamber_temperature",
+          "name": "成形室温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "gas_flow",
+          "name": "循环气体流量",
+          "value": "--",
+          "unit": "m3/h"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "medium_filter_resistance",
+          "name": "中效滤芯阻力",
+          "value": "--",
+          "unit": "mBar"
+        },
+        {
+          "id": "high_filter_resistance",
+          "name": "高效滤芯阻力",
+          "value": "--",
+          "unit": "mBar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "--",
+          "unit": "Bar"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "--",
+          "unit": "Bar"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "value": "--",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "value": "--",
+          "unit": "mA"
+        }
+      ],
+      "healthData": {
+        "status": "laser_fault",
+        "status_code": 2,
+        "status_labels": [
+          "激光功率过高"
+        ],
+        "laser_system": {
+          "status": "fault",
+          "message": "激光功率过高"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "设备绑定模拟用例",
+        "rawStatusCode": 2,
+        "rawStatusLabel": "激光功率过高",
+        "rawStatusLabels": [
+          "激光功率过高"
+        ],
+        "frontendStatusCode": 2,
+        "frontendStatusLabel": "激光功率过高",
+        "categories": [
+          "激光器/水冷机异常"
+        ],
+        "confidence": 1,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "simulation_record/scene_overpower",
+        "source_files": [],
+        "representative_csv": "",
+        "parameter_csvs": [],
+        "preview_csv": "SLM/华科SLM 02/real_data/preview.csv"
+      },
+      "updatedAt": "2026-06-27 12:50:00",
+      "mockCase": {
+        "id": "scene_overpower",
+        "name": "Overpower",
+        "label": "过功率",
+        "folder": "scene_overpower"
+      },
+      "dataDirectory": "slm_device_data/SLM/华科SLM 02",
+      "source": "mock_case",
+      "databaseUpdatedAt": "2026-06-27 12:50:00"
+    },
+    {
+      "id": "huake-slm-03",
+      "tag": "HUST-SLM-03",
+      "dataTag": "HUST-SLM-03",
+      "databaseTag": "华科-HUST-SLM-03",
+      "owner": "华科",
+      "name": "华科SLM 03",
+      "model": "华科 SLM 实验台",
+      "serial": "HUST-SLM-03",
+      "location": "华科实验台模拟用例",
+      "online": true,
+      "health": "fault",
+      "statusText": "激光功率过低",
+      "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
+      "parameterSchema": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "unit": "层"
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "unit": ""
+        },
+        {
+          "id": "record_status",
+          "name": "状态参数",
+          "unit": ""
+        },
+        {
+          "id": "data_time",
+          "name": "采集时间",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "unit": "%"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "unit": "%"
+        },
+        {
+          "id": "chamber_temperature",
+          "name": "成形室温度",
+          "unit": "℃"
+        },
+        {
+          "id": "gas_flow",
+          "name": "循环气体流量",
+          "unit": "m3/h"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "unit": "%"
+        },
+        {
+          "id": "medium_filter_resistance",
+          "name": "中效滤芯阻力",
+          "unit": "mBar"
+        },
+        {
+          "id": "high_filter_resistance",
+          "name": "高效滤芯阻力",
+          "unit": "mBar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "unit": "Bar"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "unit": "Bar"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "unit": "mA"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "--",
+          "unit": "层"
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "--",
+          "unit": ""
+        },
+        {
+          "id": "record_status",
+          "name": "状态参数",
+          "value": "激光功率过低",
+          "unit": ""
+        },
+        {
+          "id": "data_time",
+          "name": "采集时间",
+          "value": "--",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "chamber_temperature",
+          "name": "成形室温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "gas_flow",
+          "name": "循环气体流量",
+          "value": "--",
+          "unit": "m3/h"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "medium_filter_resistance",
+          "name": "中效滤芯阻力",
+          "value": "--",
+          "unit": "mBar"
+        },
+        {
+          "id": "high_filter_resistance",
+          "name": "高效滤芯阻力",
+          "value": "--",
+          "unit": "mBar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "--",
+          "unit": "Bar"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "--",
+          "unit": "Bar"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "value": "--",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "value": "--",
+          "unit": "mA"
+        }
+      ],
+      "healthData": {
+        "status": "laser_fault",
+        "status_code": 2,
+        "status_labels": [
+          "激光功率过低"
+        ],
+        "laser_system": {
+          "status": "fault",
+          "message": "激光功率过低"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "设备绑定模拟用例",
+        "rawStatusCode": 2,
+        "rawStatusLabel": "激光功率过低",
+        "rawStatusLabels": [
+          "激光功率过低"
+        ],
+        "frontendStatusCode": 2,
+        "frontendStatusLabel": "激光功率过低",
+        "categories": [
+          "激光器/水冷机异常"
+        ],
+        "confidence": 1,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "simulation_record/scene_underpower",
+        "source_files": [],
+        "representative_csv": "",
+        "parameter_csvs": [],
+        "preview_csv": "SLM/华科SLM 03/real_data/preview.csv"
+      },
+      "updatedAt": "2026-06-27 12:50:00",
+      "mockCase": {
+        "id": "scene_underpower",
+        "name": "Underpower",
+        "label": "欠功率",
+        "folder": "scene_underpower"
+      },
+      "dataDirectory": "slm_device_data/SLM/华科SLM 03",
+      "source": "mock_case",
+      "databaseUpdatedAt": "2026-06-27 12:50:00"
+    },
+    {
+      "id": "huake-slm-04",
+      "tag": "HUST-SLM-04",
+      "dataTag": "HUST-SLM-04",
+      "databaseTag": "华科-HUST-SLM-04",
+      "owner": "华科",
+      "name": "华科SLM 04",
+      "model": "华科 SLM 实验台",
+      "serial": "HUST-SLM-04",
+      "location": "华科实验台模拟用例",
+      "online": true,
+      "health": "fault",
+      "statusText": "激光功率过低（不可恢复）",
+      "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
+      "parameterSchema": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "unit": "层"
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "unit": ""
+        },
+        {
+          "id": "record_status",
+          "name": "状态参数",
+          "unit": ""
+        },
+        {
+          "id": "data_time",
+          "name": "采集时间",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "unit": "%"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "unit": "%"
+        },
+        {
+          "id": "chamber_temperature",
+          "name": "成形室温度",
+          "unit": "℃"
+        },
+        {
+          "id": "gas_flow",
+          "name": "循环气体流量",
+          "unit": "m3/h"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "unit": "%"
+        },
+        {
+          "id": "medium_filter_resistance",
+          "name": "中效滤芯阻力",
+          "unit": "mBar"
+        },
+        {
+          "id": "high_filter_resistance",
+          "name": "高效滤芯阻力",
+          "unit": "mBar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "unit": "Bar"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "unit": "Bar"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "unit": "mA"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "--",
+          "unit": "层"
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "--",
+          "unit": ""
+        },
+        {
+          "id": "record_status",
+          "name": "状态参数",
+          "value": "激光功率过低（不可恢复）",
+          "unit": ""
+        },
+        {
+          "id": "data_time",
+          "name": "采集时间",
+          "value": "--",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "chamber_temperature",
+          "name": "成形室温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "gas_flow",
+          "name": "循环气体流量",
+          "value": "--",
+          "unit": "m3/h"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "medium_filter_resistance",
+          "name": "中效滤芯阻力",
+          "value": "--",
+          "unit": "mBar"
+        },
+        {
+          "id": "high_filter_resistance",
+          "name": "高效滤芯阻力",
+          "value": "--",
+          "unit": "mBar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "--",
+          "unit": "Bar"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "--",
+          "unit": "Bar"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "value": "--",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "value": "--",
+          "unit": "mA"
+        }
+      ],
+      "healthData": {
+        "status": "laser_fault",
+        "status_code": 2,
+        "status_labels": [
+          "激光功率过低（不可恢复）"
+        ],
+        "laser_system": {
+          "status": "fault",
+          "message": "激光功率过低（不可恢复）"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "设备绑定模拟用例",
+        "rawStatusCode": 2,
+        "rawStatusLabel": "激光功率过低（不可恢复）",
+        "rawStatusLabels": [
+          "激光功率过低（不可恢复）"
+        ],
+        "frontendStatusCode": 2,
+        "frontendStatusLabel": "激光功率过低（不可恢复）",
+        "categories": [
+          "激光器/水冷机异常"
+        ],
+        "confidence": 1,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "simulation_record/scene_underpower_critical",
+        "source_files": [],
+        "representative_csv": "",
+        "parameter_csvs": [],
+        "preview_csv": "SLM/华科SLM 04/real_data/preview.csv"
+      },
+      "updatedAt": "2026-06-27 12:50:00",
+      "mockCase": {
+        "id": "scene_underpower_critical",
+        "name": "Underpower Critical",
+        "label": "欠功率不可恢复",
+        "folder": "scene_underpower_critical"
+      },
+      "dataDirectory": "slm_device_data/SLM/华科SLM 04",
+      "source": "mock_case",
+      "databaseUpdatedAt": "2026-06-27 12:50:00"
+    },
     {
       "id": "slm-b5",
       "tag": "B5",
@@ -144,7 +1302,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S400-NEO%20B5/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S400-NEO B5",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -369,7 +1526,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-06-06 03:48:29",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -399,7 +1555,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -420,7 +1576,11 @@
           "7103/26_5_22/B5_BLT_S400_AlSi10Mg(1015个零件)/20240213-08-02/20250616161335/伺服温度所有峰值_主参数合并.csv"
         ],
         "preview_csv": "SLM/铂力特 S400-NEO B5/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-06-06 03:48:29",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S400-NEO B5",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b6",
@@ -436,7 +1596,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S400-NEO%20B6/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S400-NEO B6",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -661,7 +1820,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-06-02 17:11:38",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -691,7 +1849,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -712,7 +1870,11 @@
           "7103/26_5_22/B6(286个零件)/20250225-08-21/20250617095732/伺服温度所有峰值_主参数合并.csv"
         ],
         "preview_csv": "SLM/铂力特 S400-NEO B6/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-06-02 17:11:38",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S400-NEO B6",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b8",
@@ -728,7 +1890,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B8/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B8",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -953,7 +2114,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-01-19 17:25:04",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -983,7 +2143,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -998,7 +2158,11 @@
           "7103/26_5_22/B8(897个零件)/20250425-16-58/20250606164943/2025-04-26_14-57-14_激光器水冷机故障.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B8/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-01-19 17:25:04",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B8",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b10",
@@ -1014,7 +2178,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B10/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B10",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -1239,7 +2402,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-05-18 03:32:23",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -1269,7 +2431,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -1284,7 +2446,11 @@
           "7103/26_5_22/B10（63个零件）/20250509-07-47/20250527093412/2025-05-18_03-19-56_激光器水冷机故障.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B10/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-05-18 03:32:23",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B10",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b14",
@@ -1300,7 +2466,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B14/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B14",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -1525,7 +2690,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2024-10-16 08:45:07",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -1555,7 +2719,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -1570,7 +2734,11 @@
           "7103/26_5_22/B14（270个零件）/20250106-19-58/20250528093159/2025-01-09_08-16-55_激光器水冷机故障.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B14/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2024-10-16 08:45:07",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B14",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b15",
@@ -1586,7 +2754,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B15/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B15",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -1811,7 +2978,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2026-06-26T23:13:49",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -1841,7 +3007,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -1853,7 +3019,11 @@
         "representative_csv": null,
         "parameter_csvs": [],
         "preview_csv": "SLM/铂力特 S310 B15/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2026-06-26T23:13:49",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B15",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b16",
@@ -1869,7 +3039,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B16/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B16",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -2094,7 +3263,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2024-10-05 12:22:20",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -2124,7 +3292,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -2139,7 +3307,11 @@
           "7103/26_5_22/B16（372个零件）/20240806-10-18/20250527164355/2024-08-06_02-01-55_激光器水冷机故障.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B16/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2024-10-05 12:22:20",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B16",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b17",
@@ -2155,7 +3327,6 @@
       "health": "fault",
       "statusText": "落粉轴故障",
       "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/华科SLM B17",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -2380,7 +3551,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2024-05-07 14:23:57",
       "healthData": {
         "status": "powder_fault",
         "status_code": 1,
@@ -2433,7 +3603,11 @@
           "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv"
         ],
         "preview_csv": "SLM/华科SLM B17/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2024-05-07 14:23:57",
+      "dataDirectory": "slm_device_data/SLM/华科SLM B17",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b19",
@@ -2449,7 +3623,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B19/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B19",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -2674,7 +3847,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-06-08 18:29:11",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -2704,7 +3876,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -2719,7 +3891,11 @@
           "7103/26_5_22/B19(532)/20240514-15-34/20250611152959/2024-05-16_13-35-33_激光器水冷机故障.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B19/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-06-08 18:29:11",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B19",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b20",
@@ -2735,7 +3911,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B20/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B20",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -2960,7 +4135,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2024-11-03 02:10:42",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -2990,7 +4164,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -3005,7 +4179,11 @@
           "7103/26_5_22/B20(40)/20241101-13-31/20250612100512/伺服温度所有峰值_主参数合并.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B20/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2024-11-03 02:10:42",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B20",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b26",
@@ -3021,7 +4199,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B26/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B26",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -3246,7 +4423,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-05-20 22:28:47",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -3276,7 +4452,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -3295,7 +4471,11 @@
           "7103/26_5_22/B26(507个零件)/20250423-22-58/20250620125325/2025-04-26_13-45-59_激光器水冷机故障.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B26/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-05-20 22:28:47",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B26",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b27",
@@ -3311,7 +4491,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B27/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B27",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -3536,7 +4715,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2026-06-26T23:13:49",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -3566,7 +4744,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -3578,7 +4756,11 @@
         "representative_csv": null,
         "parameter_csvs": [],
         "preview_csv": "SLM/铂力特 S310 B27/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2026-06-26T23:13:49",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B27",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b28",
@@ -3594,7 +4776,6 @@
       "health": "fault",
       "statusText": "多系统复合故障",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B28/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B28",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -3819,7 +5000,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-04-25 10:03:20",
       "healthData": {
         "status": "compound_fault",
         "status_code": 4,
@@ -3896,7 +5076,11 @@
           "7103/26_5_22/B28（1720个零件）/20240712-14-30/20250530093750/2024-07-15_15-09-39_激光器水冷机故障.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B28/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-04-25 10:03:20",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B28",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b29",
@@ -3912,7 +5096,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B29/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B29",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -4137,7 +5320,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2026-06-26T23:13:49",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -4167,7 +5349,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -4179,7 +5361,11 @@
         "representative_csv": null,
         "parameter_csvs": [],
         "preview_csv": "SLM/铂力特 S310 B29/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2026-06-26T23:13:49",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B29",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b30",
@@ -4195,7 +5381,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B30/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B30",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -4420,7 +5605,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-05-31 08:42:51",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -4450,7 +5634,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -4465,7 +5649,11 @@
           "7103/26_5_22/B30_BLT_S310_GH4099(变更GH4169)(783个零件)/20250527-16-18/20250604102524/伺服温度所有峰值_主参数合并.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B30/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-05-31 08:42:51",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B30",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b33",
@@ -4481,7 +5669,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B33/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B33",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -4706,7 +5893,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2026-06-26T23:13:49",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -4736,7 +5922,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -4749,7 +5935,11 @@
         "representative_csv": null,
         "parameter_csvs": [],
         "preview_csv": "SLM/铂力特 S310 B33/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2026-06-26T23:13:49",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B33",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b34",
@@ -4765,7 +5955,6 @@
       "health": "fault",
       "statusText": "刮刀扭矩/位置故障",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B34/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B34",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -4990,7 +6179,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2026-06-26T23:13:49",
       "healthData": {
         "status": "powder_fault",
         "status_code": 1,
@@ -5041,7 +6229,11 @@
         "representative_csv": null,
         "parameter_csvs": [],
         "preview_csv": "SLM/铂力特 S310 B34/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2026-06-26T23:13:49",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B34",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b35",
@@ -5057,7 +6249,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B35/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B35",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -5282,7 +6473,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-05-18 00:16:00",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -5312,7 +6502,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -5327,7 +6517,11 @@
           "7103/26_5_22/B35(580个零件)/20240618-11-28/20250606095309/2024-06-26_16-02-05_激光器水冷机故障.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B35/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-05-18 00:16:00",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B35",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b38",
@@ -5343,7 +6537,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B38/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B38",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -5568,7 +6761,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-03-13 11:28:06",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -5598,7 +6790,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -5613,7 +6805,11 @@
           "7103/26_5_22/B38(252)/20250423-11-29/20250613101712/伺服温度所有峰值_主参数合并.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B38/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-03-13 11:28:06",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B38",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b39",
@@ -5629,7 +6825,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B39/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B39",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -5854,7 +7049,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2024-08-07 14:30:52",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -5884,7 +7078,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -5900,7 +7094,11 @@
           "7103/26_5_22/B39(2585)/20250317-14-49/20250613183358/2025-03-17_14-56-09_激光器水冷机故障.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B39/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2024-08-07 14:30:52",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B39",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b40",
@@ -5916,7 +7114,6 @@
       "health": "fault",
       "statusText": "刮刀扭矩/位置故障",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B40/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S430 B40",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -6141,7 +7338,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-04-12 00:26:57",
       "healthData": {
         "status": "powder_fault",
         "status_code": 1,
@@ -6195,7 +7391,11 @@
           "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/2025-04-12_00-21-51_刮刀故障_故障暂停，刮刀扭矩故障_Error.csv"
         ],
         "preview_csv": "SLM/铂力特 S430 B40/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-04-12 00:26:57",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S430 B40",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b43",
@@ -6211,7 +7411,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B43/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B43",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -6436,7 +7635,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2024-06-13 08:59:54",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -6466,7 +7664,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -6485,7 +7683,11 @@
           "7103/26_5_22/B43_BLT_S310_TC4(997个零件)/20250412-14-07/20250618170429/2025-04-15_08-06-26_激光器水冷机故障.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B43/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2024-06-13 08:59:54",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B43",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b44",
@@ -6501,7 +7703,6 @@
       "health": "healthy",
       "statusText": "健康",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B44/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S430 B44",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -6726,7 +7927,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2026-06-26T23:13:47",
       "healthData": {
         "status": "healthy",
         "status_code": 0,
@@ -6756,7 +7956,7 @@
         "frontendStatusCode": 0,
         "frontendStatusLabel": "健康",
         "categories": [],
-        "confidence": 1.0,
+        "confidence": 1,
         "evidence": []
       },
       "realData": {
@@ -6768,7 +7968,11 @@
         "representative_csv": null,
         "parameter_csvs": [],
         "preview_csv": "SLM/铂力特 S430 B44/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2026-06-26T23:13:47",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S430 B44",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b45",
@@ -6784,7 +7988,6 @@
       "health": "fault",
       "statusText": "灰桶/收粉/卸灰故障",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B45/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B45",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -7009,7 +8212,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2025-05-18 18:29:22",
       "healthData": {
         "status": "gas_fault",
         "status_code": 3,
@@ -7067,7 +8269,11 @@
           "7103/26_5_22/B45(973个零件)/20250605-09-22/20250618150821/伺服温度所有峰值_主参数合并.csv"
         ],
         "preview_csv": "SLM/铂力特 S310 B45/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2025-05-18 18:29:22",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S310 B45",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     },
     {
       "id": "slm-b46",
@@ -7083,7 +8289,6 @@
       "health": "fault",
       "statusText": "铺粉检测缺粉/重铺异常",
       "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B46/thumbnail.jpg",
-      "dataDirectory": "slm_device_data/SLM/铂力特 S430 B46",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -7308,7 +8513,6 @@
           "unit": "mA"
         }
       ],
-      "updatedAt": "2026-06-26T23:13:47",
       "healthData": {
         "status": "powder_fault",
         "status_code": 1,
@@ -7359,7 +8563,12 @@
         "representative_csv": null,
         "parameter_csvs": [],
         "preview_csv": "SLM/铂力特 S430 B46/real_data/preview.csv"
-      }
+      },
+      "updatedAt": "2026-06-26T23:13:47",
+      "dataDirectory": "slm_device_data/SLM/铂力特 S430 B46",
+      "source": "7103",
+      "databaseUpdatedAt": "2026-06-27 10:12:20"
     }
-  ]
+  ],
+  "databaseUpdatedAt": "2026-06-27 12:50:00"
 }

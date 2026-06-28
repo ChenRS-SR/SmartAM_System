@@ -12,7 +12,6 @@
   "health": "fault",
   "statusText": "多系统复合故障",
   "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B28/thumbnail.jpg",
-  "dataDirectory": "slm_device_data/SLM/铂力特 S310 B28",
   "parameterSchema": [
     {
       "id": "current_layer",
@@ -237,7 +236,6 @@
       "unit": "mA"
     }
   ],
-  "updatedAt": "2025-04-25 10:03:20",
   "healthData": {
     "status": "compound_fault",
     "status_code": 4,
@@ -314,5 +312,9 @@
       "7103/26_5_22/B28（1720个零件）/20240712-14-30/20250530093750/2024-07-15_15-09-39_激光器水冷机故障.csv"
     ],
     "preview_csv": "SLM/铂力特 S310 B28/real_data/preview.csv"
-  }
+  },
+  "updatedAt": "2025-04-25 10:03:20",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S310 B28",
+  "source": "7103",
+  "databaseUpdatedAt": "2026-06-27 10:12:20"
 }

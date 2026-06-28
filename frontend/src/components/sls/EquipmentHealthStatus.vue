@@ -4,13 +4,6 @@
       <div class="card-header">
         <span class="header-title">SLS设备健康状态</span>
         <div class="header-actions">
-          <el-switch
-            v-model="isMockMode"
-            active-text="模拟"
-            inactive-text="真实"
-            size="small"
-            @change="onMockModeChange"
-          />
           <el-tag 
             :type="currentStatusConfig.tagType" 
             size="small"
@@ -22,33 +15,6 @@
         </div>
       </div>
     </template>
-    
-    <!-- 模拟控制面板 -->
-    <div v-if="isMockMode" class="mock-control-panel">
-      <el-divider content-position="left">
-        <el-icon><Setting /></el-icon> 模拟控制
-      </el-divider>
-      <div class="mock-controls">
-        <div class="mock-item">
-          <span class="mock-label">状态码:</span>
-          <el-input-number 
-            v-model="mockStatusCode" 
-            :min="-1" 
-            :max="4" 
-            :step="1"
-            size="small"
-            @change="onMockStatusChange"
-          />
-          <span class="mock-hint">(-1=未开机, 0=健康, 1=铺粉异常, 2=激光异常, 3=温度异常, 4=复合故障)</span>
-        </div>
-        <div class="mock-item">
-          <span class="mock-label">当前模拟:</span>
-          <el-tag size="small" :type="currentStatusConfig.tagType">
-            {{ currentStatusConfig.label }}
-          </el-tag>
-        </div>
-      </div>
-    </div>
 
     <div class="health-content">
       <!-- 左侧：设备状态图 -->
@@ -167,8 +133,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { Warning, Sunny, FirstAidKit, MostlyCloudy, Setting } from '@element-plus/icons-vue'
+import { computed } from 'vue'
+import { Warning, Sunny, FirstAidKit, MostlyCloudy } from '@element-plus/icons-vue'
 
 const props = defineProps({
   healthData: {
@@ -179,17 +145,24 @@ const props = defineProps({
       status_labels: [],
       laser_system: { status: 'unknown', message: '未检测' },
       powder_system: { status: 'unknown', message: '未检测' },
-      gas_system: { status: 'unknown', message: '未检测' }
+      temp_system: { status: 'unknown', message: '未检测' }
     })
   },
   isRunning: {
     type: Boolean,
     default: false
+  },
+  isMockMode: {
+    type: Boolean,
+    default: false
+  },
+  diagnosisData: {
+    type: Object,
+    default: () => ({
+      frontendStatusCode: -1
+    })
   }
 })
-
-const isMockMode = ref(false)
-const mockStatusCode = ref(-1)
 
 // SLS状态码映射（与SLM略有不同，3=温度异常而非气体异常）
 const statusCodeMap = {
@@ -262,7 +235,10 @@ const statusCodeMap = {
 }
 
 const displayStatusCode = computed(() => {
-  if (isMockMode.value) return mockStatusCode.value
+  const diagnosisCode = props.diagnosisData?.frontendStatusCode
+  if (props.isMockMode && diagnosisCode !== undefined && diagnosisCode !== null) {
+    return Number(diagnosisCode)
+  }
   return props.healthData?.status_code ?? -1
 })
 
@@ -288,23 +264,9 @@ const isTempFault = computed(() => {
   return code === 3 || code === 4
 })
 
-const onMockModeChange = (val) => {
-  if (val) mockStatusCode.value = props.healthData?.status_code ?? -1
-}
-
-const onMockStatusChange = (val) => {
-  console.log(`[SLS EquipmentHealth] 模拟状态码切换为: ${val}`)
-}
-
 const onImageError = (e) => {
   e.target.src = '/state_picture/power_off.png'
 }
-
-watch(() => props.healthData?.status_code, (newCode) => {
-  if (!isMockMode.value && newCode !== undefined) {
-    console.log(`[SLS EquipmentHealth] 真实状态码更新: ${newCode}`)
-  }
-})
 </script>
 
 <style scoped>
@@ -330,38 +292,6 @@ watch(() => props.healthData?.status_code, (newCode) => {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.mock-control-panel {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: rgba(30, 41, 59, 0.5);
-  border-radius: 8px;
-  border: 1px dashed rgba(100, 116, 139, 0.5);
-}
-
-.mock-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.mock-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.mock-label {
-  font-size: 13px;
-  color: #94a3b8;
-  min-width: 70px;
-}
-
-.mock-hint {
-  font-size: 11px;
-  color: #64748b;
 }
 
 .health-content {

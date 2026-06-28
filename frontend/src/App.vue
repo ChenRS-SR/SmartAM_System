@@ -24,18 +24,35 @@
       </div>
       
       <nav class="nav-menu">
-        <router-link 
-          v-for="item in menuItems" 
-          :key="item.path"
-          :to="item.path"
-          class="nav-item"
-          :class="{ active: isActive(item.path) }"
+        <div
+          v-for="item in menuItems"
+          :key="item.key || item.path"
+          class="nav-group"
         >
-          <el-icon size="20">
-            <component :is="item.icon" />
-          </el-icon>
-          <span v-show="!isCollapsed" class="nav-text">{{ item.name }}</span>
-        </router-link>
+          <router-link
+            :to="item.path"
+            class="nav-item"
+            :class="{ active: isActive(item) }"
+          >
+            <el-icon size="20">
+              <component :is="item.icon" />
+            </el-icon>
+            <span v-show="!isCollapsed" class="nav-text">{{ item.name }}</span>
+          </router-link>
+
+          <div v-if="item.children?.length && !isCollapsed" class="nav-children">
+            <router-link
+              v-for="child in item.children"
+              :key="child.key || child.path"
+              :to="child.path"
+              class="nav-child"
+              :class="{ active: isActive(child) }"
+            >
+              <span class="nav-child-dot"></span>
+              <span class="nav-text">{{ child.name }}</span>
+            </router-link>
+          </div>
+        </div>
       </nav>
       
       <div class="sidebar-footer">
@@ -133,12 +150,34 @@ const deviceTypeIcon = computed(() => {
   }
 })
 
-// SLM 菜单
-const slmMenuItems = [
-  { name: '设备群监测', path: '/slm/dashboard', icon: 'Grid' },
-  { name: '设备状态监测', path: '/slm/device', icon: 'Monitor' },
-  { name: '设置', path: '/slm/settings', icon: 'Setting' },
-]
+const slmSelectedDeviceId = computed(() => {
+  if (route.path.startsWith('/slm/device') && route.params.deviceId) {
+    return String(route.params.deviceId)
+  }
+  return localStorage.getItem('slmSelectedDeviceId') || ''
+})
+
+const slmDevicePath = (tab = 'status') => {
+  const suffix = slmSelectedDeviceId.value ? `/${encodeURIComponent(slmSelectedDeviceId.value)}` : ''
+  return `/slm/device${suffix}?tab=${tab}`
+}
+
+// SLM 菜单：设备检测作为具体设备的二级工作区，三个子页面由 tab 区分。
+const slmMenuItems = computed(() => [
+  { key: 'slm-fleet', name: '设备群监测', path: '/slm/dashboard', icon: 'Grid' },
+  {
+    key: 'slm-device',
+    name: '设备检测',
+    path: slmDevicePath('status'),
+    icon: 'Monitor',
+    children: [
+      { key: 'slm-device-status', name: '实时状态信息', path: slmDevicePath('status'), tab: 'status' },
+      { key: 'slm-device-control', name: '闭环调控', path: slmDevicePath('control'), tab: 'control' },
+      { key: 'slm-device-health', name: '设备健康状态', path: slmDevicePath('health'), tab: 'health' },
+    ]
+  },
+  { key: 'slm-settings', name: '设置', path: '/slm/settings', icon: 'Setting' },
+])
 
 // SLS 菜单
 const slsMenuItems = [
@@ -149,13 +188,18 @@ const slsMenuItems = [
 
 // 根据设备类型返回对应菜单
 const menuItems = computed(() => {
-  if (deviceType.value === 'slm') return slmMenuItems
+  if (deviceType.value === 'slm') return slmMenuItems.value
   if (deviceType.value === 'sls') return slsMenuItems
   return []
 })
 
 // 判断菜单项是否激活
-const isActive = (path) => {
+const isActive = (item) => {
+  const path = item.path || ''
+  if (item.tab) {
+    const currentTab = route.query.tab || 'status'
+    return route.path.startsWith('/slm/device') && currentTab === item.tab
+  }
   if (path.startsWith('/slm/device') && route.path.startsWith('/slm/device')) {
     return true
   }
@@ -301,6 +345,12 @@ onMounted(async () => {
   gap: 4px;
 }
 
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .nav-item {
   display: flex;
   align-items: center;
@@ -321,6 +371,42 @@ onMounted(async () => {
   background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), transparent);
   color: #00d4ff;
   border-left: 3px solid #00d4ff;
+}
+
+.nav-children {
+  margin: 0 0 4px 22px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-child {
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: #94a3b8;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.nav-child:hover,
+.nav-child.active {
+  color: #67e8f9;
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.nav-child-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
 }
 
 .sidebar-footer {

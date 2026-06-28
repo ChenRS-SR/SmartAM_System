@@ -2,15 +2,15 @@
   <div class="realtime-display">
     <!-- 通道状态指示器 -->
     <div class="channel-status-bar">
-      <div class="status-item" :class="{ connected: sensorStatus.camera_ch1?.connected, waiting: !useMockMode }">
+      <div class="status-item" :class="{ connected: sensorStatus.camera_ch1?.connected, waiting: !useMockMode, stored: isStoredMockSource }">
         <span class="status-dot"></span>
         <span>CH1 {{ channelStatusText('camera_ch1') }}</span>
       </div>
-      <div class="status-item" :class="{ connected: sensorStatus.camera_ch2?.connected, waiting: !useMockMode }">
+      <div class="status-item" :class="{ connected: sensorStatus.camera_ch2?.connected, waiting: !useMockMode, stored: isStoredMockSource }">
         <span class="status-dot"></span>
         <span>CH2 {{ channelStatusText('camera_ch2') }}</span>
       </div>
-      <div class="status-item" :class="{ connected: sensorStatus.thermal?.connected, waiting: !useMockMode }">
+      <div class="status-item" :class="{ connected: sensorStatus.thermal?.connected, waiting: !useMockMode, stored: isStoredMockSource }">
         <span class="status-dot"></span>
         <span>CH3 {{ channelStatusText('thermal') }}</span>
       </div>
@@ -19,11 +19,13 @@
     <!-- 视频流区域 - 三个并排 -->
     <div class="video-grid">
       <!-- CH1 主摄像头 -->
-      <div class="video-panel" :class="{ disabled: useMockMode && !sensorStatus.camera_ch1?.enabled, connected: sensorStatus.camera_ch1?.connected }">
+      <div class="video-panel" :class="{ disabled: useMockMode && !isStoredMockSource && !sensorStatus.camera_ch1?.enabled, connected: sensorStatus.camera_ch1?.connected }">
         <div class="panel-header">
           <span class="panel-title">CH1 主摄</span>
           <div class="panel-badges">
+            <el-tag v-if="distortionCorrectionEnabled" type="warning" size="small">已校正</el-tag>
             <el-tag v-if="!useMockMode" type="info" size="small">{{ realtimeTagText }}</el-tag>
+            <el-tag v-else-if="isStoredMockSource" type="info" size="small">存储数据</el-tag>
             <el-tag v-else-if="!sensorStatus.camera_ch1?.enabled" type="info" size="small">已禁用</el-tag>
             <el-tag v-else-if="!sensorStatus.camera_ch1?.connected" type="danger" size="small">未连接</el-tag>
             <el-tag v-else type="success" size="small">已连接</el-tag>
@@ -81,19 +83,33 @@
       </div>
       
       <!-- CH2 副摄像头 -->
-      <div class="video-panel" :class="{ disabled: useMockMode && !sensorStatus.camera_ch2?.enabled, connected: sensorStatus.camera_ch2?.connected }">
+      <div class="video-panel" :class="{ disabled: useMockMode && !isStoredMockSource && !sensorStatus.camera_ch2?.enabled, connected: sensorStatus.camera_ch2?.connected }">
         <div class="panel-header">
           <span class="panel-title">CH2 副摄</span>
           <div class="panel-badges">
+            <el-tag v-if="distortionCorrectionEnabled" type="warning" size="small">已校正</el-tag>
             <el-tag v-if="!useMockMode" type="info" size="small">{{ realtimeTagText }}</el-tag>
+            <el-tag v-else-if="isStoredMockSource" type="info" size="small">存储数据</el-tag>
             <el-tag v-else-if="!sensorStatus.camera_ch2?.enabled" type="info" size="small">已禁用</el-tag>
             <el-tag v-else-if="!sensorStatus.camera_ch2?.connected" type="danger" size="small">未连接</el-tag>
             <el-tag v-else type="success" size="small">已连接</el-tag>
           </div>
         </div>
         <div class="video-container">
-          <img 
-            v-if="sensorStatus.camera_ch2?.enabled && sensorStatus.camera_ch2?.connected && ch2HasStream"
+          <video
+            v-if="sensorStatus.camera_ch2?.enabled && sensorStatus.camera_ch2?.connected && ch2HasStream && ch2MediaType === 'video'"
+            :src="ch2StreamUrl"
+            class="video-stream"
+            :class="{ 'paused': displayPaused }"
+            autoplay
+            muted
+            loop
+            playsinline
+            controls
+            @error="onCh2Error"
+          />
+          <img
+            v-else-if="sensorStatus.camera_ch2?.enabled && sensorStatus.camera_ch2?.connected && ch2HasStream"
             :src="ch2StreamUrl" 
             class="video-stream"
             :class="{ 'paused': displayPaused }"
@@ -131,22 +147,36 @@
       </div>
       
       <!-- 红外热像 -->
-      <div class="video-panel thermal-panel" :class="{ disabled: useMockMode && !sensorStatus.thermal?.enabled, connected: sensorStatus.thermal?.connected }">
+      <div class="video-panel thermal-panel" :class="{ disabled: useMockMode && !isStoredMockSource && !sensorStatus.thermal?.enabled, connected: sensorStatus.thermal?.connected }">
         <div class="panel-header">
           <span class="panel-title">CH3 红外</span>
           <div class="panel-badges">
+            <el-tag v-if="distortionCorrectionEnabled" type="warning" size="small">已校正</el-tag>
             <el-tag v-if="latestData?.thermal?.temp_max" type="warning" size="small">
               {{ latestData.thermal.temp_max.toFixed(1) }}°C
             </el-tag>
             <el-tag v-if="!useMockMode" type="info" size="small">{{ realtimeTagText }}</el-tag>
+            <el-tag v-else-if="isStoredMockSource" type="info" size="small">存储数据</el-tag>
             <el-tag v-else-if="!sensorStatus.thermal?.enabled" type="info" size="small">已禁用</el-tag>
             <el-tag v-else-if="!sensorStatus.thermal?.connected" type="danger" size="small">未连接</el-tag>
             <el-tag v-else type="success" size="small">已连接</el-tag>
           </div>
         </div>
         <div class="video-container">
-          <img 
-            v-if="sensorStatus.thermal?.enabled && sensorStatus.thermal?.connected && thermalHasStream"
+          <video
+            v-if="sensorStatus.thermal?.enabled && sensorStatus.thermal?.connected && thermalHasStream && thermalMediaType === 'video'"
+            :src="thermalStreamUrl"
+            class="video-stream"
+            :class="{ 'paused': displayPaused }"
+            autoplay
+            muted
+            loop
+            playsinline
+            controls
+            @error="onThermalError"
+          />
+          <img
+            v-else-if="sensorStatus.thermal?.enabled && sensorStatus.thermal?.connected && thermalHasStream"
             :src="thermalStreamUrl" 
             class="video-stream"
             :class="{ 'paused': displayPaused }"
@@ -237,7 +267,20 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  mockSourceType: {
+    type: String,
+    default: ''
+  },
   waitingForRealtime: {
+    type: Boolean,
+    default: false
+  },
+  // 华科四台模拟设备在调控页固定展示ROI，不依赖全局ROI面板开关。
+  forceShowROI: {
+    type: Boolean,
+    default: false
+  },
+  distortionCorrectionEnabled: {
     type: Boolean,
     default: false
   }
@@ -246,37 +289,45 @@ const props = defineProps({
 // Store
 const roiStore = useROIStore()
 
-// 视频流URL - 使用SLM视频流接口
-const ch1RealtimeMedia = computed(() => props.latestData?.camera_ch1 || {})
-const ch1RealtimeUrl = computed(() => ch1RealtimeMedia.value.data_url || ch1RealtimeMedia.value.url || '')
-const ch1MediaType = computed(() => {
-  if (!ch1RealtimeUrl.value) return 'stream'
-  const mediaType = ch1RealtimeMedia.value.media_type || ch1RealtimeMedia.value.type || ''
-  if (mediaType) return mediaType
-  return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(ch1RealtimeUrl.value) ? 'video' : 'image'
-})
+// 视频流 URL 由设备详情页按当前设备注入；不再在显示层决定全局模拟源。
+const mediaUrl = (media = {}) => media.data_url || media.url || ''
+const detectMediaType = (media = {}) => {
+  const explicitType = media.media_type || media.type || ''
+  if (explicitType) return explicitType
+  return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(mediaUrl(media)) ? 'video' : 'image'
+}
 
-const ch1StreamUrl = computed(() => ch1RealtimeUrl.value || (props.useMockMode ? `/api/slm/stream/camera/CH1?t=${props.streamKey}` : ''))
-const ch2StreamUrl = computed(() => props.useMockMode ? `/api/slm/stream/camera/CH2?t=${props.streamKey}` : '')
-const thermalStreamUrl = computed(() => props.useMockMode ? `/api/slm/stream/thermal?t=${props.streamKey}` : '')
+const ch1RealtimeMedia = computed(() => props.latestData?.camera_ch1 || {})
+const ch2RealtimeMedia = computed(() => props.latestData?.camera_ch2 || {})
+const thermalRealtimeMedia = computed(() => props.latestData?.thermal || {})
+const ch1StreamUrl = computed(() => mediaUrl(ch1RealtimeMedia.value))
+const ch2StreamUrl = computed(() => mediaUrl(ch2RealtimeMedia.value))
+const thermalStreamUrl = computed(() => mediaUrl(thermalRealtimeMedia.value))
+const ch1MediaType = computed(() => detectMediaType(ch1RealtimeMedia.value))
+const ch2MediaType = computed(() => detectMediaType(ch2RealtimeMedia.value))
+const thermalMediaType = computed(() => detectMediaType(thermalRealtimeMedia.value))
 const ch1HasStream = computed(() => Boolean(ch1StreamUrl.value))
 const ch2HasStream = computed(() => Boolean(ch2StreamUrl.value))
 const thermalHasStream = computed(() => Boolean(thermalStreamUrl.value))
 const realtimeTagText = computed(() => props.waitingForRealtime ? '等待数据' : '等待图像')
+const isStoredMockSource = computed(() => props.useMockMode && props.mockSourceType === 'stored7103')
 
 const channelStatusText = (key) => {
   if (!props.useMockMode) return props.waitingForRealtime ? '等待数据传输' : '等待图像数据'
+  if (isStoredMockSource.value) return '存储数据'
   if (!props.sensorStatus[key]?.enabled) return '已禁用'
   return props.sensorStatus[key]?.connected ? '已连接' : '未连接'
 }
 
 const placeholderText = (key) => {
   if (!props.useMockMode) return props.waitingForRealtime ? '等待数据传输' : '等待图像数据'
+  if (isStoredMockSource.value) return '暂不支持视频接入'
   return props.sensorStatus[key]?.enabled ? '未连接' : '已禁用'
 }
 
 const placeholderHint = (key) => {
   if (!props.useMockMode) return props.waitingForRealtime ? '外部接口推送后显示实时图像' : '本次实时事件未包含图像'
+  if (isStoredMockSource.value) return '如需接入视频，请在设备目录下创建 mock_video/CH1..CH3'
   if (!props.sensorStatus[key]?.enabled) return ''
   return key === 'thermal' ? '请检查PIX Connect' : '请检查USB摄像头'
 }
@@ -286,7 +337,7 @@ const onCh2Error = () => console.error('CH2视频流错误')
 const onThermalError = () => console.error('热像视频流错误')
 
 // ROI显示
-const showROI = computed(() => roiStore.showROIOnVideo)
+const showROI = computed(() => props.forceShowROI || roiStore.showROIOnVideo)
 const roiList = computed(() => roiStore.roiList)
 
 // 计算ROI样式（将ROI坐标转换为CSS样式）
@@ -380,6 +431,10 @@ function getROILabelStyle(roi) {
   color: #94a3b8;
 }
 
+.status-item.stored {
+  color: #38bdf8;
+}
+
 .status-dot {
   width: 8px;
   height: 8px;
@@ -395,6 +450,11 @@ function getROILabelStyle(roi) {
 .status-item.waiting .status-dot {
   background: #64748b;
   box-shadow: none;
+}
+
+.status-item.stored .status-dot {
+  background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
 }
 
 /* 视频网格 - 三个并排 */
@@ -439,6 +499,8 @@ function getROILabelStyle(roi) {
 .panel-badges {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .video-container {

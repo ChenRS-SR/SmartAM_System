@@ -1,5 +1,5 @@
 <template>
-  <div class="slm-dashboard">
+  <div class="sls-dashboard">
     <!-- 页面标题 -->
     <div class="dashboard-header">
       <div class="title-block">
@@ -27,185 +27,159 @@
           设备群
         </el-button>
         <!-- 模式指示器 -->
-        <el-tag
-          :type="settings.use_mock ? 'warning' : 'success'"
-          size="large"
-          effect="dark"
-          class="mode-tag"
+        <span
+          class="header-status-pill"
+          :class="settings.use_mock ? 'warning' : 'success'"
         >
           {{ settings.use_mock ? '模拟模式' : '真实硬件' }}
-        </el-tag>
-        <el-tag :type="isRunning ? 'success' : 'info'" size="large" effect="dark">
+        </span>
+        <span
+          v-if="settings.use_mock"
+          class="header-status-pill"
+          :class="selectedMockSourceReady ? 'success' : 'info'"
+        >
+          {{ selectedMockCaseStatusText }}
+        </span>
+        <span
+          class="header-status-pill"
+          :class="isRunning ? 'success' : 'info'"
+        >
           {{ isRunning ? '采集中' : '已停止' }}
-        </el-tag>
-        <el-button
+        </span>
+        <el-button 
           :type="isRunning ? 'danger' : 'primary'"
           @click="toggleAcquisition"
           :loading="starting"
         >
           {{ isRunning ? '停止采集' : '开始采集' }}
         </el-button>
-        <el-button @click="showSettings = true">
-          <el-icon><Setting /></el-icon>
-          设置
-        </el-button>
       </div>
     </div>
 
-    <!-- 传感器连接状态 -->
-    <SensorConnectionStatus
-      :sensor-status="sensorStatus"
-      @toggle-sensor="handleToggleSensor"
-      @refresh="refreshStatus"
-    />
-
-    <!-- 当前设备实时参数 -->
-    <section class="parameter-panel">
-      <div class="panel-header">
-        <span>实时参数</span>
-        <el-tag size="small" :type="selectedDevice?.online ? 'success' : 'info'">
-          {{ selectedDevice?.online ? '在线' : '离线' }}
-        </el-tag>
-      </div>
-      <div class="parameter-grid">
-        <div
-          v-for="param in liveParameters"
-          :key="param.id || param.name"
-          class="parameter-item"
-        >
-          <span class="parameter-name">{{ param.name }}</span>
-          <strong class="parameter-value">{{ param.value }}</strong>
-          <span class="parameter-unit">{{ param.unit }}</span>
+    <section class="device-workspace">
+      <div class="subpage-header">
+        <div>
+          <h2>{{ activePanelTitle }}</h2>
+          <p>{{ activePanelDescription }}</p>
+        </div>
+        <div class="subpage-tabs">
+          <el-button
+            v-for="panel in panelNavItems"
+            :key="panel.key"
+            :type="activePanel === panel.key ? 'primary' : 'default'"
+            plain
+            @click="switchPanel(panel.key)"
+          >
+            {{ panel.name }}
+          </el-button>
         </div>
       </div>
-    </section>
 
-    <!-- 实时数据显示 (包含CH1/CH2/CH3视频) -->
-    <div class="realtime-section">
-      <RealTimeDisplay
-        :sensor-status="sensorStatus"
-        :latest-data="latestData"
-        :stream-key="streamKey"
-        :display-paused="displayPaused"
-        :last-frames="lastFrames"
-      />
-    </div>
-
-    <!-- 闭环调控和视频控制 (放在视频下方) -->
-    <div class="regulation-section">
-      <RegulationControl
-        ref="regulationControl"
-        @video-source-changed="onVideoSourceChanged"
-        @layer-changed="onLayerChanged"
-      />
-    </div>
-
-    <!-- 区域特征曲线 (放在闭环调控下方) -->
-    <div class="feature-curve-section">
-      <FeatureCurvePanel
-        :current-layer="currentLayerInfo.number"
-        :is-layer-start="currentLayerInfo.isStart"
-        :is-layer-end="currentLayerInfo.isEnd"
-        :is-running="isRunning"
-      />
-    </div>
-
-    <!-- 设备健康状态 -->
-    <div class="health-section">
-      <EquipmentHealthStatus
-        :health-data="healthData"
-        :is-running="isRunning"
-      />
-    </div>
-
-    <!-- 设置对话框 -->
-    <el-dialog
-      v-model="showSettings"
-      title="采集设置"
-      width="550px"
-      destroy-on-close
-    >
-      <el-form :model="settings" label-width="140px">
-        <!-- 摄像头设置 -->
-        <el-divider content-position="left">摄像头设置 (USB)</el-divider>
-        <el-form-item label="CH1主摄像头">
-          <el-select v-model="settings.camera_ch1_index" style="width: 200px" :loading="camerasLoading">
-            <el-option
-              v-for="cam in availableCameras"
-              :key="cam.index"
-              :label="`摄像头 ${cam.index} (${cam.resolution?.[0] || '?'}x${cam.resolution?.[1] || '?'})`"
-              :value="cam.index"
-            />
-            <el-option v-if="availableCameras.length === 0 && !camerasLoading" label="未检测到摄像头" :value="-1" disabled />
-            <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
-          </el-select>
-          <el-button type="primary" size="small" @click="fetchCameras" style="margin-left: 10px" :loading="camerasLoading">
-            <el-icon><Refresh /></el-icon> 刷新
-          </el-button>
-        </el-form-item>
-        <el-form-item label="CH2副摄像头">
-          <el-select v-model="settings.camera_ch2_index" style="width: 200px" :loading="camerasLoading">
-            <el-option
-              v-for="cam in availableCameras"
-              :key="cam.index"
-              :label="`摄像头 ${cam.index} (${cam.resolution?.[0] || '?'}x${cam.resolution?.[1] || '?'})`"
-              :value="cam.index"
-            />
-            <el-option v-if="availableCameras.length === 0 && !camerasLoading" label="未检测到摄像头" :value="-1" disabled />
-            <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
-          </el-select>
-        </el-form-item>
-
-        <!-- 红外热像仪 -->
-        <el-divider content-position="left">红外热像仪</el-divider>
-        <el-form-item>
-          <el-alert
-            type="info"
-            :closable="false"
-            show-icon
-          >
-            <template #title>
-              红外热像仪通过PIX Connect SDK连接，不需要COM口
-            </template>
-            <template #default>
-              请确保：<br>
-              1. PIX Connect软件已安装并启动<br>
-              2. 热像仪设备已连接<br>
-              3. 在PIX Connect中启用IPC通信
-            </template>
-          </el-alert>
-        </el-form-item>
-
-        <!-- 模拟模式 -->
-        <el-divider content-position="left">调试模式</el-divider>
-        <el-form-item label="使用模拟数据">
-          <el-switch v-model="settings.use_mock" />
-          <span style="margin-left: 10px; color: #909399; font-size: 12px;">
-            开启后无需连接真实硬件，用于界面测试
-          </span>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showSettings = false">取消</el-button>
-        <el-button type="primary" @click="saveSettings">保存</el-button>
+      <template v-if="activePanel === 'status'">
+        <!-- 当前设备实时参数 -->
+        <section class="parameter-panel">
+          <div class="panel-header">
+            <span>实时参数</span>
+            <el-tag size="small" :type="selectedDisplayOnline ? 'success' : 'info'">
+              {{ selectedDisplayOnline ? '在线' : '离线' }}
+            </el-tag>
+          </div>
+          <div class="parameter-grid">
+            <div
+              v-for="param in liveParameters"
+              :key="param.id || param.name"
+              class="parameter-item"
+            >
+              <span class="parameter-name">{{ param.name }}</span>
+              <strong class="parameter-value">{{ param.value }}</strong>
+              <span class="parameter-unit">{{ param.unit }}</span>
+            </div>
+          </div>
+        </section>
       </template>
-    </el-dialog>
+
+      <template v-else-if="activePanel === 'control'">
+        <!-- CH1/CH2/CH3 连接状态和视频画面同页展示。 -->
+        <SensorConnectionStatus
+          :sensor-status="sensorStatus"
+          @toggle-sensor="handleToggleSensor"
+          @change-com-port="handleVibrationPortChange"
+          @change-servo-com-port="handleServoPortChange"
+          @refresh="refreshStatus"
+        />
+
+        <!-- 闭环调控页同步展示三路视频，便于观察调控效果。 -->
+        <div class="control-video-section">
+          <RealTimeDisplay
+            :sensor-status="sensorStatus"
+            :latest-data="latestData"
+            :stream-key="streamKey"
+            :display-paused="displayPaused"
+            :last-frames="lastFrames"
+            :use-mock-mode="settings.use_mock"
+            :mock-source-type="selectedMockSourceType"
+            :waiting-for-realtime="waitingForRealtimeData"
+          />
+        </div>
+
+        <!-- 闭环调控和特征曲线只在闭环调控子页面显示 -->
+        <div class="regulation-section">
+          <RegulationControl
+            ref="regulationControl"
+            :use-mock-mode="settings.use_mock"
+            :mock-case="selectedMockCase"
+            :mock-case-available="selectedMockCaseAvailability.ready"
+            :is-acquiring="isRunning"
+            @layer-changed="onLayerChanged"
+          />
+        </div>
+
+        <div class="feature-curve-section">
+          <FeatureCurvePanel
+            :current-layer="currentLayerInfo.number"
+            :is-layer-start="currentLayerInfo.isStart"
+            :is-layer-end="currentLayerInfo.isEnd"
+            :is-running="isRunning"
+          />
+        </div>
+      </template>
+
+      <template v-else>
+        <!-- 设备健康状态 -->
+        <div class="health-section">
+          <EquipmentHealthStatus
+            :health-data="healthData"
+            :is-running="isRunning"
+            :is-mock-mode="settings.use_mock"
+            :diagnosis-data="diagnosisData"
+          />
+        </div>
+      </template>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Setting, Refresh } from '@element-plus/icons-vue'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
-import SensorConnectionStatus from '../../components/slm/SensorConnectionStatus.vue'
+import SensorConnectionStatus from '../../components/sls/SensorConnectionStatus.vue'
 import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
-import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
+import EquipmentHealthStatus from '../../components/sls/EquipmentHealthStatus.vue'
 import RegulationControl from '../../components/slm/RegulationControl.vue'
 import FeatureCurvePanel from '../../components/slm/FeatureCurvePanel.vue'
 import { useSlsDeviceStore } from '../../stores/slsDevices'
+import { readSlsBenchSettings } from '../../utils/slsBenchSettings'
+import {
+  buildMockCaseHealthData,
+  buildMockCaseMedia,
+  buildMockCaseStatusText,
+  checkMockCaseMedia,
+  getDeviceMockCase
+} from '../../utils/deviceMockMedia'
 
 const route = useRoute()
 const router = useRouter()
@@ -214,11 +188,30 @@ const slsDeviceStore = useSlsDeviceStore()
 const selectedDeviceId = ref(route.params.deviceId || '')
 const selectedDevice = computed(() => slsDeviceStore.getDeviceById(selectedDeviceId.value) || slsDeviceStore.firstDevice)
 const selectedDeviceName = computed(() => selectedDevice.value?.name || 'SLS设备')
+const selectedMockCase = computed(() => getDeviceMockCase(selectedDevice.value))
+
+const selectedMockSourceType = computed(() => {
+  if (selectedMockCase.value) return 'video'
+  return 'none'
+})
+
+const panelNavItems = [
+  { key: 'status', name: '实时状态信息', description: '集中显示实时参数和设备状态。' },
+  { key: 'control', name: '闭环调控', description: '展示层进度、调控状态和特征曲线。' },
+  { key: 'health', name: '设备健康状态', description: '展示 SLS 设备健康诊断和子系统状态。' }
+]
+const panelKeys = panelNavItems.map((item) => item.key)
+const activePanel = computed(() => {
+  const tab = String(route.query.tab || 'status')
+  return panelKeys.includes(tab) ? tab : 'status'
+})
+const activePanelMeta = computed(() => panelNavItems.find((item) => item.key === activePanel.value) || panelNavItems[0])
+const activePanelTitle = computed(() => activePanelMeta.value.name)
+const activePanelDescription = computed(() => activePanelMeta.value.description)
 
 // 状态
 const isRunning = ref(false)
 const starting = ref(false)
-const showSettings = ref(false)
 const wsConnected = ref(false)
 const streamKey = ref(Date.now())  // 用于强制刷新视频流
 const displayPaused = ref(false)   // 显示暂停状态（录制时节省带宽）
@@ -228,11 +221,16 @@ const lastFrames = reactive({      // 暂停时显示的最后一帧
   thermal: null
 })
 
+// SLS实验台连接设置在设置页维护，监测页启动采集时只读取已保存配置。
+const settings = reactive(readSlsBenchSettings())
+
 // 传感器状态
 const sensorStatus = reactive({
   camera_ch1: { enabled: true, connected: false },
-  camera_ch2: { enabled: true, connected: false },
-  thermal: { enabled: true, connected: false }
+  camera_ch2: { enabled: false, connected: false },
+  thermal: { enabled: true, connected: false, type: 'fotric' },
+  vibration: { enabled: true, connected: false, com_port: settings.vibration_com },
+  servo: { enabled: true, connected: false, com_port: settings.servo_com }
 })
 
 // 最新数据
@@ -249,8 +247,18 @@ const latestData = reactive({
     status_labels: [],
     laser_system: { status: 'unknown', message: '未检测' },
     powder_system: { status: 'unknown', message: '未检测' },
-    gas_system: { status: 'unknown', message: '未检测' }
+    temp_system: { status: 'unknown', message: '未检测' }
   }
+})
+
+const realtimeState = reactive({
+  hasData: false,
+  eventTime: '',
+  receivedAt: '',
+  parameters: [],
+  media: {},
+  diagnosis: null,
+  health: null
 })
 
 const fixedParameterSchema = [
@@ -289,19 +297,27 @@ const healthData = reactive({
   status_labels: [],
   laser_system: { status: 'unknown', message: '未检测' },
   powder_system: { status: 'unknown', message: '未检测' },
-  gas_system: { status: 'unknown', message: '未检测' }
+  temp_system: { status: 'unknown', message: '未检测' }
 })
 
-// 设置
-const settings = reactive({
-  camera_ch1_index: 0,  // 默认自动检测
-  camera_ch2_index: 1,  // 默认自动检测
-  use_mock: false  // 默认使用真实硬件
+const selectedDeviceOnline = computed(() => selectedDevice.value?.online !== false)
+const waitingForRealtimeData = computed(() => !settings.use_mock && selectedDeviceOnline.value && !realtimeState.hasData)
+const selectedMockCaseAvailability = reactive({
+  hasCase: false,
+  ready: false,
+  allReady: false,
+  channels: {},
+  missing: []
 })
-
-// 可用摄像头列表
-const availableCameras = ref([])
-const camerasLoading = ref(false)
+const selectedMockSourceReady = computed(() => {
+  if (!settings.use_mock) return false
+  return selectedMockCaseAvailability.ready
+})
+const selectedMockCaseStatusText = computed(() => {
+  return buildMockCaseStatusText(selectedMockCase.value, selectedMockCaseAvailability)
+})
+const selectedDisplayOnline = computed(() => settings.use_mock ? selectedMockSourceReady.value : selectedDeviceOnline.value)
+const selectedMockHealthData = computed(() => buildMockCaseHealthData(selectedMockCase.value))
 
 // RegulationControl 引用
 const regulationControl = ref(null)
@@ -313,13 +329,6 @@ const currentLayerInfo = ref({
   isEnd: false
 })
 
-// 当前视频文件配置（用于检测变化）
-const currentVideoConfig = ref({
-  enabled: false,
-  videoFilesHash: '',
-  folder: ''
-})
-
 const ensureSelectedDevice = (routeDeviceId = route.params.deviceId) => {
   if (!slsDeviceStore.devices.length) return
   const fallbackDeviceId = slsDeviceStore.firstDevice?.id
@@ -327,8 +336,11 @@ const ensureSelectedDevice = (routeDeviceId = route.params.deviceId) => {
     ? routeDeviceId
     : fallbackDeviceId
   selectedDeviceId.value = nextDeviceId
+  if (nextDeviceId) {
+    localStorage.setItem('slsSelectedDeviceId', nextDeviceId)
+  }
   if (nextDeviceId && routeDeviceId !== nextDeviceId) {
-    router.replace(`/sls/device/${nextDeviceId}`)
+    router.replace({ path: `/sls/device/${nextDeviceId}`, query: { tab: activePanel.value } })
   }
 }
 
@@ -336,10 +348,30 @@ watch([() => route.params.deviceId, () => slsDeviceStore.devices.length], ([devi
   ensureSelectedDevice(deviceId)
 }, { immediate: true })
 
-watch(selectedDevice, (device) => {
-  if (device?.healthData) {
-    Object.assign(healthData, device.healthData)
+const applySelectedMockHealth = () => {
+  if (!settings.use_mock) return false
+  if (selectedMockCase.value) {
+    if (selectedMockCaseAvailability.ready && selectedMockHealthData.value) {
+      applyHealthData(selectedMockHealthData.value)
+      return true
+    }
+    resetHealthToWaiting('模拟用例未连接')
+    return false
   }
+  resetHealthToWaiting('未配置模拟用例')
+  return false
+}
+
+const syncMockHealthFromSelectedDevice = () => {
+  if (settings.use_mock) {
+    applySelectedMockHealth()
+  } else {
+    resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
+  }
+}
+
+watch([selectedDevice, () => settings.use_mock, () => selectedMockCaseAvailability.ready], () => {
+  syncMockHealthFromSelectedDevice()
 }, { immediate: true })
 
 const goToDeviceGroup = () => {
@@ -347,19 +379,46 @@ const goToDeviceGroup = () => {
 }
 
 const switchDevice = (deviceId) => {
-  router.push(`/sls/device/${deviceId}`)
+  localStorage.setItem('slsSelectedDeviceId', deviceId)
+  router.push({ path: `/sls/device/${deviceId}`, query: { tab: activePanel.value } })
 }
 
-const applySensorStatus = (status = {}) => {
-  const sensorKeys = ['camera_ch1', 'camera_ch2', 'thermal']
+const switchPanel = (panelKey) => {
+  router.push({
+    path: selectedDeviceId.value ? `/sls/device/${selectedDeviceId.value}` : '/sls/device',
+    query: { tab: panelKey }
+  })
+}
+
+const applySensorStatus = (status = {}, options = {}) => {
+  const sensorKeys = ['camera_ch1', 'camera_ch2', 'thermal', 'vibration', 'servo']
   sensorKeys.forEach((key) => {
     if (status[key]) {
+      const nextStatus = { ...status[key] }
+      if (!options.syncEnabled) {
+        delete nextStatus.enabled
+      }
       sensorStatus[key] = {
         ...sensorStatus[key],
-        ...status[key]
+        ...nextStatus
       }
     }
   })
+}
+
+const applyModeSensorDefaults = () => {
+  sensorStatus.camera_ch1.enabled = true
+  sensorStatus.camera_ch1.connected = false
+  sensorStatus.camera_ch2.enabled = false
+  sensorStatus.camera_ch2.connected = false
+  sensorStatus.thermal.enabled = true
+  sensorStatus.thermal.connected = false
+  sensorStatus.vibration.enabled = true
+  sensorStatus.vibration.connected = false
+  sensorStatus.vibration.com_port = settings.vibration_com
+  sensorStatus.servo.enabled = true
+  sensorStatus.servo.connected = false
+  sensorStatus.servo.com_port = settings.servo_com
 }
 
 const syncHealthDataToDevice = () => {
@@ -369,12 +428,12 @@ const syncHealthDataToDevice = () => {
       status_labels: [...(healthData.status_labels || [])],
       laser_system: { ...(healthData.laser_system || {}) },
       powder_system: { ...(healthData.powder_system || {}) },
-      gas_system: { ...(healthData.gas_system || {}) }
+      temp_system: { ...(healthData.temp_system || {}) }
     })
   }
 }
 
-const applyHealthData = (nextHealth = {}) => {
+function applyHealthData(nextHealth = {}) {
   healthData.status = nextHealth.status || healthData.status
   healthData.status_code = nextHealth.status_code !== undefined ? nextHealth.status_code : healthData.status_code
   healthData.status_labels = nextHealth.status_labels || healthData.status_labels
@@ -384,17 +443,188 @@ const applyHealthData = (nextHealth = {}) => {
   if (nextHealth.powder_system) {
     healthData.powder_system = { ...nextHealth.powder_system }
   }
-  if (nextHealth.gas_system) {
-    healthData.gas_system = { ...nextHealth.gas_system }
+  if (nextHealth.temp_system) {
+    healthData.temp_system = { ...nextHealth.temp_system }
   }
   Object.assign(latestData.health, nextHealth)
   syncHealthDataToDevice()
+}
+
+const resetRealtimeState = () => {
+  realtimeState.hasData = false
+  realtimeState.eventTime = ''
+  realtimeState.receivedAt = ''
+  realtimeState.parameters = []
+  realtimeState.media = {}
+  realtimeState.diagnosis = null
+  realtimeState.health = null
+  latestData.camera_ch1 = null
+  latestData.camera_ch2 = null
+  latestData.thermal = null
+  lastFrames.CH1 = null
+  lastFrames.CH2 = null
+  lastFrames.thermal = null
+  sensorStatus.camera_ch1.connected = false
+  sensorStatus.camera_ch2.connected = false
+  sensorStatus.thermal.connected = false
+}
+
+function resetHealthToWaiting(label = '等待实时数据') {
+  healthData.status = 'power_off'
+  healthData.status_code = -1
+  healthData.status_labels = [label]
+  healthData.laser_system = { status: 'unknown', message: label }
+  healthData.powder_system = { status: 'unknown', message: label }
+  healthData.temp_system = { status: 'unknown', message: label }
+  Object.assign(latestData.health, healthData)
+}
+
+const slsStatusLabels = {
+  '-1': '未开机',
+  '0': '系统健康',
+  '1': '铺粉异常',
+  '2': '激光异常',
+  '3': '温度异常',
+  '4': '复合故障'
+}
+
+const buildSlsHealthData = (statusCode = -1) => {
+  const code = Number(statusCode)
+  const label = slsStatusLabels[String(code)] || '未知状态'
+  return {
+    status: getStatusFromCode(code),
+    status_code: code,
+    status_labels: code === -1 ? [] : [label],
+    laser_system: { status: code === 2 || code === 4 ? 'fault' : (code === -1 ? 'unknown' : 'healthy'), message: code === 2 || code === 4 ? '激光异常' : (code === -1 ? '未检测' : '健康') },
+    powder_system: { status: code === 1 || code === 4 ? 'fault' : (code === -1 ? 'unknown' : 'healthy'), message: code === 1 || code === 4 ? '铺粉异常' : (code === -1 ? '未检测' : '健康') },
+    temp_system: { status: code === 3 || code === 4 ? 'fault' : (code === -1 ? 'unknown' : 'healthy'), message: code === 3 || code === 4 ? '温度异常' : (code === -1 ? '未检测' : '健康') }
+  }
+}
+
+const buildSlsRealtimeParameters = (data = {}) => {
+  const thermal = data.thermal || {}
+  const vibration = data.vibration || {}
+  const servo = data.servo || {}
+  const system = data.system || {}
+  const statusCode = Number(system.health_status ?? healthData.status_code ?? -1)
+  const parameterValueMap = {
+    current_layer: currentLayerInfo.value.number || '--',
+    sequence: latestData.frame_number || '--',
+    record_status: slsStatusLabels[String(statusCode)] || '--',
+    data_time: formatDateTime(),
+    scraper_torque: vibration.magnitude ?? '--',
+    oxygen: '--',
+    ambient_oxygen: '--',
+    chamber_temperature: thermal.temp_avg ?? '--',
+    gas_flow: system.powder_flowing ? '铺粉中' : '待机',
+    fan_speed: '--',
+    medium_filter_resistance: '--',
+    high_filter_resistance: '--',
+    gas_pressure: '--',
+    compressed_air_pressure: '--',
+    servo_temperature_x: '--',
+    servo_temperature_y: '--',
+    galvo_temperature_x: servo.angle ?? '--',
+    galvo_temperature_y: servo.is_moving ? '运动中' : '静止',
+    output_current_x: vibration.velocity?.x ?? '--',
+    output_current_y: vibration.velocity?.y ?? '--'
+  }
+
+  return fixedParameterSchema.map((schema) => ({
+    ...schema,
+    value: parameterValueMap[schema.id] ?? '--'
+  }))
+}
+
+const resetMockCaseAvailability = (overrides = {}) => {
+  Object.assign(selectedMockCaseAvailability, {
+    hasCase: false,
+    ready: false,
+    allReady: false,
+    channels: {},
+    missing: [],
+    ...overrides
+  })
+}
+
+const clearMockMedia = () => {
+  ;['camera_ch1', 'camera_ch2', 'thermal'].forEach((key) => {
+    latestData[key] = null
+    sensorStatus[key].enabled = true
+    sensorStatus[key].connected = false
+  })
+  lastFrames.CH1 = null
+  lastFrames.CH2 = null
+  lastFrames.thermal = null
+}
+
+const getMockVideoOptions = () => ({})
+
+const applyMockMediaUrls = () => {
+  if (!settings.use_mock || !selectedMockCase.value) return
+  const media = buildMockCaseMedia(selectedMockCase.value, streamKey.value, getMockVideoOptions())
+  const frameKeyMap = {
+    camera_ch1: 'CH1',
+    camera_ch2: 'CH2',
+    thermal: 'thermal'
+  }
+
+  ;['camera_ch1', 'camera_ch2', 'thermal'].forEach((key) => {
+    const channelReady = Boolean(selectedMockCaseAvailability.channels?.[key])
+    latestData[key] = channelReady ? media[key] : null
+    lastFrames[frameKeyMap[key]] = channelReady ? media[key]?.url : null
+    sensorStatus[key].enabled = true
+    sensorStatus[key].connected = channelReady
+  })
+}
+
+const applySelectedMockMedia = () => {
+  if (!settings.use_mock) return
+  if (selectedMockCase.value) {
+    applyMockMediaUrls()
+  } else {
+    clearMockMedia()
+  }
+}
+
+let mockCaseProbeSerial = 0
+const refreshSelectedMockCase = async () => {
+  mockCaseProbeSerial += 1
+  const serial = mockCaseProbeSerial
+
+  if (!settings.use_mock) {
+    resetMockCaseAvailability()
+    return
+  }
+
+  clearMockMedia()
+  if (!selectedMockCase.value) {
+    resetMockCaseAvailability()
+    return
+  }
+
+  const availability = await checkMockCaseMedia(selectedMockCase.value, getMockVideoOptions())
+  if (serial !== mockCaseProbeSerial) return
+  resetMockCaseAvailability(availability)
+  applyMockMediaUrls()
 }
 
 const formatRuntimeValue = (value, digits = 1) => {
   if (value === undefined || value === null || value === '') return '--'
   if (typeof value === 'number') return Number.isInteger(value) ? value : value.toFixed(digits)
   return value
+}
+
+const padNumber = (value) => String(value).padStart(2, '0')
+
+const formatDateTime = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = padNumber(date.getMonth() + 1)
+  const day = padNumber(date.getDate())
+  const hours = padNumber(date.getHours())
+  const minutes = padNumber(date.getMinutes())
+  const seconds = padNumber(date.getSeconds())
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 const numericValue = (value, fallback = 0) => {
@@ -422,67 +652,135 @@ watch(selectedDevice, () => {
   mockRuntimeTick.value = 0
 }, { immediate: true })
 
-const liveParameters = computed(() => {
-  const baseParameters = selectedDevice.value?.parameters?.length
-    ? selectedDevice.value.parameters
-    : fixedParameterSchema
+watch([selectedDevice, () => settings.use_mock], () => {
+  refreshSelectedMockCase()
+}, { immediate: true })
 
-  const normalized = fixedParameterSchema.map((schema) => {
+watch(streamKey, () => {
+  applySelectedMockMedia()
+})
+
+const emptyLiveParameters = () => fixedParameterSchema.map((schema) => ({ ...schema }))
+
+const baseDeviceParameters = () => selectedDevice.value?.parameters?.length
+  ? selectedDevice.value.parameters
+  : fixedParameterSchema
+
+const decimalPlaces = (value) => {
+  const text = String(value)
+  if (!text.includes('.')) return 0
+  return Math.min(text.split('.')[1].length, 3)
+}
+
+const mockNumericValue = (schema, rawValue, index) => {
+  const base = Number(rawValue)
+  if (!Number.isFinite(base)) return rawValue ?? '--'
+  const unit = schema.unit || ''
+  const baseAmplitude = Math.abs(base) * 0.004
+  const unitAmplitude = unit === '℃'
+    ? 0.25
+    : unit === 'Bar' || unit === 'mBar'
+      ? 0.02
+      : unit === '%' || unit === 'm3/h'
+        ? 0.05
+        : 0.1
+  const amplitude = baseAmplitude + unitAmplitude
+  const wave = Math.sin((mockRuntimeTick.value + index) * 0.71) * amplitude
+  const nextValue = base + wave
+  const digits = decimalPlaces(rawValue)
+  return digits === 0 ? String(Math.round(nextValue)) : nextValue.toFixed(digits)
+}
+
+const buildMockLiveParameters = () => {
+  const baseParameters = baseDeviceParameters()
+  return fixedParameterSchema.map((schema, index) => {
     const matched = baseParameters.find((param) => param.id === schema.id || param.name === schema.name)
+    const baseValue = matched?.value ?? schema.value
+    let value = baseValue
+    if (schema.id === 'current_layer') {
+      value = isRunning.value ? formatRuntimeValue(runtimeBase.currentLayer + Math.floor(mockRuntimeTick.value / 4), 0) : baseValue
+    } else if (schema.id === 'sequence') {
+      value = isRunning.value ? formatRuntimeValue(runtimeBase.sequence + mockRuntimeTick.value * 3, 0) : baseValue
+    } else if (schema.id === 'data_time') {
+      value = isRunning.value ? formatDateTime() : baseValue
+    } else if (schema.id === 'record_status') {
+      value = currentStatusParameterText()
+    } else if (isRunning.value && baseValue !== '--') {
+      value = mockNumericValue(schema, baseValue, index)
+    }
     return {
       ...schema,
-      value: matched?.value ?? schema.value,
+      value: value ?? '--',
       unit: matched?.unit ?? schema.unit
     }
   })
+}
 
-  if (isRunning.value && settings.use_mock) {
-    normalized[0].value = formatRuntimeValue(runtimeBase.currentLayer + Math.floor(mockRuntimeTick.value / 4), 0)
-    normalized[1].value = formatRuntimeValue(runtimeBase.sequence + mockRuntimeTick.value * 3, 0)
-  } else if (isRunning.value) {
-    if (currentLayerInfo.value.number) {
-      normalized[0].value = formatRuntimeValue(currentLayerInfo.value.number, 0)
+const buildRealtimeLiveParameters = () => {
+  if (!realtimeState.hasData) return emptyLiveParameters()
+  const source = Array.isArray(realtimeState.parameters) ? realtimeState.parameters : []
+  return fixedParameterSchema.map((schema) => {
+    const matched = source.find((param) => param.id === schema.id || param.name === schema.name)
+    return {
+      ...schema,
+      value: matched?.value ?? '--',
+      unit: matched?.unit ?? schema.unit
     }
-    if (latestData.frame_number) {
-      normalized[1].value = formatRuntimeValue(latestData.frame_number, 0)
+  })
+}
+
+const liveParameters = computed(() => {
+  return settings.use_mock ? buildMockLiveParameters() : buildRealtimeLiveParameters()
+})
+
+const diagnosisData = computed(() => {
+  if (settings.use_mock) {
+    const diagnosis = selectedDevice.value?.diagnosis || {}
+    const mockHealth = selectedMockHealthData.value
+    const mockStatusCode = mockHealth?.status_code ?? selectedDevice.value?.healthData?.status_code ?? -1
+    const mockStatusLabel = mockHealth?.status_labels?.join('、') || selectedDevice.value?.statusText || '模拟样本'
+    return {
+      enabled: true,
+      modelVersion: '设备绑定模拟用例',
+      statusCode: diagnosis.rawStatusCode ?? mockStatusCode,
+      statusLabel: mockStatusLabel,
+      frontendStatusCode: mockStatusCode,
+      frontendStatusLabel: mockStatusLabel,
+      confidence: diagnosis.confidence ?? null,
+      confidenceText: diagnosis.confidence ? `${(diagnosis.confidence * 100).toFixed(1)}%` : '--',
+      faultModes: diagnosis.categories || [],
+      eventTime: isRunning.value ? formatDateTime() : selectedDevice.value?.updatedAt || '',
+      modelLayer: 'mock_sls',
+      input: { alarmCount: 0, parameterCount: liveParameters.value.filter((item) => item.value !== '--').length },
+      evidence: diagnosis.evidence || []
     }
   }
-
-  normalized[2].value = currentStatusParameterText()
-  return normalized
+  if (realtimeState.hasData && realtimeState.diagnosis) return realtimeState.diagnosis
+  return {
+    enabled: true,
+    modelVersion: '',
+    statusCode: -1,
+    statusLabel: '等待实时数据',
+    frontendStatusCode: -1,
+    frontendStatusLabel: '等待实时数据',
+    confidence: null,
+    confidenceText: '--',
+    faultModes: [],
+    eventTime: '',
+    modelLayer: 'waiting',
+    input: { alarmCount: 0, parameterCount: 0 },
+    evidence: []
+  }
 })
 
 let lastParameterSignature = ''
 watch(liveParameters, (parameters) => {
-  if (selectedDeviceId.value) {
+  if (selectedDeviceId.value && settings.use_mock) {
     const signature = JSON.stringify(parameters)
     if (signature === lastParameterSignature) return
     lastParameterSignature = signature
-    slsDeviceStore.updateDeviceParameters(selectedDeviceId.value, parameters)
   }
 }, { deep: true })
-
-// 当设置对话框打开时自动检测硬件
-watch(showSettings, (val) => {
-  if (val) {
-    // 对话框打开时自动检测
-    fetchCameras()
-  }
-})
-
-// 视频源改变时的处理
-const onVideoSourceChanged = (sourceInfo) => {
-  console.log('[Dashboard] 视频源已改变:', sourceInfo)
-  // 强制刷新视频流
-  streamKey.value = Date.now()
-
-  // 如果正在运行，更新传感器状态为已连接
-  if (sourceInfo.isPlaying) {
-    sensorStatus.camera_ch1.connected = true
-    sensorStatus.camera_ch2.connected = true
-    sensorStatus.thermal.connected = true
-  }
-}
 
 // 层变化时的处理
 const onLayerChanged = (layerInfo) => {
@@ -493,27 +791,39 @@ const onLayerChanged = (layerInfo) => {
 // 获取状态
 const fetchStatus = async () => {
   try {
-    const response = await axios.get('/api/slm/status')
+    const response = await axios.get('/api/sls/status')
     if (response.data) {
       const wasRunning = isRunning.value
       isRunning.value = response.data.is_running
-      applySensorStatus(response.data.sensor_status || {})
-
-      // 如果正在采集且当前状态为未开机(-1)，则更新为开机正常状态(0)
-      if (isRunning.value && healthData.status_code === -1) {
-        console.log('[Dashboard] 刷新状态：采集运行中，更新健康状态为开机正常')
-        healthData.status = 'healthy'
-        healthData.status_code = 0
-        healthData.status_labels = ['系统健康']
-        healthData.laser_system = { status: 'healthy', message: '健康' }
-        healthData.powder_system = { status: 'healthy', message: '健康' }
-        healthData.gas_system = { status: 'healthy', message: '健康' }
-        syncHealthDataToDevice()
-
-        // 通知后端更新健康状态
-        await updateHealthStatusOnBackend(0, ['系统健康'])
+      applySensorStatus(response.data.sensor_status || {}, { syncEnabled: true })
+      if (settings.use_mock) {
+        applySelectedMockMedia()
+      } else {
+        sensorStatus.camera_ch1.connected = false
+        sensorStatus.camera_ch2.connected = false
+        if (response.data.thermal_data && sensorStatus.thermal.connected) {
+          latestData.thermal = {
+            ...response.data.thermal_data,
+            url: `/api/sls/stream/thermal?t=${streamKey.value}`,
+            media_type: 'image'
+          }
+        }
       }
-
+      
+      // 模拟模式使用当前设备绑定的用例；真实模式直接读取SLS状态接口。
+      if (settings.use_mock) {
+        applySelectedMockHealth()
+      } else if (response.data.health) {
+        applyHealthData(response.data.health)
+        realtimeState.hasData = response.data.is_running
+        realtimeState.parameters = buildSlsRealtimeParameters({
+          thermal: response.data.thermal_data,
+          system: { health_status: response.data.health.status_code }
+        })
+      } else if (!settings.use_mock && !realtimeState.hasData) {
+        resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
+      }
+      
       // 如果采集刚停止（wasRunning && !isRunning），立即重置健康状态为未开机
       if (wasRunning && !isRunning.value) {
         console.log('[Dashboard] 刷新状态：采集已停止，重置健康状态为未开机')
@@ -522,12 +832,8 @@ const fetchStatus = async () => {
         healthData.status_labels = []
         healthData.laser_system = { status: 'unknown', message: '未检测' }
         healthData.powder_system = { status: 'unknown', message: '未检测' }
-        healthData.gas_system = { status: 'unknown', message: '未检测' }
+        healthData.temp_system = { status: 'unknown', message: '未检测' }
         syncHealthDataToDevice()
-
-        // 重置后端健康状态缓存
-        lastBackendHealthCode = -1
-
         // 关闭WebSocket连接
         closeWebSocket()
       }
@@ -537,94 +843,66 @@ const fetchStatus = async () => {
   }
 }
 
-// 通知后端更新健康状态
-const updateHealthStatusOnBackend = async (statusCode, labels) => {
-  try {
-    await axios.post('/api/slm/health/status', null, {
-      params: {
-        status_code: statusCode,
-        labels: labels
-      }
-    })
-    console.log(`[Dashboard] 后端健康状态已更新: ${statusCode}`)
-  } catch (error) {
-    console.error('[Dashboard] 更新后端健康状态失败:', error)
+const activateRunningView = async () => {
+  resetRuntimeBase()
+  mockRuntimeTick.value = 0
+  resetRealtimeState()
+  if (settings.use_mock) {
+    closeWebSocket()
   }
-}
-
-// 获取可用摄像头
-const fetchCameras = async () => {
-  camerasLoading.value = true
-  try {
-    const response = await axios.get('/api/slm/cameras')
-    if (response.data.success) {
-      availableCameras.value = response.data.cameras
-
-      // 检查当前选择是否有效，无效则自动设置
-      const availableIndices = response.data.cameras.map(c => c.index)
-      const ch1Valid = availableIndices.includes(settings.camera_ch1_index)
-      const ch2Valid = availableIndices.includes(settings.camera_ch2_index)
-
-      // 自动设置摄像头索引（仅在未运行时且当前选择无效）
-      if (!isRunning.value) {
-        if (response.data.cameras.length >= 2) {
-          if (!ch1Valid) settings.camera_ch1_index = response.data.cameras[0].index
-          if (!ch2Valid) settings.camera_ch2_index = response.data.cameras[1].index
-        } else if (response.data.cameras.length === 1) {
-          if (!ch1Valid) settings.camera_ch1_index = response.data.cameras[0].index
-        }
-      }
-
-      if (response.data.cameras.length > 0) {
-        console.log('检测到摄像头:', response.data.cameras)
-      }
-    } else {
-      ElMessage.warning(response.data.message || '摄像头检测失败')
+  isRunning.value = true
+  streamKey.value = Date.now()
+  if (settings.use_mock) {
+    await refreshSelectedMockCase()
+    applySelectedMockMedia()
+    applySelectedMockHealth()
+  } else {
+    applyModeSensorDefaults()
+    resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
+    await fetchStatus()
+    if (selectedDeviceOnline.value) {
+      connectWebSocket()
     }
-  } catch (error) {
-    console.error('获取摄像头失败:', error)
-    ElMessage.error('摄像头检测失败: ' + (error.response?.data?.message || error.message))
-  } finally {
-    camerasLoading.value = false
   }
 }
 
 // 开始/停止采集
 const toggleAcquisition = async () => {
   console.log(`[Dashboard] toggleAcquisition 调用, isRunning=${isRunning.value}, starting=${starting.value}`)
-
+  
   if (starting.value) {
     console.log('[Dashboard] 正在处理中，忽略点击')
     return
   }
-
+  
   if (isRunning.value) {
     // 停止
     console.log('[Dashboard] 停止采集...')
     starting.value = true
     try {
-      const response = await axios.post('/api/slm/stop')
+      const response = await axios.post('/api/sls/stop')
       console.log('[Dashboard] 停止响应:', response.data)
       isRunning.value = false
       streamKey.value = Date.now()
       closeWebSocket()
-
+      resetRealtimeState()
+      
       await new Promise(resolve => setTimeout(resolve, 1500))
-
+      
       // 重置传感器状态为未连接
       Object.keys(sensorStatus).forEach(key => {
         if (sensorStatus[key]) sensorStatus[key].connected = false
       })
-
+      
       // 重置健康状态为未开机（状态码-1）
       healthData.status = 'power_off'
       healthData.status_code = -1
       healthData.status_labels = []
       healthData.laser_system = { status: 'unknown', message: '未检测' }
       healthData.powder_system = { status: 'unknown', message: '未检测' }
-      healthData.gas_system = { status: 'unknown', message: '未检测' }
+      healthData.temp_system = { status: 'unknown', message: '未检测' }
       syncHealthDataToDevice()
-
+      
       ElMessage.success('采集已停止')
     } catch (error) {
       console.error('[Dashboard] 停止失败:', error)
@@ -635,27 +913,34 @@ const toggleAcquisition = async () => {
     }
   } else {
     // 开始
+    if (!settings.use_mock && !selectedDeviceOnline.value) {
+      ElMessage.warning('当前设备在device.json中为online:false，已禁止真实数据接入')
+      return
+    }
     console.log('[Dashboard] 开始采集...')
     starting.value = true
     try {
       console.log('[Dashboard] 发送启动请求, 参数:', settings)
-      const response = await axios.post('/api/slm/start', null, {
+      const response = await axios.post('/api/sls/start', null, {
         params: {
-          camera_ch1_index: settings.camera_ch1_index,
-          camera_ch2_index: settings.camera_ch2_index,
+          fotric_ip: settings.fotric_ip,
+          vibration_com: settings.vibration_com,
+          servo_com: settings.servo_com,
+          vibration_threshold: settings.vibration_threshold,
+          vibration_algorithm: settings.vibration_algorithm,
           use_mock: settings.use_mock
         }
       })
       console.log('[Dashboard] 启动响应:', response.data)
-
+      
       if (response.data.success) {
-        resetRuntimeBase()
-        mockRuntimeTick.value = 0
-        isRunning.value = true
-        streamKey.value = Date.now()
+        await activateRunningView()
         const modeText = settings.use_mock ? '模拟模式' : '真实硬件模式'
         ElMessage.success(`采集已启动 (${modeText})`)
-        connectWebSocket()
+      } else if (settings.use_mock && String(response.data.message || '').includes('采集已在运行中')) {
+        // 后端已运行时仍刷新当前设备绑定的视频用例，避免前端停在“未加载视频”状态。
+        await activateRunningView()
+        ElMessage.success('采集已在运行，已刷新模拟视频')
       } else {
         ElMessage.error(response.data.message || '启动失败')
       }
@@ -671,16 +956,16 @@ const toggleAcquisition = async () => {
 
 // 连接WebSocket
 const connectWebSocket = () => {
-  const wsUrl = `ws://${window.location.host}/api/slm/ws/data`
-
+  const wsUrl = `ws://${window.location.host}/api/sls/ws/data`
+  
   try {
     ws = new WebSocket(wsUrl)
-
+    
     ws.onopen = () => {
       console.log('WebSocket已连接')
       wsConnected.value = true
     }
-
+    
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
@@ -689,18 +974,18 @@ const connectWebSocket = () => {
         console.error('解析WebSocket数据失败:', error)
       }
     }
-
+    
     ws.onerror = (error) => {
       console.error('WebSocket错误:', error)
       wsConnected.value = false
     }
-
+    
     ws.onclose = () => {
       console.log('WebSocket已关闭')
       wsConnected.value = false
-
+      
       // 尝试重连
-      if (isRunning.value) {
+      if (isRunning.value && selectedDeviceOnline.value) {
         reconnectTimer = setTimeout(() => {
           connectWebSocket()
         }, 3000)
@@ -725,79 +1010,77 @@ const closeWebSocket = () => {
 
 // 处理WebSocket数据
 const handleWebSocketData = (data) => {
-  // 更新传感器状态
-  if (data.sensor_status) {
-    applySensorStatus(data.sensor_status)
+  if (settings.use_mock) {
+    return
+  }
+  if (!selectedDeviceOnline.value) {
+    return
   }
 
-  // 更新最新数据
-  if (data.thermal) {
-    latestData.thermal = data.thermal
-  }
-  if (data.statistics) {
-    latestData.statistics = data.statistics
-  }
-  // 更新健康状态
-  if (data.health) {
-    console.log('[Dashboard] 收到健康状态:', data.health)
-    applyHealthData(data.health)
+  if (data.type === 'status' && data.is_running === false) {
+    isRunning.value = false
+    resetRealtimeState()
+    resetHealthToWaiting('等待SLS采集启动')
+    return
   }
 
-  latestData.timestamp = data.timestamp
-  latestData.frame_number = data.frame_number
+  const packet = data.data || data
+  const health = buildSlsHealthData(packet.system?.health_status ?? 0)
+  realtimeState.hasData = true
+  realtimeState.eventTime = formatDateTime(new Date((data.timestamp || packet.timestamp || Date.now() / 1000) * 1000))
+  realtimeState.receivedAt = formatDateTime()
+  realtimeState.parameters = buildSlsRealtimeParameters(packet)
+  realtimeState.health = health
+
+  latestData.timestamp = data.timestamp || packet.timestamp || Date.now() / 1000
+  latestData.frame_number += 1
+  latestData.thermal = packet.thermal?.has_image
+    ? {
+        ...packet.thermal,
+        url: `/api/sls/stream/thermal?t=${streamKey.value}`,
+        media_type: 'image',
+        updated_at: realtimeState.eventTime
+      }
+    : null
+  lastFrames.thermal = latestData.thermal?.url || null
+
+  sensorStatus.thermal.connected = Boolean(packet.thermal?.has_image)
+  sensorStatus.vibration.connected = Boolean(packet.vibration)
+  sensorStatus.servo.connected = Boolean(packet.servo)
+  sensorStatus.vibration.com_port = settings.vibration_com
+  sensorStatus.servo.com_port = settings.servo_com
+
+  applyHealthData(health)
 }
 
 // 切换传感器
-const handleToggleSensor = async (sensor, enabled) => {
-  try {
-    await axios.post(`/api/slm/sensor/${sensor}/enable?enabled=${enabled}`)
-    sensorStatus[sensor].enabled = enabled
-    ElMessage.success(`${sensor} 已${enabled ? '启用' : '禁用'}`)
-  } catch (error) {
-    ElMessage.error('切换传感器失败')
-    // 恢复状态
-    sensorStatus[sensor].enabled = !enabled
-  }
+const handleToggleSensor = (sensor, enabled) => {
+  if (!sensorStatus[sensor]) return
+  sensorStatus[sensor].enabled = enabled
+  ElMessage.success(`${sensor} 已${enabled ? '启用' : '禁用'}`)
+}
+
+const handleVibrationPortChange = (port) => {
+  settings.vibration_com = port
+  sensorStatus.vibration.com_port = port
+}
+
+const handleServoPortChange = (port) => {
+  settings.servo_com = port
+  sensorStatus.servo.com_port = port
 }
 
 // 刷新状态
 const refreshStatus = async () => {
   fetchStatus()
 
-  // 检查视频文件模式配置是否变化
-  try {
-    const response = await axios.get('/api/slm/video_file_mode/config')
-    if (response.data.success) {
-      const config = response.data
-      // 生成视频文件配置的简单哈希（路径拼接）
-      const videoFilesStr = JSON.stringify(config.video_files || {})
-
-      // 检测配置是否变化
-      const configChanged = (
-        config.enabled !== currentVideoConfig.value.enabled ||
-        videoFilesStr !== currentVideoConfig.value.videoFilesHash
-      )
-
-      if (configChanged) {
-        console.log('[Dashboard] 检测到视频文件配置变化，需要重启采集')
-        // 更新当前配置
-        currentVideoConfig.value = {
-          enabled: config.enabled,
-          videoFilesHash: videoFilesStr,
-          folder: config.video_files ? Object.values(config.video_files)[0] : ''
-        }
-
-        // 自动重启采集以应用新配置（无论是否正在运行）
-        ElMessage.info('检测到视频源变化，正在重启采集...')
-        await restartAcquisitionWithNewVideoConfig()
-      }
-    }
-  } catch (error) {
-    console.error('[Dashboard] 检查视频文件配置失败:', error)
+  if (settings.use_mock) {
+    await refreshSelectedMockCase()
   }
-
+  
   // 强制刷新视频流（更新streamKey使URL变化，防止缓存）
   streamKey.value = Date.now()
+  applySelectedMockMedia()
   // 刷新闭环调控组件状态
   if (regulationControl.value && regulationControl.value.refresh) {
     regulationControl.value.refresh()
@@ -805,115 +1088,39 @@ const refreshStatus = async () => {
   ElMessage.success('状态已刷新')
 }
 
-// 使用新视频配置重启采集
-const restartAcquisitionWithNewVideoConfig = async () => {
-  try {
-    // 1. 如果正在运行，停止当前采集
-    if (isRunning.value) {
-      await axios.post('/api/slm/stop')
-      isRunning.value = false
-      closeWebSocket()
-      // 等待资源释放
-      await new Promise(resolve => setTimeout(resolve, 1500))
-    }
-
-    // 2. 重新启动采集（使用视频文件模式）
-    const response = await axios.post('/api/slm/start', null, {
-      params: {
-        camera_ch1_index: settings.camera_ch1_index,
-        camera_ch2_index: settings.camera_ch2_index,
-        use_mock: true  // 视频文件模式使用模拟模式
-      }
-    })
-
-    if (response.data.success) {
-      isRunning.value = true
-      streamKey.value = Date.now()
-      connectWebSocket()
-      console.log('[Dashboard] 采集已使用新视频配置重启')
-      ElMessage.success('视频源已更新')
-    }
-  } catch (error) {
-    console.error('[Dashboard] 重启采集失败:', error)
-    ElMessage.error('重启采集失败: ' + (error.response?.data?.message || error.message))
-  }
-}
-
-// 保存设置
-const saveSettings = async () => {
-  // 如果正在采集，需要先停止再重新启动以应用新设置
-  if (isRunning.value) {
-    ElMessage.warning('设置已更改，正在重启采集以应用新配置...')
-
-    try {
-      // 停止当前采集
-      await axios.post('/api/slm/stop')
-      isRunning.value = false  // 更新状态
-      streamKey.value = Date.now()  // 强制刷新视频流
-      closeWebSocket()
-
-      // 等待资源释放
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      // 重新启动采集
-      const response = await axios.post('/api/slm/start', null, {
-        params: {
-          camera_ch1_index: settings.camera_ch1_index,
-          camera_ch2_index: settings.camera_ch2_index,
-          use_mock: settings.use_mock
-        }
-      })
-
-      if (response.data.success) {
-        isRunning.value = true  // 更新状态
-        streamKey.value = Date.now()  // 更新streamKey强制刷新视频流
-        connectWebSocket()
-        ElMessage.success('采集已重启，新设置已生效')
-      }
-    } catch (error) {
-      ElMessage.error('重启采集失败: ' + (error.response?.data?.message || error.message))
-      isRunning.value = false
-    }
-  } else {
-    ElMessage.success('设置已保存，将在下次启动采集时生效')
-  }
-
-  showSettings.value = false
-}
-
 // 处理诊断结果
 const handleDiagnosisComplete = (result) => {
   console.log('[Dashboard] 诊断结果:', result)
-
+  
   // 更新健康状态
   healthData.status_code = result.status_code
   healthData.status = getStatusFromCode(result.status_code)
   healthData.status_labels = [result.status_label]
-
+  
   // 更新子系统状态
   if (result.status_code === 0) {
     healthData.laser_system = { status: 'healthy', message: '健康' }
     healthData.powder_system = { status: 'healthy', message: '健康' }
-    healthData.gas_system = { status: 'healthy', message: '健康' }
+    healthData.temp_system = { status: 'healthy', message: '健康' }
   } else if (result.status_code === 1) {
     healthData.laser_system = { status: 'healthy', message: '健康' }
     healthData.powder_system = { status: 'fault', message: '刮刀磨损' }
-    healthData.gas_system = { status: 'healthy', message: '健康' }
+    healthData.temp_system = { status: 'healthy', message: '健康' }
   } else if (result.status_code === 2) {
     healthData.laser_system = { status: 'fault', message: '激光功率异常' }
     healthData.powder_system = { status: 'healthy', message: '健康' }
-    healthData.gas_system = { status: 'healthy', message: '健康' }
+    healthData.temp_system = { status: 'healthy', message: '健康' }
   } else if (result.status_code === 3) {
     healthData.laser_system = { status: 'healthy', message: '健康' }
     healthData.powder_system = { status: 'healthy', message: '健康' }
-    healthData.gas_system = { status: 'fault', message: '保护气体异常' }
+    healthData.temp_system = { status: 'fault', message: '温度异常' }
   } else if (result.status_code === 4) {
     healthData.laser_system = { status: 'fault', message: '需检查' }
     healthData.powder_system = { status: 'fault', message: '需检查' }
-    healthData.gas_system = { status: 'fault', message: '需检查' }
+    healthData.temp_system = { status: 'fault', message: '需检查' }
   }
   syncHealthDataToDevice()
-
+  
   ElMessage.success(`诊断完成: ${result.status_label}`)
 }
 
@@ -923,74 +1130,21 @@ const getStatusFromCode = (code) => {
     '0': 'healthy',
     '1': 'powder_fault',
     '2': 'laser_fault',
-    '3': 'gas_fault',
+    '3': 'temp_fault',
     '4': 'compound_fault'
   }
   return map[String(code)] || 'power_off'
-}
-
-// 后端健康状态缓存
-let lastBackendHealthCode = -1
-let healthCheckTimer = null
-
-// 从后端获取健康状态（用于检测诊断模块输出）
-const fetchBackendHealthStatus = async () => {
-  // 只有在采集运行中才获取
-  if (!isRunning.value) return
-
-  try {
-    const response = await axios.get('/api/slm/health/status')
-    if (response.data.success && response.data.health) {
-      const backendCode = response.data.health.status_code
-
-      // 只有状态码变化时才更新前端显示
-      if (backendCode !== lastBackendHealthCode) {
-        console.log(`[Dashboard] 后端健康状态变化: ${lastBackendHealthCode} -> ${backendCode}`)
-        lastBackendHealthCode = backendCode
-
-        // 更新前端健康状态，并同步到设备群卡片。
-        applyHealthData(response.data.health)
-
-        // 如果状态码表示故障，提示用户
-        if (backendCode > 0) {
-          const statusLabels = response.data.health.status_labels || ['异常']
-          ElMessage.warning(`检测到设备异常: ${statusLabels.join(', ')}`)
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[Dashboard] 获取后端健康状态失败:', error)
-  }
-}
-
-// 获取视频文件模式配置
-const fetchVideoFileModeConfig = async () => {
-  try {
-    const response = await axios.get('/api/slm/video_file_mode/config')
-    if (response.data.success) {
-      const config = response.data
-      // 保存当前配置
-      currentVideoConfig.value = {
-        enabled: config.enabled,
-        videoFilesHash: JSON.stringify(config.video_files || {}),
-        folder: config.video_files ? Object.values(config.video_files)[0] : ''
-      }
-
-      if (config.enabled) {
-        // 如果视频文件模式已启用，自动切换到模拟模式
-        settings.use_mock = true
-        console.log('[Dashboard] 检测到视频文件模式已启用，自动切换到模拟模式')
-      }
-    }
-  } catch (error) {
-    console.error('[Dashboard] 获取视频文件模式配置失败:', error)
-  }
 }
 
 // WebSocket
 let ws = null
 let reconnectTimer = null
 let mockParameterTimer = null
+let realtimePollTimer = null
+
+const refreshBenchSettings = () => {
+  Object.assign(settings, readSlsBenchSettings())
+}
 
 const stopMockParameterTicker = () => {
   if (mockParameterTimer) {
@@ -1012,14 +1166,59 @@ const refreshMockParameterTicker = () => {
   }, 1000)
 }
 
-watch([isRunning, () => settings.use_mock, selectedDeviceId], () => {
+const fetchRealtimeSample = async () => {
+  if (settings.use_mock || !selectedDeviceId.value || !selectedDeviceOnline.value) return
+  await fetchStatus()
+}
+
+const stopRealtimePoller = () => {
+  if (realtimePollTimer) {
+    clearInterval(realtimePollTimer)
+    realtimePollTimer = null
+  }
+}
+
+const refreshRealtimePoller = () => {
+  stopRealtimePoller()
+  if (settings.use_mock || !selectedDeviceId.value || !selectedDeviceOnline.value) {
+    if (!settings.use_mock) resetRealtimeState()
+    if (!settings.use_mock && !selectedDeviceOnline.value) resetHealthToWaiting('离线')
+    return
+  }
+  fetchRealtimeSample()
+  realtimePollTimer = setInterval(fetchRealtimeSample, 1000)
+}
+
+watch([isRunning, () => settings.use_mock, selectedDeviceId, selectedDeviceOnline], () => {
   if (isRunning.value) {
     resetRuntimeBase()
+    if (settings.use_mock) {
+      applySelectedMockHealth()
+    } else if (!settings.use_mock) {
+      resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
+    }
   }
   refreshMockParameterTicker()
+  refreshRealtimePoller()
+}, { immediate: true })
+
+watch(() => settings.use_mock, () => {
+  applyModeSensorDefaults()
+  if (settings.use_mock) {
+    closeWebSocket()
+    resetRealtimeState()
+    applySelectedMockMedia()
+    syncMockHealthFromSelectedDevice()
+  } else {
+    resetRealtimeState()
+    resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
+  }
 })
 
 onMounted(async () => {
+  refreshBenchSettings()
+  applyModeSensorDefaults()
+
   try {
     await slsDeviceStore.loadDevicesFromBackend()
     ensureSelectedDevice()
@@ -1028,32 +1227,26 @@ onMounted(async () => {
   }
 
   fetchStatus()
-  fetchCameras()
-  fetchVideoFileModeConfig()  // 获取视频文件模式配置
-
-  if (isRunning.value) {
+  
+  if (isRunning.value && !settings.use_mock && selectedDeviceOnline.value) {
     connectWebSocket()
   }
-
-  // 启动健康状态定期检查（每3秒检查一次，仅状态变化时刷新）
-  healthCheckTimer = setInterval(() => {
-    fetchBackendHealthStatus()
-  }, 3000)
+  
+  window.addEventListener('focus', refreshBenchSettings)
+  window.addEventListener('storage', refreshBenchSettings)
 })
 
 onUnmounted(() => {
   closeWebSocket()
   stopMockParameterTicker()
-  // 清理健康状态检查定时器
-  if (healthCheckTimer) {
-    clearInterval(healthCheckTimer)
-    healthCheckTimer = null
-  }
+  stopRealtimePoller()
+  window.removeEventListener('focus', refreshBenchSettings)
+  window.removeEventListener('storage', refreshBenchSettings)
 })
 </script>
 
 <style scoped>
-.slm-dashboard {
+.sls-dashboard {
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -1094,11 +1287,86 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
+.header-actions :deep(.el-tag) {
+  min-width: 72px;
+  justify-content: center;
+}
+
+.header-status-pill {
+  min-width: 72px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.header-status-pill.success {
+  background: rgba(34, 197, 94, 0.22);
+  border: 1px solid rgba(34, 197, 94, 0.48);
+}
+
+.header-status-pill.warning {
+  background: rgba(245, 158, 11, 0.24);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+.header-status-pill.info {
+  background: rgba(100, 116, 139, 0.26);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  color: #cbd5e1;
+}
+
 .device-switch {
   width: 220px;
 }
 
+.device-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.subpage-header {
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px solid rgba(100, 116, 139, 0.28);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.subpage-header h2 {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.subpage-header p {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.subpage-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .realtime-section,
+.regulation-section,
+.feature-curve-section,
 .health-section {
   width: 100%;
 }
@@ -1108,6 +1376,72 @@ onUnmounted(() => {
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(100, 116, 139, 0.3);
   border-radius: 8px;
+}
+
+.stored-source-panel {
+  min-height: 76px;
+  padding: 16px;
+  background: rgba(14, 116, 144, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.34);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stored-source-panel div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.stored-source-panel strong {
+  color: #e0f2fe;
+  font-size: 15px;
+}
+
+.stored-source-panel span {
+  color: #bae6fd;
+  font-size: 13px;
+}
+
+.mock-vision-panel {
+  min-height: 76px;
+  padding: 14px 16px;
+  background: rgba(21, 128, 61, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.32);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.mock-vision-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mock-vision-copy strong {
+  color: #dcfce7;
+  font-size: 15px;
+}
+
+.mock-vision-copy span {
+  color: #bbf7d0;
+  font-size: 13px;
+}
+
+.mock-vision-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .panel-header {
@@ -1161,19 +1495,19 @@ onUnmounted(() => {
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-  .slm-dashboard {
+  .sls-dashboard {
     padding: 12px;
   }
-
+  
   .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
   }
-
+  
   .page-title {
     font-size: 20px;
   }
-
+  
   .header-actions {
     width: 100%;
     flex-wrap: wrap;
@@ -1181,6 +1515,29 @@ onUnmounted(() => {
 
   .device-switch {
     width: 100%;
+  }
+
+  .subpage-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .subpage-tabs {
+    width: 100%;
+  }
+
+  .stored-source-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mock-vision-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mock-vision-actions {
+    justify-content: flex-start;
   }
 }
 </style>

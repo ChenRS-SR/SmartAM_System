@@ -100,8 +100,22 @@
             <el-tag v-if="device.databaseTag" type="warning" size="small">
               {{ device.databaseTag }}
             </el-tag>
+            <el-tag
+              v-if="isMockMode && getDeviceMockCase(device)"
+              :type="device.mockCaseAvailable?.ready ? 'success' : 'info'"
+              size="small"
+            >
+              {{ getDeviceMockCase(device).label }}
+            </el-tag>
+            <el-tag
+              v-else-if="isMockMode && isStored7103MockDevice(device)"
+              type="success"
+              size="small"
+            >
+              7103存储数据
+            </el-tag>
             <el-tag :type="device.online ? 'success' : 'info'" size="small">
-              {{ device.online ? '在线' : '待连接' }}
+              {{ device.online ? '在线' : '离线' }}
             </el-tag>
             <el-tag :type="healthTagType(device)" size="small">
               {{ device.statusText }}
@@ -144,7 +158,7 @@
         <el-form-item label="安装位置">
           <el-input v-model="deviceForm.location" maxlength="48" />
         </el-form-item>
-        <el-form-item label="在线状态">
+        <el-form-item label="接入状态">
           <el-radio-group v-model="deviceForm.online">
             <el-radio-button :label="true">在线</el-radio-button>
             <el-radio-button :label="false">离线</el-radio-button>
@@ -191,6 +205,7 @@ import { ElMessage } from 'element-plus'
 import { EditPen, Plus, Refresh, Upload } from '@element-plus/icons-vue'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
 import { readSlmBenchSettings } from '../../utils/slmBenchSettings'
+import { buildMockCaseHealthData, buildMockCaseStatusText, checkMockCaseMedia, getDeviceMockCase } from '../../utils/slmMockCases'
 
 const router = useRouter()
 const deviceStore = useSlmDeviceStore()
@@ -201,6 +216,7 @@ const savingDevice = ref(false)
 const syncingDatabase = ref(false)
 const benchSettings = ref(readSlmBenchSettings())
 const realtimeSamples = ref({})
+const mockCaseAvailability = ref({})
 const deviceForm = reactive({
   name: '',
   model: '铂力特 S310',
@@ -215,7 +231,9 @@ const deviceForm = reactive({
 })
 
 let realtimePollTimer = null
-const REALTIME_POLL_INTERVAL_MS = 1000
+let realtimePollingBusy = false
+let mockCaseProbeSerial = 0
+const REALTIME_POLL_INTERVAL_MS = 3000
 
 const isMockMode = computed(() => benchSettings.value.use_mock)
 
@@ -240,16 +258,28 @@ const createWaitingHealthData = () => ({
   gas_system: { status: 'unknown', message: '等待数据传输' }
 })
 
-const toWaitingDevice = (device) => ({
+const isDeviceOnline = (device) => device?.online !== false
+
+const toOfflineDevice = (device, statusText = '离线') => ({
   ...device,
   online: false,
   health: 'power_off',
-  statusText: '待连接',
+  statusText,
   healthData: createWaitingHealthData(),
-  parameters: emptyParameters(device)
+  parameters: emptyParameters(device, statusText)
+})
+
+const toWaitingDevice = (device, statusText = '等待实时数据') => ({
+  ...device,
+  online: true,
+  health: 'power_off',
+  statusText,
+  healthData: createWaitingHealthData(),
+  parameters: emptyParameters(device, statusText)
 })
 
 const toRealtimeDevice = (device, sample) => {
+  if (!isDeviceOnline(device)) return toOfflineDevice(device)
   if (!sample?.hasData) return toWaitingDevice(device)
   const healthData = sample.health || createWaitingHealthData()
   const statusCode = Number(healthData.status_code ?? -1)
@@ -259,7 +289,7 @@ const toRealtimeDevice = (device, sample) => {
     || (statusCode === 0 ? '健康运行' : '故障')
   return {
     ...device,
-    online: statusCode !== -1,
+    online: true,
     health: statusCode > 0 ? 'fault' : (statusCode === 0 ? 'healthy' : 'power_off'),
     statusText,
     healthData,
@@ -270,8 +300,68 @@ const toRealtimeDevice = (device, sample) => {
   }
 }
 
+const toMockWaitingDevice = (device, statusText) => ({
+  ...toOfflineDevice(device, statusText),
+  statusText,
+  parameters: emptyParameters(device, statusText)
+})
+
+const cloneHealthData = (healthData = {}) => ({
+  ...healthData,
+  status_labels: [...(healthData.status_labels || [])],
+  laser_system: { ...(healthData.laser_system || {}) },
+  powder_system: { ...(healthData.powder_system || {}) },
+  gas_system: { ...(healthData.gas_system || {}) }
+})
+
+const isStored7103MockDevice = (device) => !getDeviceMockCase(device) && device?.source === '7103'
+
+const toStored7103MockDevice = (device) => {
+  const healthData = cloneHealthData(device.healthData || createWaitingHealthData())
+  const statusCode = Number(healthData.status_code ?? -1)
+  const online = isDeviceOnline(device)
+  const statusText = (healthData.status_labels || []).filter(Boolean).join('、')
+    || device.statusText
+    || (online ? '7103存储数据' : '无有效7103状态')
+
+  return {
+    ...device,
+    online,
+    health: online ? (statusCode > 0 ? 'fault' : 'healthy') : 'power_off',
+    statusText,
+    parameters: Array.isArray(device.parameters) && device.parameters.length
+      ? device.parameters
+      : emptyParameters(device, statusText),
+    healthData
+  }
+}
+
+const toMockDevice = (device) => {
+  const mockCase = getDeviceMockCase(device)
+  if (!mockCase && isStored7103MockDevice(device)) return toStored7103MockDevice(device)
+
+  const availability = mockCaseAvailability.value[device.id] || { hasCase: Boolean(mockCase), ready: false, channels: {} }
+  const statusText = buildMockCaseStatusText(mockCase, availability)
+  if (!mockCase || !availability.ready) return toMockWaitingDevice(device, statusText)
+
+  const healthData = buildMockCaseHealthData(mockCase) || device.healthData || createWaitingHealthData()
+  const statusCode = Number(healthData.status_code ?? 0)
+  return {
+    ...device,
+    online: true,
+    health: statusCode > 0 ? 'fault' : 'healthy',
+    statusText: (healthData.status_labels || []).filter(Boolean).join('、') || statusText,
+    mockCase,
+    mockCaseAvailable: availability,
+    parameters: Array.isArray(device.parameters) && device.parameters.length
+      ? device.parameters
+      : emptyParameters(device, statusText),
+    healthData
+  }
+}
+
 const displayDevices = computed(() => {
-  if (isMockMode.value) return deviceStore.devices
+  if (isMockMode.value) return deviceStore.devices.map(toMockDevice)
   return deviceStore.devices.map((device) => toRealtimeDevice(device, realtimeSamples.value[device.id]))
 })
 
@@ -281,7 +371,7 @@ const fleetStats = computed(() => ({
   fault: displayDevices.value.filter((device) => device.online && device.health === 'fault').length
 }))
 
-const previewParameters = (device) => device.parameters.slice(0, 3)
+const previewParameters = (device) => Array.isArray(device.parameters) ? device.parameters.slice(0, 3) : []
 
 const statusClass = (device) => {
   if (!device.online) return 'offline'
@@ -289,8 +379,7 @@ const statusClass = (device) => {
 }
 
 const statusText = (device) => {
-  if (!device.online) return '待连接'
-  return device.health === 'fault' ? '故障' : '健康'
+  return device.online ? '在线' : '离线'
 }
 
 const healthTagType = (device) => {
@@ -325,7 +414,8 @@ const openEditDialog = (device) => {
 }
 
 const openDeviceDashboard = (deviceId) => {
-  router.push(`/slm/device/${deviceId}`)
+  localStorage.setItem('slmSelectedDeviceId', deviceId)
+  router.push({ path: `/slm/device/${deviceId}`, query: { tab: 'status' } })
 }
 
 const handleThumbnailChange = async (uploadFile) => {
@@ -394,16 +484,52 @@ const syncFileDatabase = async () => {
 }
 
 const fetchRealtimeFleetSamples = async () => {
-  if (isMockMode.value || !deviceStore.devices.length) return
+  if (isMockMode.value || !deviceStore.devices.length || realtimePollingBusy) return
+  realtimePollingBusy = true
 
-  const sampleEntries = await Promise.all(deviceStore.devices.map(async (device) => {
-    const response = await fetch(`/api/slm/realtime/data/${encodeURIComponent(device.id)}`)
-    if (!response.ok) throw new Error(`实时数据接口异常: ${response.status}`)
-    const payload = await response.json()
-    return [device.id, payload.sample || { hasData: false }]
+  try {
+    const realtimeDevices = deviceStore.devices.filter(isDeviceOnline)
+    const offlineSamples = Object.fromEntries(
+      deviceStore.devices
+        .filter((device) => !isDeviceOnline(device))
+        .map((device) => [device.id, { hasData: false, offline: true }])
+    )
+    const results = await Promise.allSettled(realtimeDevices.map(async (device) => {
+      const response = await fetch(`/api/slm/realtime/data/${encodeURIComponent(device.id)}`)
+      if (!response.ok) throw new Error(`实时数据接口异常: ${response.status}`)
+      const payload = await response.json()
+      return [device.id, payload.sample || { hasData: false }]
+    }))
+
+    const nextSamples = { ...realtimeSamples.value, ...offlineSamples }
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        const [deviceId, sample] = result.value
+        nextSamples[deviceId] = sample
+      }
+    })
+    realtimeSamples.value = nextSamples
+  } finally {
+    realtimePollingBusy = false
+  }
+}
+
+const refreshMockCaseAvailability = async () => {
+  mockCaseProbeSerial += 1
+  const serial = mockCaseProbeSerial
+  if (!isMockMode.value || !deviceStore.devices.length) {
+    mockCaseAvailability.value = {}
+    return
+  }
+
+  const devicesWithVideoCase = deviceStore.devices.filter((device) => getDeviceMockCase(device))
+  const results = await Promise.all(devicesWithVideoCase.map(async (device) => {
+    const mockCase = getDeviceMockCase(device)
+    const availability = await checkMockCaseMedia(mockCase)
+    return [device.id, availability]
   }))
-
-  realtimeSamples.value = Object.fromEntries(sampleEntries)
+  if (serial !== mockCaseProbeSerial) return
+  mockCaseAvailability.value = Object.fromEntries(results)
 }
 
 const stopRealtimePolling = () => {
@@ -417,6 +543,9 @@ const startRealtimePolling = () => {
   stopRealtimePolling()
   if (isMockMode.value) {
     realtimeSamples.value = {}
+    refreshMockCaseAvailability().catch((error) => {
+      console.error('[DeviceGroup] 检查模拟用例失败:', error)
+    })
     return
   }
   fetchRealtimeFleetSamples().catch((error) => {
@@ -434,6 +563,10 @@ const refreshBenchSettings = () => {
   benchSettings.value = readSlmBenchSettings()
   if (previousMode !== benchSettings.value.use_mock) {
     startRealtimePolling()
+  } else if (benchSettings.value.use_mock) {
+    refreshMockCaseAvailability().catch((error) => {
+      console.error('[DeviceGroup] 刷新模拟用例失败:', error)
+    })
   }
 }
 

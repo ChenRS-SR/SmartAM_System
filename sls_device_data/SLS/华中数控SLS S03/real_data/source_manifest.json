@@ -1,10 +1,7 @@
 {
-  "source_case_dir": "7103/output3/B10/20250520-09-02/B10_20250520-09-02_20250527093714",
+  "source_case_dir": "sls_device_data/SLS/华中数控SLS S03/real_data",
   "source_files": [
-    "7103/output3/B10/20250520-09-02/B10_20250520-09-02_20250527093714/B10_20250520-09-02_9238层_样本数据.csv",
-    "7103/output3/B10/20250520-09-02/B10_20250520-09-02_20250527093714/设备信息_设备信息.csv"
+    "sls_device_data/SLS/华中数控SLS S03/real_data/preview.csv"
   ],
-  "representative_csv": "7103/26_5_22/B10（63个零件）/20250509-07-47/20250527093412/2025-05-18_03-19-56_温度及其他参数.csv",
-  "preview_csv": "SLS/华中数控SLS S03/real_data/preview.csv",
-  "copiedFrom": "slm-b10"
+  "representative_csv": "sls_device_data/SLS/华中数控SLS S03/real_data/preview.csv"
 }

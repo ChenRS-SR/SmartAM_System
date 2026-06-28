@@ -252,13 +252,13 @@
       "status": "healthy",
       "message": "健康"
     },
-    "gas_system": {
+    "temp_system": {
       "status": "healthy",
       "message": "健康"
     }
   },
   "diagnosis": {
-    "source": "SLM同构模拟案例",
+    "source": "SLS模拟案例",
     "rawStatusCode": 0,
     "rawStatusLabel": "健康",
     "rawStatusLabels": [
@@ -267,18 +267,15 @@
     "frontendStatusCode": 0,
     "frontendStatusLabel": "健康",
     "categories": [],
-    "confidence": 1.0,
-    "evidence": [],
-    "copiedFromDevice": "slm-b14"
+    "confidence": 1,
+    "evidence": []
   },
   "realData": {
-    "source_case_dir": "7103/output3/B14/20240713-20-04/B14_20240713-20-04_20250528171128",
+    "source_case_dir": "sls_device_data/SLS/华中数控SLS S04/real_data",
     "source_files": [
-      "7103/output3/B14/20240713-20-04/B14_20240713-20-04_20250528171128/B14_20240713-20-04_5704层_样本数据.csv",
-      "7103/output3/B14/20240713-20-04/B14_20240713-20-04_20250528171128/设备信息_设备信息.csv"
+      "sls_device_data/SLS/华中数控SLS S04/real_data/preview.csv"
     ],
-    "representative_csv": "7103/26_5_22/B14（270个零件）/20241016-08-03/20250528163302/20260525_151324_scraper_故障_温度及其他参数.csv",
-    "preview_csv": "SLS/华中数控SLS S04/real_data/preview.csv",
-    "copiedFrom": "slm-b14"
+    "representative_csv": "sls_device_data/SLS/华中数控SLS S04/real_data/preview.csv",
+    "preview_csv": "sls_device_data/SLS/华中数控SLS S04/real_data/preview.csv"
   }
 }

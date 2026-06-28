@@ -1,0 +1,290 @@
+{
+  "id": "huake-slm-02",
+  "tag": "HUST-SLM-02",
+  "dataTag": "HUST-SLM-02",
+  "databaseTag": "华科-HUST-SLM-02",
+  "owner": "华科",
+  "name": "华科SLM 02",
+  "model": "华科 SLM 实验台",
+  "serial": "HUST-SLM-02",
+  "location": "华科实验台模拟用例",
+  "online": true,
+  "health": "fault",
+  "statusText": "激光功率过高",
+  "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
+  "parameterSchema": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "unit": "层"
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "unit": "%"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "unit": "m3/h"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "unit": "mA"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "current_layer",
+      "name": "当前层",
+      "value": "--",
+      "unit": "层"
+    },
+    {
+      "id": "sequence",
+      "name": "数据序号",
+      "value": "--",
+      "unit": ""
+    },
+    {
+      "id": "record_status",
+      "name": "状态参数",
+      "value": "激光功率过高",
+      "unit": ""
+    },
+    {
+      "id": "data_time",
+      "name": "采集时间",
+      "value": "--",
+      "unit": ""
+    },
+    {
+      "id": "scraper_torque",
+      "name": "刮刀扭矩",
+      "value": "--",
+      "unit": "%"
+    },
+    {
+      "id": "oxygen",
+      "name": "成形室氧含量",
+      "value": "--",
+      "unit": "%"
+    },
+    {
+      "id": "ambient_oxygen",
+      "name": "环境氧含量",
+      "value": "--",
+      "unit": "%"
+    },
+    {
+      "id": "chamber_temperature",
+      "name": "成形室温度",
+      "value": "--",
+      "unit": "℃"
+    },
+    {
+      "id": "gas_flow",
+      "name": "循环气体流量",
+      "value": "--",
+      "unit": "m3/h"
+    },
+    {
+      "id": "fan_speed",
+      "name": "风机转速",
+      "value": "--",
+      "unit": "%"
+    },
+    {
+      "id": "medium_filter_resistance",
+      "name": "中效滤芯阻力",
+      "value": "--",
+      "unit": "mBar"
+    },
+    {
+      "id": "high_filter_resistance",
+      "name": "高效滤芯阻力",
+      "value": "--",
+      "unit": "mBar"
+    },
+    {
+      "id": "gas_pressure",
+      "name": "气源压力",
+      "value": "--",
+      "unit": "Bar"
+    },
+    {
+      "id": "compressed_air_pressure",
+      "name": "压缩空气压力",
+      "value": "--",
+      "unit": "Bar"
+    },
+    {
+      "id": "servo_temperature_x",
+      "name": "X轴伺服温度",
+      "value": "--",
+      "unit": "℃"
+    },
+    {
+      "id": "servo_temperature_y",
+      "name": "Y轴伺服温度",
+      "value": "--",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_x",
+      "name": "X轴振镜温度",
+      "value": "--",
+      "unit": "℃"
+    },
+    {
+      "id": "galvo_temperature_y",
+      "name": "Y轴振镜温度",
+      "value": "--",
+      "unit": "℃"
+    },
+    {
+      "id": "output_current_x",
+      "name": "X轴输出电流",
+      "value": "--",
+      "unit": "mA"
+    },
+    {
+      "id": "output_current_y",
+      "name": "Y轴输出电流",
+      "value": "--",
+      "unit": "mA"
+    }
+  ],
+  "healthData": {
+    "status": "laser_fault",
+    "status_code": 2,
+    "status_labels": [
+      "激光功率过高"
+    ],
+    "laser_system": {
+      "status": "fault",
+      "message": "激光功率过高"
+    },
+    "powder_system": {
+      "status": "healthy",
+      "message": "健康"
+    },
+    "gas_system": {
+      "status": "healthy",
+      "message": "健康"
+    }
+  },
+  "diagnosis": {
+    "source": "设备绑定模拟用例",
+    "rawStatusCode": 2,
+    "rawStatusLabel": "激光功率过高",
+    "rawStatusLabels": [
+      "激光功率过高"
+    ],
+    "frontendStatusCode": 2,
+    "frontendStatusLabel": "激光功率过高",
+    "categories": [
+      "激光器/水冷机异常"
+    ],
+    "confidence": 1,
+    "evidence": []
+  },
+  "realData": {
+    "source_case_dir": "simulation_record/scene_overpower",
+    "source_files": [],
+    "representative_csv": "",
+    "parameter_csvs": [],
+    "preview_csv": "SLM/华科SLM 02/real_data/preview.csv"
+  },
+  "updatedAt": "2026-06-27 12:50:00",
+  "mockCase": {
+    "id": "scene_overpower",
+    "name": "Overpower",
+    "label": "过功率",
+    "folder": "scene_overpower"
+  },
+  "dataDirectory": "slm_device_data/SLM/华科SLM 02",
+  "source": "mock_case",
+  "databaseUpdatedAt": "2026-06-27 12:50:00"
+}

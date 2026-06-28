@@ -12,7 +12,6 @@
   "health": "fault",
   "statusText": "刮刀扭矩/位置故障",
   "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B40/thumbnail.jpg",
-  "dataDirectory": "slm_device_data/SLM/铂力特 S430 B40",
   "parameterSchema": [
     {
       "id": "current_layer",
@@ -237,7 +236,6 @@
       "unit": "mA"
     }
   ],
-  "updatedAt": "2025-04-12 00:26:57",
   "healthData": {
     "status": "powder_fault",
     "status_code": 1,
@@ -291,5 +289,9 @@
       "7103/output1/B40/20250409-20-31/B40_20250409-20-31_20250613154413/2025-04-12_00-21-51_刮刀故障_故障暂停，刮刀扭矩故障_Error.csv"
     ],
     "preview_csv": "SLM/铂力特 S430 B40/real_data/preview.csv"
-  }
+  },
+  "updatedAt": "2025-04-12 00:26:57",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S430 B40",
+  "source": "7103",
+  "databaseUpdatedAt": "2026-06-27 10:12:20"
 }

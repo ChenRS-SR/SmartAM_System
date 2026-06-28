@@ -12,8 +12,15 @@ from pathlib import Path
 
 router = APIRouter(prefix="/slm/roi", tags=["SLM ROI"])
 
-# 全局ROI配置路径
-ROI_CONFIG_PATH = Path("config/roi_config.json")
+# 全局ROI配置路径。使用后端目录的绝对路径，避免从项目根目录启动时读到空配置。
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+ROI_CONFIG_PATH = BACKEND_ROOT / "config" / "roi_config.json"
+
+
+def resolve_config_path(config_path: str) -> Path:
+    """将前端传入的相对配置路径解析到后端目录下"""
+    path = Path(config_path)
+    return path if path.is_absolute() else BACKEND_ROOT / path
 
 
 def ensure_config_dir():
@@ -29,7 +36,7 @@ async def load_roi_config(data: Dict[str, Any] = Body(...)):
         if not config_path:
             return {"success": False, "message": "缺少config_path参数"}
         
-        path = Path(config_path)
+        path = resolve_config_path(config_path)
         if not path.exists():
             return {"success": False, "message": f"配置文件不存在: {config_path}"}
         
@@ -56,14 +63,14 @@ async def save_roi_config(data: Dict[str, Any] = Body(...)):
     """保存ROI配置"""
     try:
         config = data.get('config', {})
-        config_path = data.get('config_path', 'config/roi_config.json')
+        config_path = data.get('config_path', str(ROI_CONFIG_PATH))
         
         if not config:
             return {"success": False, "message": "缺少config参数"}
         
         ensure_config_dir()
         
-        path = Path(config_path)
+        path = resolve_config_path(config_path)
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
         
@@ -87,7 +94,7 @@ async def get_roi_config():
     """获取当前ROI配置"""
     try:
         from core.slm.roi_config import get_roi_config as get_config
-        roi_config = get_config()
+        roi_config = get_config(str(ROI_CONFIG_PATH))
         
         return {
             "success": True,

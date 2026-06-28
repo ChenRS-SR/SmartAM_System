@@ -18,6 +18,12 @@ from urllib.parse import quote, unquote
 
 
 SUPPORTED_THUMBNAIL_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".svg")
+SUPPORTED_MOCK_VIDEO_SUFFIXES = (".mp4", ".webm", ".ogg", ".mov", ".m4v")
+MOCK_VIDEO_CHANNELS = {
+    "camera_ch1": "CH1",
+    "camera_ch2": "CH2",
+    "thermal": "CH3",
+}
 THUMBNAIL_MIME_SUFFIX = {
     "png": ".png",
     "jpg": ".jpg",
@@ -64,7 +70,7 @@ class SLMDeviceDataStore:
         return manifest
 
     def list_devices(self) -> List[Dict[str, Any]]:
-        return self.load_manifest().get("devices", [])
+        return [self._attach_mock_video_scan(device) for device in self.load_manifest().get("devices", [])]
 
     def get_device(self, device_id: str) -> Dict[str, Any]:
         for device in self.list_devices():
@@ -89,8 +95,105 @@ class SLMDeviceDataStore:
         folder_name = self._safe_folder_name(str(device.get("name") or device.get("id") or "未命名设备"))
         return self.device_root / folder_name
 
+    def _resolve_device_dir(self, device: Dict[str, Any]) -> Path:
+        data_directory = device.get("dataDirectory")
+        if data_directory:
+            return self._resolve_project_path(str(data_directory))
+        return self._device_dir(device)
+
+    def _normalize_online_state(self, device: Dict[str, Any]) -> None:
+        if not isinstance(device.get("online"), bool):
+            raise ValueError("online必须是true或false")
+
+    def _ensure_device_layout(self, device_dir: Path) -> None:
+        (device_dir / "real_data").mkdir(parents=True, exist_ok=True)
+        for folder_name in ("mock_video", "mock_video_corrected"):
+            for channel_folder in MOCK_VIDEO_CHANNELS.values():
+                (device_dir / folder_name / channel_folder).mkdir(parents=True, exist_ok=True)
+
     def _public_device_path(self, device_dir: Path, filename: str) -> str:
         return f"{self.public_mount}/{self.device_root_name}/{quote(device_dir.name)}/{filename}"
+
+    def _public_file_path(self, file_path: Path) -> str:
+        relative_path = file_path.relative_to(self.data_root)
+        return f"{self.public_mount}/" + "/".join(quote(part) for part in relative_path.parts)
+
+    def _scan_channel_video(self, video_root: Path, channel_folder: str) -> Dict[str, Any]:
+        channel_dir = video_root / channel_folder
+        if not channel_dir.exists():
+            return {
+                "available": False,
+                "channel": channel_folder,
+                "reason": f"{channel_folder}目录不存在"
+            }
+
+        files = sorted(path for path in channel_dir.iterdir() if path.is_file())
+        supported_files = [path for path in files if path.suffix.lower() in SUPPORTED_MOCK_VIDEO_SUFFIXES]
+        unsupported_files = [path.name for path in files if path.suffix.lower() not in SUPPORTED_MOCK_VIDEO_SUFFIXES]
+
+        if not supported_files:
+            reason = "未发现支持格式视频" if files else "通道目录为空"
+            return {
+                "available": False,
+                "channel": channel_folder,
+                "directory": str(channel_dir),
+                "reason": reason,
+                "unsupportedFiles": unsupported_files
+            }
+
+        video_file = supported_files[0]
+        return {
+            "available": True,
+            "channel": channel_folder,
+            "filename": video_file.name,
+            "url": self._public_file_path(video_file),
+            "media_type": "video",
+            "unsupportedFiles": unsupported_files
+        }
+
+    def _scan_mock_video_folder(self, device_dir: Path, folder_name: str) -> Dict[str, Any]:
+        video_root = device_dir / folder_name
+        if not video_root.exists():
+            return {
+                "folder": folder_name,
+                "exists": False,
+                "ready": False,
+                "channels": {}
+            }
+
+        channels = {
+            key: self._scan_channel_video(video_root, channel_folder)
+            for key, channel_folder in MOCK_VIDEO_CHANNELS.items()
+        }
+        return {
+            "folder": folder_name,
+            "exists": True,
+            "ready": any(channel.get("available") for channel in channels.values()),
+            "allReady": all(channel.get("available") for channel in channels.values()),
+            "channels": channels
+        }
+
+    def _attach_mock_video_scan(self, device: Dict[str, Any]) -> Dict[str, Any]:
+        next_device = dict(device)
+        self._normalize_online_state(next_device)
+        device_dir = self._resolve_device_dir(next_device)
+        raw_scan = self._scan_mock_video_folder(device_dir, "mock_video")
+        corrected_scan = self._scan_mock_video_folder(device_dir, "mock_video_corrected")
+
+        # 模拟视频只按设备目录下的通道文件夹识别，不读取固定文件名。
+        next_device["mockVideo"] = {
+            "supported": raw_scan["ready"],
+            "dataDirectory": str(device_dir.relative_to(self.project_root)) if device_dir.exists() else str(device_dir),
+            "message": "已扫描到模拟视频" if raw_scan["ready"] else "暂不支持接入",
+            "sourceFolderExists": raw_scan["exists"],
+            "channels": raw_scan["channels"],
+            "correctedSupported": corrected_scan["ready"],
+            "correctedSourceFolderExists": corrected_scan["exists"],
+            "correctedChannels": corrected_scan["channels"],
+            "sourceFolder": raw_scan["folder"],
+            "correctedSourceFolder": corrected_scan["folder"],
+        }
+        return next_device
 
     def _find_thumbnail_file(self, device_dir: Path) -> Path | None:
         for suffix in SUPPORTED_THUMBNAIL_SUFFIXES:
@@ -128,11 +231,13 @@ class SLMDeviceDataStore:
         device["thumbnail"] = self._public_device_path(device_dir, thumbnail_name)
 
     def _write_device_files(self, device: Dict[str, Any]) -> Dict[str, Any]:
+        device.pop("mockVideo", None)
+        self._normalize_online_state(device)
         device_id = self._safe_device_id(str(device.get("id", "")))
         device["id"] = device_id
         device_dir = self._device_dir(device)
+        self._ensure_device_layout(device_dir)
         real_data_dir = device_dir / "real_data"
-        real_data_dir.mkdir(parents=True, exist_ok=True)
 
         self._save_thumbnail(device, device_dir)
         thumbnail_file = self._find_thumbnail_file(device_dir)

@@ -1,10 +1,7 @@
 {
-  "source_case_dir": "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512",
+  "source_case_dir": "sls_device_data/SLS/华中数控SLS S09/real_data",
   "source_files": [
-    "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512/B20_20241101-13-31_3378层_样本数据.csv",
-    "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512/设备信息_设备信息.csv"
+    "sls_device_data/SLS/华中数控SLS S09/real_data/preview.csv"
   ],
-  "representative_csv": "7103/output1/B20/20241101-13-31/B20_20241101-13-31_20250612100512/B20_20241101-13-31_3378层_样本数据.csv",
-  "preview_csv": "SLS/华中数控SLS S09/real_data/preview.csv",
-  "copiedFrom": "slm-b20"
+  "representative_csv": "sls_device_data/SLS/华中数控SLS S09/real_data/preview.csv"
 }

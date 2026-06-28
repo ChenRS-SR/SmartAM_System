@@ -12,7 +12,6 @@
   "health": "healthy",
   "statusText": "健康",
   "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B29/thumbnail.jpg",
-  "dataDirectory": "slm_device_data/SLM/铂力特 S310 B29",
   "parameterSchema": [
     {
       "id": "current_layer",
@@ -237,7 +236,6 @@
       "unit": "mA"
     }
   ],
-  "updatedAt": "2026-06-26T23:13:49",
   "healthData": {
     "status": "healthy",
     "status_code": 0,
@@ -267,7 +265,7 @@
     "frontendStatusCode": 0,
     "frontendStatusLabel": "健康",
     "categories": [],
-    "confidence": 1.0,
+    "confidence": 1,
     "evidence": []
   },
   "realData": {
@@ -279,5 +277,9 @@
     "representative_csv": null,
     "parameter_csvs": [],
     "preview_csv": "SLM/铂力特 S310 B29/real_data/preview.csv"
-  }
+  },
+  "updatedAt": "2026-06-26T23:13:49",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S310 B29",
+  "source": "7103",
+  "databaseUpdatedAt": "2026-06-27 10:12:20"
 }

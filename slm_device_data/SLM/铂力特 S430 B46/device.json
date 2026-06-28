@@ -12,7 +12,6 @@
   "health": "fault",
   "statusText": "铺粉检测缺粉/重铺异常",
   "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B46/thumbnail.jpg",
-  "dataDirectory": "slm_device_data/SLM/铂力特 S430 B46",
   "parameterSchema": [
     {
       "id": "current_layer",
@@ -237,7 +236,6 @@
       "unit": "mA"
     }
   ],
-  "updatedAt": "2026-06-26T23:13:47",
   "healthData": {
     "status": "powder_fault",
     "status_code": 1,
@@ -288,5 +286,9 @@
     "representative_csv": null,
     "parameter_csvs": [],
     "preview_csv": "SLM/铂力特 S430 B46/real_data/preview.csv"
-  }
+  },
+  "updatedAt": "2026-06-26T23:13:47",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S430 B46",
+  "source": "7103",
+  "databaseUpdatedAt": "2026-06-27 10:12:20"
 }

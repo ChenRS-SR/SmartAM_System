@@ -105,10 +105,26 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import { ref, computed, onUnmounted, watch } from 'vue'
 
+const props = defineProps({
+  useMockMode: {
+    type: Boolean,
+    default: false
+  },
+  mockCase: {
+    type: Object,
+    default: null
+  },
+  mockCaseAvailable: {
+    type: Boolean,
+    default: false
+  },
+  isAcquiring: {
+    type: Boolean,
+    default: false
+  }
+})
 const emit = defineEmits(['layer-changed'])
 
 // ==================== 视频裁剪偏移配置 ====================
@@ -118,18 +134,9 @@ const VIDEO_FPS = 30
 // 视频长度（秒）- 用于检测轮播
 const VIDEO_DURATION = {
   normal: 46 + 6/30,
-  scene_underpower: 113 + 2/30 - VIDEO_OFFSET_SECONDS
-}
-
-// ==================== 场景检测 ====================
-function detectSceneFromVideoFiles(videoFiles) {
-  if (!videoFiles || Object.keys(videoFiles).length === 0) return 'normal'
-  const firstPath = Object.values(videoFiles)[0]
-  if (!firstPath) return 'normal'
-  const path = firstPath.toLowerCase()
-  if (path.includes('underpower')) return 'scene_underpower'
-  if (path.includes('overpower')) return 'scene_overpower'
-  return 'normal'
+  scene_underpower: 113 + 2/30 - VIDEO_OFFSET_SECONDS,
+  scene_overpower: 113 + 2/30 - VIDEO_OFFSET_SECONDS,
+  scene_underpower_critical: 113 + 2/30 - VIDEO_OFFSET_SECONDS
 }
 
 // ==================== 层配置 ====================
@@ -166,7 +173,6 @@ const currentVideoTime = ref(0)
 const currentVideoFrame = ref(0)
 const videoStartTime = ref(null)
 const pausedTime = ref(0)
-const videoFiles = ref({})
 
 // ==================== 层数和状态 ====================
 const currentLayer = ref(1)
@@ -193,8 +199,13 @@ const regulationMessage = ref('')
 
 // ==================== 计算属性 ====================
 const currentSceneName = computed(() => {
-  const names = { 'normal': '场景1: 正常打印', 'scene_underpower': '场景2: 欠功率', 'scene_overpower': '场景3: 过功率' }
-  return names[detectedScene.value] || ''
+  const names = {
+    normal: '场景1: 正常打印',
+    scene_underpower: '场景2: 欠功率',
+    scene_overpower: '场景3: 过功率',
+    scene_underpower_critical: '场景4: 欠功率不可恢复'
+  }
+  return props.mockCase?.label || names[detectedScene.value] || ''
 })
 
 const isPowerAbnormal = computed(() => currentPower.value !== standardParams.power)
@@ -215,7 +226,10 @@ const regulationCommandText = computed(() => {
 })
 
 const injectionAlert = computed(() => {
-  if (!isVideoFileMode.value || detectedScene.value !== 'scene_underpower') {
+  if (props.useMockMode && props.mockCase && !props.mockCaseAvailable) {
+    return { show: true, type: 'warning', title: '模拟视频未连接', description: '请在当前设备目录下检查 mock_video/CH1、CH2、CH3 通道文件夹和视频格式' }
+  }
+  if (!isVideoFileMode.value || detectedScene.value === 'normal') {
     return { show: true, type: 'success', title: '✅ 系统正常', description: '激光功率正常，打印过程稳定' }
   }
   
@@ -238,10 +252,10 @@ const injectionAlert = computed(() => {
   return { show: true, type: 'success', title: '✅ 系统恢复', description: '激光功率已恢复正常，打印过程稳定' }
 })
 
-const showLayerProgress = computed(() => isVideoFileMode.value && detectedScene.value === 'scene_underpower')
+const showLayerProgress = computed(() => isVideoFileMode.value && detectedScene.value !== 'normal')
 
 const visibleLayerRange = computed(() => {
-  if (detectedScene.value === 'scene_underpower') return Array.from({ length: 14 }, (_, i) => 113 + i)
+  if (detectedScene.value !== 'normal') return Array.from({ length: 14 }, (_, i) => 113 + i)
   return [1, 2, 3, 4, 5]
 })
 
@@ -258,14 +272,14 @@ function formatVideoTime(totalSeconds) {
 }
 
 // 层状态判断函数
-function isFaultLayer(layer) { return detectedScene.value === 'scene_underpower' && layer >= 115 && layer <= 117 }
-function isDiagnosisLayer(layer) { return detectedScene.value === 'scene_underpower' && layer >= 118 && layer <= 124 }
-function isRegulationLayer(layer) { return detectedScene.value === 'scene_underpower' && layer >= 120 && layer <= 124 }
-function isRecoveredLayer(layer) { return detectedScene.value === 'scene_underpower' && layer >= 125 }
+function isFaultLayer(layer) { return detectedScene.value !== 'normal' && layer >= 115 && layer <= 117 }
+function isDiagnosisLayer(layer) { return detectedScene.value !== 'normal' && layer >= 118 && layer <= 124 }
+function isRegulationLayer(layer) { return detectedScene.value !== 'normal' && layer >= 120 && layer <= 124 }
+function isRecoveredLayer(layer) { return detectedScene.value !== 'normal' && layer >= 125 }
 
 // 获取层徽章
 function getLayerBadge(layer) {
-  if (detectedScene.value !== 'scene_underpower') return null
+  if (detectedScene.value === 'normal') return null
   if (layer >= 115 && layer <= 117) return '注'
   if (layer >= 118 && layer <= 119) return '诊'
   if (layer >= 120 && layer <= 124) return '调'
@@ -275,7 +289,7 @@ function getLayerBadge(layer) {
 
 // ==================== 层数计算 ====================
 function calculateLayerByTime(timeInSeconds) {
-  if (detectedScene.value === 'scene_underpower') {
+  if (detectedScene.value !== 'normal') {
     const originalTime = timeInSeconds + VIDEO_OFFSET_SECONDS
     for (const config of underpowerLayerConfig) {
       const startTime = toTotalSeconds(config.startSec, config.startFrame)
@@ -313,9 +327,10 @@ function calculateLayerByTime(timeInSeconds) {
 
 // ==================== 状态更新 ====================
 function updateStatusByLayer(layer) {
-  if (detectedScene.value === 'scene_underpower') {
-    // 功率：115-119层显示55W，其他层显示120W
-    currentPower.value = (layer >= 115 && layer <= 119) ? 55 : 120
+  if (detectedScene.value !== 'normal') {
+    // 故障用例：按场景显示异常功率，后续可由具体设备用例继续扩展。
+    const faultPower = detectedScene.value === 'scene_overpower' ? 300 : 55
+    currentPower.value = (layer >= 115 && layer <= 119) ? faultPower : 120
     
     // 故障注入：115-117层
     injectionStatus.value = (layer >= 115 && layer <= 117) ? { type: 'danger', text: '异常注入' } : null
@@ -333,31 +348,6 @@ function updateStatusByLayer(layer) {
   }
 }
 
-// ==================== 视频文件模式检测 ====================
-let statusCheckInterval = null
-
-async function checkVideoFileMode() {
-  try {
-    const response = await axios.get('/api/slm/video_file_mode/config')
-    if (response.data.success) {
-      const config = response.data
-      const wasVideoFileMode = isVideoFileMode.value
-      isVideoFileMode.value = config.enabled
-      
-      if (config.enabled && config.video_files) {
-        const newScene = detectSceneFromVideoFiles(config.video_files)
-        const sceneChanged = newScene !== detectedScene.value
-        detectedScene.value = newScene
-        videoFiles.value = config.video_files
-        
-        if (sceneChanged || !wasVideoFileMode) resetLayerState()
-      }
-    }
-  } catch (error) {
-    console.error('检查视频文件模式失败:', error)
-  }
-}
-
 function resetLayerState() {
   stopTimeTracking()
   currentVideoTime.value = 0
@@ -367,7 +357,7 @@ function resetLayerState() {
   lastVideoTime.value = 0
   completedCycles.value = 0
   
-  if (detectedScene.value === 'scene_underpower') {
+  if (detectedScene.value !== 'normal') {
     currentLayer.value = 113
     displayLayer.value = 113
     totalLayers.value = 14
@@ -381,31 +371,6 @@ function resetLayerState() {
   diagnosisStatus.value = 'normal'
   regulationStatus.value = 'none'
   injectionStatus.value = null
-}
-
-// ==================== 采集状态检测 ====================
-async function checkAcquisitionStatus() {
-  try {
-    const response = await axios.get('/api/slm/status')
-    if (response.data) {
-      const wasRunning = isRunning.value
-      isRunning.value = response.data.is_running
-      
-      if (!wasRunning && isRunning.value && isVideoFileMode.value) {
-        videoStartTime.value = Date.now()
-        startTimeTracking()
-      }
-      
-      if (wasRunning && !isRunning.value) {
-        stopTimeTracking()
-        pausedTime.value = 0
-        completedCycles.value = 0
-        lastVideoTime.value = 0
-      }
-    }
-  } catch (error) {
-    console.error('检查采集状态失败:', error)
-  }
 }
 
 // ==================== 时间追踪 ====================
@@ -422,8 +387,8 @@ function startTimeTracking() {
     const videoTimeInCycle = elapsed % videoDuration
     const videoLayer = calculateLayerByTime(videoTimeInCycle)
     
-    const lastLayer = detectedScene.value === 'scene_underpower' ? 126 : 5
-    const firstLayer = detectedScene.value === 'scene_underpower' ? 113 : 1
+    const lastLayer = detectedScene.value !== 'normal' ? 126 : 5
+    const firstLayer = detectedScene.value !== 'normal' ? 113 : 1
     
     if (currentLayer.value === lastLayer && videoLayer === firstLayer && elapsed > videoDuration * 0.5) {
       completedCycles.value++
@@ -465,22 +430,34 @@ function stopTimeTracking() {
   }
 }
 
-// ==================== 生命周期 ====================
-onMounted(() => {
-  checkVideoFileMode()
-  checkAcquisitionStatus()
-  statusCheckInterval = setInterval(() => {
-    checkVideoFileMode()
-    checkAcquisitionStatus()
-  }, 2000)
-})
+const syncDeviceMockCase = () => {
+  isVideoFileMode.value = Boolean(props.useMockMode && props.mockCase)
+  detectedScene.value = props.mockCase?.id || 'normal'
+  resetLayerState()
+  if (isRunning.value && isVideoFileMode.value && props.mockCaseAvailable) {
+    videoStartTime.value = Date.now()
+    startTimeTracking()
+  }
+}
+
+watch(() => [props.useMockMode, props.mockCase?.id, props.mockCaseAvailable], syncDeviceMockCase, { immediate: true })
+
+watch(() => props.isAcquiring, (running, wasRunning) => {
+  isRunning.value = running
+  if (!wasRunning && running && isVideoFileMode.value && props.mockCaseAvailable) {
+    videoStartTime.value = Date.now()
+    startTimeTracking()
+  }
+  if (wasRunning && !running) {
+    stopTimeTracking()
+    pausedTime.value = 0
+    completedCycles.value = 0
+    lastVideoTime.value = 0
+  }
+}, { immediate: true })
 
 onUnmounted(() => {
   stopTimeTracking()
-  if (statusCheckInterval) {
-    clearInterval(statusCheckInterval)
-    statusCheckInterval = null
-  }
 })
 </script>
 

@@ -252,13 +252,13 @@
       "status": "fault",
       "message": "铺粉/刮刀系统异常"
     },
-    "gas_system": {
+    "temp_system": {
       "status": "healthy",
       "message": "健康"
     }
   },
   "diagnosis": {
-    "source": "SLM同构模拟案例",
+    "source": "SLS模拟案例",
     "rawStatusCode": 5,
     "rawStatusLabel": "落粉轴故障",
     "rawStatusLabels": [
@@ -275,19 +275,16 @@
       {
         "source": "filename",
         "text": "2024-05-07 08-53-36 落粉轴故障 故障暂停，落粉轴扭矩故障",
-        "file": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv"
+        "file": "sls_device_data/SLS/华中数控SLS S07/real_data/preview.csv"
       }
-    ],
-    "copiedFromDevice": "slm-b17"
+    ]
   },
   "realData": {
-    "source_case_dir": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010",
+    "source_case_dir": "sls_device_data/SLS/华中数控SLS S07/real_data",
     "source_files": [
-      "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv",
-      "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/设备信息_设备信息.csv"
+      "sls_device_data/SLS/华中数控SLS S07/real_data/preview.csv"
     ],
-    "representative_csv": "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv",
-    "preview_csv": "SLS/华中数控SLS S07/real_data/preview.csv",
-    "copiedFrom": "slm-b17"
+    "representative_csv": "sls_device_data/SLS/华中数控SLS S07/real_data/preview.csv",
+    "preview_csv": "sls_device_data/SLS/华中数控SLS S07/real_data/preview.csv"
   }
 }

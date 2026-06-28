@@ -12,7 +12,6 @@
   "health": "fault",
   "statusText": "落粉轴故障",
   "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
-  "dataDirectory": "slm_device_data/SLM/华科SLM B17",
   "parameterSchema": [
     {
       "id": "current_layer",
@@ -237,7 +236,6 @@
       "unit": "mA"
     }
   ],
-  "updatedAt": "2024-05-07 14:23:57",
   "healthData": {
     "status": "powder_fault",
     "status_code": 1,
@@ -290,5 +288,9 @@
       "7103/output1/B17/20240504-17-01/B17_20240504-17-01_20250611100010/2024-05-07_08-53-36_落粉轴故障_故障暂停，落粉轴扭矩故障.csv"
     ],
     "preview_csv": "SLM/华科SLM B17/real_data/preview.csv"
-  }
+  },
+  "updatedAt": "2024-05-07 14:23:57",
+  "dataDirectory": "slm_device_data/SLM/华科SLM B17",
+  "source": "7103",
+  "databaseUpdatedAt": "2026-06-27 10:12:20"
 }

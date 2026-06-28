@@ -12,7 +12,6 @@
   "health": "healthy",
   "statusText": "健康",
   "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B16/thumbnail.jpg",
-  "dataDirectory": "slm_device_data/SLM/铂力特 S310 B16",
   "parameterSchema": [
     {
       "id": "current_layer",
@@ -237,7 +236,6 @@
       "unit": "mA"
     }
   ],
-  "updatedAt": "2024-10-05 12:22:20",
   "healthData": {
     "status": "healthy",
     "status_code": 0,
@@ -267,7 +265,7 @@
     "frontendStatusCode": 0,
     "frontendStatusLabel": "健康",
     "categories": [],
-    "confidence": 1.0,
+    "confidence": 1,
     "evidence": []
   },
   "realData": {
@@ -282,5 +280,9 @@
       "7103/26_5_22/B16（372个零件）/20240806-10-18/20250527164355/2024-08-06_02-01-55_激光器水冷机故障.csv"
     ],
     "preview_csv": "SLM/铂力特 S310 B16/real_data/preview.csv"
-  }
+  },
+  "updatedAt": "2024-10-05 12:22:20",
+  "dataDirectory": "slm_device_data/SLM/铂力特 S310 B16",
+  "source": "7103",
+  "databaseUpdatedAt": "2026-06-27 10:12:20"
 }

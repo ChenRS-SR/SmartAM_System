@@ -127,6 +127,8 @@ const cloneDevice = (device) => ({
   healthData: cloneHealthData(device.healthData),
   parameterSchema: PARAMETER_SCHEMA.map((param) => ({ ...param })),
   parameters: normalizeParameters(device.parameters, device.statusText),
+  mockCase: device.mockCase ? JSON.parse(JSON.stringify(device.mockCase)) : null,
+  mockVideo: device.mockVideo ? JSON.parse(JSON.stringify(device.mockVideo)) : null,
   diagnosis: device.diagnosis ? { ...device.diagnosis } : null,
   realData: device.realData ? { ...device.realData } : null
 })
@@ -134,8 +136,8 @@ const cloneDevice = (device) => ({
 const normalizeDevice = (device, index) => {
   const sourceStatusCode = device.healthData?.status_code ?? (device.online === false ? -1 : 0)
   const statusCode = Number(sourceStatusCode)
-  const online = device.online !== false && statusCode !== -1
-  const health = online ? (statusCode > 0 ? 'fault' : 'healthy') : 'power_off'
+  const online = device.online !== false
+  const health = online ? (statusCode > 0 ? 'fault' : (statusCode === 0 ? 'healthy' : 'power_off')) : 'power_off'
   const healthData = device.healthData
     ? cloneHealthData(device.healthData)
     : buildHealthData(statusCode, device.statusText ? [device.statusText] : [])
@@ -156,6 +158,8 @@ const normalizeDevice = (device, index) => {
     thumbnail: device.thumbnail || createGeneratedThumbnail(index + 1),
     parameterSchema: PARAMETER_SCHEMA.map((param) => ({ ...param })),
     parameters: normalizeParameters(device.parameters, device.statusText || statusTextMap[String(statusCode)] || '--'),
+    mockCase: device.mockCase || null,
+    mockVideo: device.mockVideo || null,
     healthData,
     diagnosis: device.diagnosis || null,
     realData: device.realData || null,
@@ -228,7 +232,11 @@ export const useSlmDeviceStore = defineStore('slmDevices', () => {
     }
   }
 
-  const toPlainDevice = (device) => JSON.parse(JSON.stringify(device))
+  const toPlainDevice = (device) => {
+    const plainDevice = JSON.parse(JSON.stringify(device))
+    delete plainDevice.mockVideo
+    return plainDevice
+  }
 
   const writeDeviceToBackend = async (device, method = 'PATCH') => {
     const url = method === 'POST'
@@ -276,13 +284,14 @@ export const useSlmDeviceStore = defineStore('slmDevices', () => {
     if (index === -1) return
 
     const shouldPatchHealth = 'online' in patch || 'health' in patch || 'statusText' in patch
-    const statusCode = patch.online === false
+    const patchOnline = patch.online !== undefined ? patch.online !== false : devices.value[index].online !== false
+    const statusCode = !patchOnline
       ? -1
       : (patch.health === 'fault' ? (devices.value[index].healthData?.status_code > 0 ? devices.value[index].healthData.status_code : 4) : 0)
     const healthPatch = shouldPatchHealth
       ? { healthData: buildHealthData(statusCode, [patch.statusText || statusTextMap[String(statusCode)]]) }
       : {}
-    const merged = normalizeDevice({ ...devices.value[index], ...patch, ...healthPatch }, index)
+    const merged = normalizeDevice({ ...devices.value[index], ...patch, online: patchOnline, ...healthPatch }, index)
     const savedDevice = await writeDeviceToBackend(merged, 'PATCH')
     devices.value[index] = cloneDevice(savedDevice)
     persist()
@@ -312,7 +321,7 @@ export const useSlmDeviceStore = defineStore('slmDevices', () => {
 
     const statusCode = Number(healthData.status_code ?? -1)
     device.healthData = cloneHealthData(healthData)
-    device.online = statusCode !== -1
+    device.online = device.online !== false
     device.health = statusCode > 0 ? 'fault' : (statusCode === 0 ? 'healthy' : 'power_off')
     device.statusText = statusCode > 0
       ? (healthData.status_labels || [statusTextMap[String(statusCode)] || '故障']).join('、')

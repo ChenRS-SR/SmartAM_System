@@ -252,13 +252,13 @@
       "status": "healthy",
       "message": "健康"
     },
-    "gas_system": {
+    "temp_system": {
       "status": "healthy",
       "message": "健康"
     }
   },
   "diagnosis": {
-    "source": "SLM同构模拟案例",
+    "source": "SLS模拟案例",
     "rawStatusCode": 0,
     "rawStatusLabel": "健康",
     "rawStatusLabels": [
@@ -267,18 +267,15 @@
     "frontendStatusCode": 0,
     "frontendStatusLabel": "健康",
     "categories": [],
-    "confidence": 1.0,
-    "evidence": [],
-    "copiedFromDevice": "slm-b15"
+    "confidence": 1,
+    "evidence": []
   },
   "realData": {
-    "source_case_dir": "7103/output3/B15/20250310-14-01/B15_20250310-14-01_20250528160700",
+    "source_case_dir": "sls_device_data/SLS/华中数控SLS S05/real_data",
     "source_files": [
-      "7103/output3/B15/20250310-14-01/B15_20250310-14-01_20250528160700/B15_20250310-14-01_5611层_样本数据.csv",
-      "7103/output3/B15/20250310-14-01/B15_20250310-14-01_20250528160700/设备信息_设备信息.csv"
+      "sls_device_data/SLS/华中数控SLS S05/real_data/preview.csv"
     ],
-    "representative_csv": "",
-    "preview_csv": "SLS/华中数控SLS S05/real_data/preview.csv",
-    "copiedFrom": "slm-b15"
+    "representative_csv": "sls_device_data/SLS/华中数控SLS S05/real_data/preview.csv",
+    "preview_csv": "sls_device_data/SLS/华中数控SLS S05/real_data/preview.csv"
   }
 }
