@@ -5,6 +5,12 @@ setlocal EnableDelayedExpansion
 
 :: 统一使用项目文档和旧一键脚本约定的 Conda 环境名。
 set "CONDA_ENV=pytorch_env"
+:: 日志存储上限：单文件5MB，保留5份，总日志目录128MB。
+set "SMARTAM_LOG_MAX_BYTES=5242880"
+set "SMARTAM_LOG_BACKUP_COUNT=5"
+set "SMARTAM_LOG_TOTAL_BYTES=134217728"
+set "SMARTAM_RELOAD=0"
+set "SMARTAM_ACCESS_LOG=0"
 
 :: 设置控制台颜色。
 color 0A
@@ -27,7 +33,7 @@ echo =========================================
 echo.
 
 :: 检查基础命令，缺少依赖时直接停止，避免误用系统 Python。
-echo [1/5] Checking runtime environment...
+echo [1/6] Checking runtime environment...
 where conda >nul 2>&1
 if errorlevel 1 (
     echo   [ERROR] Conda not found. Please install Anaconda/Miniconda and add it to PATH.
@@ -61,8 +67,18 @@ python --version
 node --version
 echo.
 
+:: 启动前执行日志轮转和总量清理，避免旧日志持续占用磁盘。
+echo [2/6] Cleaning managed logs...
+python "%~dp0scripts\manage_logs.py" --clean --status
+if errorlevel 1 (
+    echo   [ERROR] Log storage cleanup failed.
+    pause
+    exit /b 1
+)
+echo.
+
 :: 检查并释放端口，避免重复启动造成端口冲突。
-echo [2/5] Checking port usage...
+echo [3/6] Checking port usage...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8000"') do (
     echo   Terminating process PID %%a using port 8000
     taskkill /F /PID %%a >nul 2>&1
@@ -75,7 +91,7 @@ timeout /t 1 /nobreak >nul
 
 :: 构建前端静态页面，正式界面由后端 8000 端口统一提供。
 echo.
-echo [3/5] Building frontend static assets...
+echo [4/6] Building frontend static assets...
 cd /d "%~dp0frontend"
 if not exist "node_modules" (
     echo   Installing frontend dependencies...
@@ -95,7 +111,7 @@ if errorlevel 1 (
 
 :: 启动后端服务，子窗口中再次激活环境，确保服务进程继承正确 Python。
 echo.
-echo [4/5] Starting backend service...
+echo [5/6] Starting backend service...
 cd /d "%~dp0backend"
 start "SmartAM Backend" cmd /k "call conda activate %CONDA_ENV% && python main.py"
 
@@ -113,10 +129,11 @@ if %errorlevel% equ 0 (
 )
 
 echo.
-echo [5/5] Services startup complete!
+echo [6/6] Services startup complete!
 echo =========================================
 echo  Full Interface: http://%LOCAL_IP%:8000/slm/dashboard
 echo  API Docs: http://%LOCAL_IP%:8000/docs
+echo  Managed Logs: %~dp0logs
 echo =========================================
 echo.
 echo Opening browser...

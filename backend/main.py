@@ -25,6 +25,15 @@ from typing import Optional
 import signal
 import sys
 import os
+from pathlib import Path
+
+
+_file_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(_file_dir)
+
+# 后端入口最先启用日志存储限额，覆盖print、uvicorn和第三方logging输出。
+from utils.log_storage import build_uvicorn_log_config, get_log_dir, setup_runtime_logging
+setup_runtime_logging(Path(project_root))
 
 # 导入 DAQ 系统
 try:
@@ -92,9 +101,6 @@ app.add_middleware(
 
 
 # ========== 静态文件服务 (必须在 API 路由之前) ==========
-# 获取项目根目录 - 使用绝对路径确保正确
-_file_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(_file_dir)
 print(f"[Main] 项目根目录: {project_root}")
 frontend_dist_path = os.path.join(project_root, "frontend", "dist")
 frontend_public_path = os.path.join(project_root, "frontend", "public")
@@ -481,10 +487,18 @@ async def frontend_history_fallback(full_path: str):
 # ========== 主入口 ==========
 
 if __name__ == "__main__":
+    reload_enabled = os.getenv("SMARTAM_RELOAD", "0") == "1"
+    access_log_enabled = os.getenv("SMARTAM_ACCESS_LOG", "0") == "1"
+    log_dir = get_log_dir(Path(project_root))
+    app_target = "main:app" if reload_enabled else app
+
+    # 默认关闭reload和访问日志，减少重复进程与高频请求日志写入。
     uvicorn.run(
-        "main:app",
+        app_target,
         host="0.0.0.0",
         port=8000,
-        reload=True,
-        log_level="info"
+        reload=reload_enabled,
+        log_level=os.getenv("SMARTAM_LOG_LEVEL", "info").lower(),
+        log_config=build_uvicorn_log_config(log_dir),
+        access_log=access_log_enabled,
     )

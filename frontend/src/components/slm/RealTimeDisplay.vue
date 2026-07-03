@@ -275,11 +275,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  // 华科四台模拟设备在调控页固定展示ROI，不依赖全局ROI面板开关。
-  forceShowROI: {
-    type: Boolean,
-    default: false
-  },
   distortionCorrectionEnabled: {
     type: Boolean,
     default: false
@@ -336,8 +331,8 @@ const onCh1Error = () => console.error('CH1视频流错误')
 const onCh2Error = () => console.error('CH2视频流错误')
 const onThermalError = () => console.error('热像视频流错误')
 
-// ROI显示
-const showROI = computed(() => props.forceShowROI || roiStore.showROIOnVideo)
+// ROI叠加只受设置页开关控制；Dashboard 可自动加载配置，但不强制显示。
+const showROI = computed(() => roiStore.showROIOnVideo && roiStore.hasConfig)
 const roiList = computed(() => roiStore.roiList)
 
 // 计算ROI样式（将ROI坐标转换为CSS样式）

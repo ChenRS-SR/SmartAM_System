@@ -162,7 +162,11 @@ const selectedFeatures = ref(['mean', 'std'])
 const isLoading = ref(false)
 const isSaving = ref(false)
 const fileInput = ref(null)
-const showROIOnVideo = ref(false)
+// 显示开关直接读写全局store，避免设置页本地状态与视频叠加状态不一致。
+const showROIOnVideo = computed({
+  get: () => roiStore.showROIOnVideo,
+  set: (value) => roiStore.setShowROIOnVideo(value)
+})
 
 // 计算属性
 const hasConfig = computed(() => rois.value.length > 0)
@@ -347,7 +351,6 @@ function clearConfig() {
   selectedROI.value = null
   configFilePath.value = ''
   selectedFeatures.value = ['mean', 'std']
-  showROIOnVideo.value = false
   roiStore.clearConfig()
   roiStore.setShowROIOnVideo(false)
   emit('config-cleared')
@@ -356,7 +359,6 @@ function clearConfig() {
 
 // 显示ROI开关变化
 function onShowROIChange(val) {
-  roiStore.setShowROIOnVideo(val)
   ElMessage.success(val ? '已开启ROI区域显示' : '已关闭ROI区域显示')
 }
 
@@ -364,7 +366,6 @@ function onShowROIChange(val) {
 onMounted(async () => {
   // 从store加载显示设置
   roiStore.loadFromStorage()
-  showROIOnVideo.value = roiStore.showROIOnVideo
   
   // 如果store中有配置，直接使用
   if (roiStore.hasConfig) {

@@ -143,7 +143,6 @@
             :use-mock-mode="settings.use_mock"
             :mock-source-type="selectedMockSourceType"
             :waiting-for-realtime="waitingForRealtimeData"
-            :force-show-r-o-i="isHuakeVideoMockDevice"
             :distortion-correction-enabled="canUseDistortionCorrection && distortionCorrectionEnabled"
           />
         </div>
