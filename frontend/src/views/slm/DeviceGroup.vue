@@ -20,6 +20,22 @@
     </div>
 
     <section class="source-bar">
+      <span>使用单位</span>
+      <div class="org-selector">
+        <el-select
+          v-model="selectedOrg"
+          placeholder="选择使用单位"
+          size="large"
+          class="org-select"
+        >
+          <el-option
+            v-for="org in orgOptions"
+            :key="org.value"
+            :label="org.label"
+            :value="org.value"
+          />
+        </el-select>
+      </div>
       <span>数据源</span>
       <strong>{{ deviceStore.sourceInfo.sourceRoot || '正在加载 7103 数据' }}</strong>
       <el-tag size="small" :type="isMockMode ? 'warning' : 'info'">
@@ -31,7 +47,7 @@
     <section class="fleet-summary">
       <div class="summary-item">
         <span class="summary-label">设备总数</span>
-        <strong>{{ displayDevices.length }}</strong>
+        <strong>{{ fleetStats.total }}</strong>
       </div>
       <div class="summary-item">
         <span class="summary-label">在线</span>
@@ -49,7 +65,7 @@
 
     <section v-loading="deviceStore.loading" class="device-grid">
       <article
-        v-for="device in displayDevices"
+        v-for="device in filteredDevices"
         :key="device.id"
         class="device-card"
         :class="{ offline: !device.online, fault: device.online && device.health === 'fault' }"
@@ -124,6 +140,19 @@
               状态码 {{ device.healthData.status_code }}
             </el-tag>
           </div>
+
+          <!-- 6个关键部件状态 -->
+          <div class="component-status-grid">
+            <div
+              v-for="component in deviceComponentStatus(device)"
+              :key="component.key"
+              class="component-status-item"
+              :class="`status-${component.status}`"
+            >
+              <span class="component-name">{{ component.name }}</span>
+              <span class="component-state">{{ component.stateText }}</span>
+            </div>
+          </div>
         </div>
       </article>
 
@@ -131,6 +160,49 @@
         <el-icon><Plus /></el-icon>
         <span>导入设备</span>
       </button>
+    </section>
+
+    <!-- 装备群历史统计情况 -->
+    <section class="maintenance-statistics-panel">
+      <div class="panel-title">
+        <el-icon><TrendCharts /></el-icon>
+        装备群历史统计情况
+      </div>
+      <div class="maintenance-statistics-grid">
+        <div class="maintenance-stat-card">
+          <div class="maintenance-stat-icon faults">
+            <el-icon><Warning /></el-icon>
+          </div>
+          <div class="maintenance-stat-content">
+            <span class="maintenance-stat-label">累计发生故障任务</span>
+            <span class="maintenance-stat-value">
+              {{ maintenanceStats.totalFaults }}<span class="maintenance-stat-unit">次</span>
+            </span>
+          </div>
+        </div>
+        <div class="maintenance-stat-card">
+          <div class="maintenance-stat-icon preventive">
+            <el-icon><FirstAidKit /></el-icon>
+          </div>
+          <div class="maintenance-stat-content">
+            <span class="maintenance-stat-label">提前维修决策次数</span>
+            <span class="maintenance-stat-value">
+              {{ maintenanceStats.preventiveRepairs }}<span class="maintenance-stat-unit">次</span>
+            </span>
+          </div>
+        </div>
+        <div class="maintenance-stat-card">
+          <div class="maintenance-stat-icon reduction">
+            <el-icon><CircleCheck /></el-icon>
+          </div>
+          <div class="maintenance-stat-content">
+            <span class="maintenance-stat-label">避免故障比例</span>
+            <span class="maintenance-stat-value">
+              {{ maintenanceStats.avoidanceRate.toFixed(1) }}<span class="maintenance-stat-unit">%</span>
+            </span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <el-dialog
@@ -202,7 +274,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { EditPen, Plus, Refresh, Upload } from '@element-plus/icons-vue'
+import { EditPen, Plus, Refresh, Upload, TrendCharts, Warning, FirstAidKit, CircleCheck } from '@element-plus/icons-vue'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
 import { readSlmBenchSettings } from '../../utils/slmBenchSettings'
 import { buildMockCaseHealthData, buildMockCaseStatusText, checkMockCaseMedia, getDeviceMockCase } from '../../utils/slmMockCases'
@@ -217,6 +289,14 @@ const syncingDatabase = ref(false)
 const benchSettings = ref(readSlmBenchSettings())
 const realtimeSamples = ref({})
 const mockCaseAvailability = ref({})
+
+// 使用单位选择
+const selectedOrg = ref('all')
+const orgOptions = [
+  { label: '全部单位', value: 'all' },
+  { label: '7103（铂力特）', value: '7103' },
+  { label: '华科', value: 'huake' }
+]
 const deviceForm = reactive({
   name: '',
   model: '铂力特 S310',
@@ -365,10 +445,86 @@ const displayDevices = computed(() => {
   return deviceStore.devices.map((device) => toRealtimeDevice(device, realtimeSamples.value[device.id]))
 })
 
+const filteredDevices = computed(() => {
+  if (selectedOrg.value === 'all') return displayDevices.value
+  return displayDevices.value.filter((device) => {
+    const owner = (device.owner || '').trim()
+    const dataTag = (device.dataTag || '').trim()
+    const databaseTag = (device.databaseTag || '').trim()
+    const source = (device.source || '').trim()
+    if (selectedOrg.value === '7103') {
+      return owner.includes('铂力特')
+        || dataTag.includes('7103')
+        || databaseTag.includes('7103')
+        || source === '7103'
+    }
+    if (selectedOrg.value === 'huake') {
+      return owner.includes('华科')
+        || owner.includes('华中数控')
+        || dataTag.includes('华科')
+        || databaseTag.includes('华科')
+        || databaseTag.includes('huake')
+        || source === 'huake'
+    }
+    return true
+  })
+})
+
 const fleetStats = computed(() => ({
-  online: displayDevices.value.filter((device) => device.online).length,
-  healthy: displayDevices.value.filter((device) => device.online && device.health === 'healthy').length,
-  fault: displayDevices.value.filter((device) => device.online && device.health === 'fault').length
+  total: filteredDevices.value.length,
+  online: filteredDevices.value.filter((device) => device.online).length,
+  healthy: filteredDevices.value.filter((device) => device.online && device.health === 'healthy').length,
+  fault: filteredDevices.value.filter((device) => device.online && device.health === 'fault').length
+}))
+
+// 6个关键部件状态（与设备状态监测界面的视情维护模块对应）
+const deviceComponentStatus = (device) => {
+  const statusCode = Number(device?.healthData?.status_code ?? -1)
+  const components = [
+    { key: 'filter', name: '滤芯' },
+    { key: 'argon', name: '氩气循环' },
+    { key: 'laser', name: '激光器' },
+    { key: 'powder', name: '刮刀' },
+    { key: 'feeder', name: '落粉轴' },
+    { key: 'fan', name: '风机' }
+  ]
+
+  // 根据设备整体状态码生成部件状态，与 MaintenanceDecisionPanel 的风险等级语义一致
+  const getStatus = (key) => {
+    if (!device?.online || statusCode === -1) return 'unknown'
+    if (statusCode === 0) return 'normal'
+    if (statusCode === 1) return key === 'powder' ? 'danger' : 'normal'
+    if (statusCode === 2) return key === 'laser' ? 'danger' : 'normal'
+    if (statusCode === 3) {
+      if (key === 'argon' || key === 'fan') return 'danger'
+      if (key === 'filter') return 'warning'
+      return 'normal'
+    }
+    if (statusCode === 4) {
+      if (key === 'argon' || key === 'laser' || key === 'powder') return 'danger'
+      if (key === 'filter' || key === 'fan' || key === 'feeder') return 'warning'
+      return 'normal'
+    }
+    return 'normal'
+  }
+
+  return components.map((component) => {
+    const status = getStatus(component.key)
+    const stateMap = {
+      unknown: '离线',
+      normal: '正常',
+      warning: '预警',
+      danger: '超阈值'
+    }
+    return { ...component, status, stateText: stateMap[status] }
+  })
+}
+
+// 装备群历史统计（与设备状态监测界面的视情维护模块对应）
+const maintenanceStats = computed(() => ({
+  totalFaults: 40,
+  preventiveRepairs: 28,
+  avoidanceRate: 70.0
 }))
 
 const previewParameters = (device) => Array.isArray(device.parameters) ? device.parameters.slice(0, 3) : []
@@ -641,6 +797,27 @@ onUnmounted(() => {
   gap: 10px;
   color: #94a3b8;
   font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.org-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.org-select {
+  width: 170px;
+}
+
+.org-select :deep(.el-input__wrapper) {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.3) inset;
+}
+
+.org-select :deep(.el-input__inner) {
+  color: #e2e8f0;
 }
 
 .source-bar strong {
@@ -876,6 +1053,162 @@ onUnmounted(() => {
   gap: 8px;
 }
 
+/* 6个关键部件状态 */
+.component-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(100, 116, 139, 0.18);
+}
+
+.component-status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.48);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.component-status-item .component-name {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.component-status-item .component-state {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.component-status-item.status-normal {
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.component-status-item.status-normal .component-state {
+  color: #22c55e;
+}
+
+.component-status-item.status-warning {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.component-status-item.status-warning .component-state {
+  color: #f59e0b;
+}
+
+.component-status-item.status-danger {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.08);
+  animation: danger-pulse 2s infinite;
+}
+
+.component-status-item.status-danger .component-state {
+  color: #ef4444;
+}
+
+.component-status-item.status-unknown {
+  opacity: 0.6;
+}
+
+.component-status-item.status-unknown .component-state {
+  color: #64748b;
+}
+
+/* 装备群历史统计 */
+.maintenance-statistics-panel {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(100, 116, 139, 0.26);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.maintenance-statistics-panel .panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.maintenance-statistics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.maintenance-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(100, 116, 139, 0.28);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.maintenance-stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.maintenance-stat-icon.faults {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+.maintenance-stat-icon.preventive {
+  background: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
+}
+
+.maintenance-stat-icon.reduction {
+  background: rgba(0, 255, 136, 0.2);
+  color: #00ff88;
+}
+
+.maintenance-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.maintenance-stat-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.maintenance-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+}
+
+.maintenance-stat-unit {
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
 .add-device-tile {
   color: #94a3b8;
   border-style: dashed;
@@ -913,9 +1246,17 @@ onUnmounted(() => {
   background: #0f172a;
 }
 
+@keyframes danger-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.25); }
+}
+
 @media (max-width: 900px) {
   .fleet-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .maintenance-statistics-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -937,6 +1278,18 @@ onUnmounted(() => {
 
   .fleet-summary {
     grid-template-columns: 1fr;
+  }
+
+  .maintenance-statistics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .component-status-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .org-select {
+    width: 140px;
   }
 
   .device-grid {
