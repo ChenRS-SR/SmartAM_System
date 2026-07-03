@@ -155,6 +155,11 @@
           />
         </div>
       </template>
+
+      <!-- 视情维护可视化模块 -->
+      <div class="maintenance-section">
+        <MaintenanceDecisionPanel />
+      </div>
     </section>
   </div>
 </template>
@@ -171,6 +176,7 @@ import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
 import EquipmentHealthStatus from '../../components/sls/EquipmentHealthStatus.vue'
 import RegulationControl from '../../components/slm/RegulationControl.vue'
 import FeatureCurvePanel from '../../components/slm/FeatureCurvePanel.vue'
+import MaintenanceDecisionPanel from '../../components/common/MaintenanceDecisionPanel.vue'
 import { useSlsDeviceStore } from '../../stores/slsDevices'
 import { readSlsBenchSettings } from '../../utils/slsBenchSettings'
 import {
@@ -1367,7 +1373,8 @@ onUnmounted(() => {
 .realtime-section,
 .regulation-section,
 .feature-curve-section,
-.health-section {
+.health-section,
+.maintenance-section {
   width: 100%;
 }
 

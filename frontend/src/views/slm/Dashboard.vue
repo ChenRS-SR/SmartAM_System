@@ -180,6 +180,11 @@
           />
         </div>
       </template>
+
+      <!-- 视情维护可视化模块 -->
+      <div class="maintenance-section">
+        <MaintenanceDecisionPanel />
+      </div>
     </section>
   </div>
 </template>
@@ -196,6 +201,7 @@ import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
 import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
 import RegulationControl from '../../components/slm/RegulationControl.vue'
 import FeatureCurvePanel from '../../components/slm/FeatureCurvePanel.vue'
+import MaintenanceDecisionPanel from '../../components/common/MaintenanceDecisionPanel.vue'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
 import { useROIStore } from '../../stores/roiStore'
 import { readSlmBenchSettings } from '../../utils/slmBenchSettings'
@@ -1434,7 +1440,8 @@ onUnmounted(() => {
 .realtime-section,
 .regulation-section,
 .feature-curve-section,
-.health-section {
+.health-section,
+.maintenance-section {
   width: 100%;
 }
 
