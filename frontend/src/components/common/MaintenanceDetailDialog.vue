@@ -336,30 +336,44 @@ defineExpose({
 })
 </script>
 
-<style scoped>
-.maintenance-detail-dialog :deep(.el-dialog) {
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(0, 212, 255, 0.3);
+<style>
+.maintenance-detail-dialog {
+  --el-dialog-bg-color: #0f172a !important;
+  --el-dialog-box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+  background: #0f172a !important;
+  border: 1px solid rgba(0, 212, 255, 0.35);
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
-.maintenance-detail-dialog :deep(.el-dialog__header) {
+.maintenance-detail-dialog .el-dialog__header {
+  --el-dialog-title-font-size: 16px;
   margin-right: 0;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+  background: #0f172a !important;
+  border-bottom: 1px solid rgba(100, 116, 139, 0.25);
 }
 
-.maintenance-detail-dialog :deep(.el-dialog__body) {
+.maintenance-detail-dialog .el-dialog__title {
+  color: #e2e8f0 !important;
+}
+
+.maintenance-detail-dialog .el-dialog__footer {
+  background: #0f172a !important;
+  border-top: 1px solid rgba(100, 116, 139, 0.25);
+}
+
+.maintenance-detail-dialog .el-dialog__body {
   padding: 20px;
+  background: #0f172a !important;
   color: #e2e8f0;
 }
 
-.maintenance-detail-dialog :deep(.el-dialog__headerbtn .el-dialog__close) {
+.maintenance-detail-dialog .el-dialog__headerbtn .el-dialog__close {
   color: #94a3b8;
 }
 
-.maintenance-detail-dialog :deep(.el-dialog__headerbtn:hover .el-dialog__close) {
+.maintenance-detail-dialog .el-dialog__headerbtn:hover .el-dialog__close {
   color: #e2e8f0;
 }
 
@@ -395,8 +409,8 @@ defineExpose({
 }
 
 .detail-panel {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: rgba(30, 41, 59, 0.55);
+  border: 1px solid rgba(100, 116, 139, 0.28);
   border-radius: 10px;
   padding: 18px;
   margin-bottom: 16px;
