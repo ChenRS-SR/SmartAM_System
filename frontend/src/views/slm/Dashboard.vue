@@ -183,9 +183,18 @@
 
       <!-- 视情维护可视化模块 -->
       <div class="maintenance-section">
-        <MaintenanceDecisionPanel />
+        <MaintenanceDecisionPanel @system-click="openMaintenanceDetail" />
       </div>
     </section>
+
+    <!-- 第三层：系统级监测融合指标与阈值关系详情 -->
+    <MaintenanceDetailDialog
+      v-model="detailVisible"
+      :system-key="detailSystemKey"
+      :system-name="detailSystemName"
+      :device-name="selectedDeviceName"
+      :organization-label="organizationLabel"
+    />
   </div>
 </template>
 
@@ -202,6 +211,7 @@ import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vu
 import RegulationControl from '../../components/slm/RegulationControl.vue'
 import FeatureCurvePanel from '../../components/slm/FeatureCurvePanel.vue'
 import MaintenanceDecisionPanel from '../../components/common/MaintenanceDecisionPanel.vue'
+import MaintenanceDetailDialog from '../../components/common/MaintenanceDetailDialog.vue'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
 import { useROIStore } from '../../stores/roiStore'
 import { readSlmBenchSettings } from '../../utils/slmBenchSettings'
@@ -384,6 +394,27 @@ const currentLayerInfo = ref({
   isStart: false,
   isEnd: false
 })
+
+// 第三层详情弹窗状态
+const detailVisible = ref(false)
+const detailSystemKey = ref('filter')
+const detailSystemName = ref('高效滤芯')
+
+const organizationLabel = computed(() => {
+  const org = route.query.org
+  if (org === '7103') return '7103（铂力特）'
+  if (org === 'huake') return '华科'
+  const owner = String(selectedDevice.value?.owner || '')
+  if (owner.includes('铂力特')) return '7103（铂力特）'
+  if (owner.includes('华科') || owner.includes('华中数控')) return '华科'
+  return '全部单位'
+})
+
+const openMaintenanceDetail = ({ key, name }) => {
+  detailSystemKey.value = key
+  detailSystemName.value = name
+  detailVisible.value = true
+}
 
 const ensureSelectedDevice = (routeDeviceId = route.params.deviceId) => {
   if (!slmDeviceStore.devices.length) return

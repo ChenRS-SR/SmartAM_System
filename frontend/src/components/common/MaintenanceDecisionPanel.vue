@@ -21,6 +21,7 @@
         :key="system.key"
         class="system-card"
         :class="{ 'risk-warning': system.riskPercent > 50 && system.riskPercent <= 80, 'risk-danger': system.riskPercent > 80 }"
+        @click="handleSystemClick(system)"
       >
         <div class="system-title">{{ system.name }}</div>
         <div class="risk-visual">
@@ -167,6 +168,12 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['system-click'])
+
+const handleSystemClick = (system) => {
+  emit('system-click', { key: system.key, name: system.name })
+}
+
 // 默认6个系统数据
 const defaultSystems = [
   { key: 'filter', name: '高效滤芯', riskValue: 0.32, thresholdValue: 0.80, riskPercent: 40, thresholdPercent: 80, reliability: 0.92 },
@@ -267,6 +274,7 @@ const getReliabilityColor = (value) => {
 }
 
 .system-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -280,6 +288,26 @@ const getReliabilityColor = (value) => {
 .system-card:hover {
   border-color: rgba(0, 212, 255, 0.3);
   box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+  cursor: pointer;
+}
+
+.system-card::after {
+  content: '查看详情';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 2px 6px;
+  font-size: 10px;
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.system-card:hover::after {
+  opacity: 1;
 }
 
 .system-card.risk-warning {

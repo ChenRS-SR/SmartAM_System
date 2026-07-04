@@ -571,7 +571,7 @@ const openEditDialog = (device) => {
 
 const openDeviceDashboard = (deviceId) => {
   localStorage.setItem('slmSelectedDeviceId', deviceId)
-  router.push({ path: `/slm/device/${deviceId}`, query: { tab: 'status' } })
+  router.push({ path: `/slm/device/${deviceId}`, query: { tab: 'status', org: selectedOrg.value } })
 }
 
 const handleThumbnailChange = async (uploadFile) => {
