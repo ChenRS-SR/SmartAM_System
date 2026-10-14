@@ -2,7 +2,7 @@
   <div class="device-select">
     <div class="header-section">
       <el-icon size="48" class="logo-icon"><Cpu /></el-icon>
-      <h1 class="title">SmartAM</h1>
+      <h1 class="title">增材制造异常识别系统</h1>
       <p class="subtitle">智能增材制造监控系统</p>
     </div>
     
@@ -15,7 +15,7 @@
         <h2 class="card-title">SLS 选择性激光烧结</h2>
         <p class="card-desc">高分子粉末激光烧结成型技术</p>
         <div class="card-features">
-          <span class="feature-tag">设备群监测</span>
+          <span class="feature-tag">设备群总览</span>
           <span class="feature-tag">状态监控</span>
           <span class="feature-tag">健康管理</span>
         </div>
@@ -88,7 +88,7 @@ const selectDevice = async (type) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  background: var(--am-card-bg);
   padding: 40px 20px;
 }
 
@@ -98,22 +98,21 @@ const selectDevice = async (type) => {
 }
 
 .logo-icon {
-  color: #00d4ff;
+  color: var(--am-accent);
   margin-bottom: 16px;
 }
 
 .title {
-  font-size: 42px;
-  font-weight: 700;
-  background: linear-gradient(90deg, #00d4ff, #00ff88);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--am-primary);
+  letter-spacing: 2px;
   margin: 0 0 12px 0;
 }
 
 .subtitle {
   font-size: 18px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   margin: 0;
 }
 
@@ -130,8 +129,8 @@ const selectDevice = async (type) => {
   flex: 1;
   min-width: 320px;
   max-width: 420px;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   border-radius: 16px;
   padding: 40px 32px;
   text-align: center;
@@ -142,8 +141,8 @@ const selectDevice = async (type) => {
 
 .device-card:hover {
   transform: translateY(-8px);
-  border-color: rgba(0, 212, 255, 0.5);
-  box-shadow: 0 20px 40px rgba(0, 212, 255, 0.15);
+  border-color: color-mix(in srgb, var(--am-accent) 50%, transparent);
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--am-accent) 15%, transparent);
 }
 
 .card-icon {
@@ -158,25 +157,25 @@ const selectDevice = async (type) => {
 }
 
 .card-icon.slm {
-  background: linear-gradient(135deg, #00ff88, #00cc66);
-  box-shadow: 0 8px 24px rgba(0, 255, 136, 0.3);
+  background: linear-gradient(135deg, var(--am-ok), #00cc66);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--am-ok) 30%, transparent);
 }
 
 .card-icon.sls {
-  background: linear-gradient(135deg, #ff9500, #ff5500);
-  box-shadow: 0 8px 24px rgba(255, 149, 0, 0.3);
+  background: linear-gradient(135deg, var(--am-warn), #ff5500);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--am-warn) 30%, transparent);
 }
 
 .card-title {
   font-size: 24px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   margin: 0 0 12px 0;
 }
 
 .card-desc {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   margin: 0 0 20px 0;
   line-height: 1.6;
 }
@@ -191,17 +190,17 @@ const selectDevice = async (type) => {
 
 .feature-tag {
   padding: 6px 14px;
-  background: rgba(0, 212, 255, 0.1);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: color-mix(in srgb, var(--am-accent) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   border-radius: 20px;
   font-size: 12px;
-  color: #00d4ff;
+  color: var(--am-accent);
 }
 
 .device-card:nth-child(2) .feature-tag {
-  background: rgba(0, 255, 136, 0.1);
-  border-color: rgba(0, 255, 136, 0.2);
-  color: #00ff88;
+  background: color-mix(in srgb, var(--am-ok) 13%, transparent);
+  border-color: color-mix(in srgb, var(--am-ok) 20%, transparent);
+  color: var(--am-ok);
 }
 
 .enter-btn {
@@ -216,7 +215,7 @@ const selectDevice = async (type) => {
 
 .footer {
   margin-top: 60px;
-  color: #64748b;
+  color: var(--am-text-3);
   font-size: 14px;
 }
 

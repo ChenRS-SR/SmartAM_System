@@ -70,8 +70,8 @@ const handleCommand = (command) => {
 }
 
 :deep(.el-dropdown-menu__item.active) {
-  color: #00d4ff;
-  background: rgba(0, 212, 255, 0.1);
+  color: var(--am-accent);
+  background: color-mix(in srgb, var(--am-accent) 13%, transparent);
 }
 
 .lang-flag {

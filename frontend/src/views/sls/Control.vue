@@ -209,14 +209,14 @@ const refreshStatus = () => {
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   margin: 0;
 }
 
 .control-card,
 .status-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
   margin-bottom: 20px;
 }
 
@@ -243,12 +243,12 @@ const refreshStatus = () => {
 }
 
 .label {
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .value {
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-family: 'Courier New', monospace;
 }
 
@@ -270,7 +270,7 @@ const refreshStatus = () => {
 
 .unit {
   margin-left: 10px;
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 .device-status {
@@ -288,7 +288,7 @@ const refreshStatus = () => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
 }
 
@@ -303,13 +303,13 @@ const refreshStatus = () => {
 }
 
 .status-icon.connected {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: color-mix(in srgb, var(--am-ok) 22%, transparent);
+  color: var(--am-ok);
 }
 
 .status-icon.disconnected {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--am-danger) 22%, transparent);
+  color: var(--am-danger);
 }
 
 .status-info {
@@ -320,7 +320,7 @@ const refreshStatus = () => {
 
 .status-info .name {
   font-size: 14px;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 @media (max-width: 768px) {

@@ -212,8 +212,8 @@ const handleMove = (position) => {
 
 <style scoped>
 .servo-control-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
 }
 
 .card-header {
@@ -225,7 +225,7 @@ const handleMove = (position) => {
 .header-title {
   font-size: 16px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -243,7 +243,7 @@ const handleMove = (position) => {
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   padding: 16px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
 }
 
@@ -256,20 +256,20 @@ const handleMove = (position) => {
 
 .status-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .status-value {
   font-size: 18px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-family: 'Courier New', monospace;
 }
 
 /* 可视化 */
 .servo-visualization {
   padding: 16px;
-  background: rgba(30, 41, 59, 0.3);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
 }
 
@@ -282,7 +282,7 @@ const handleMove = (position) => {
 .position-track {
   position: relative;
   height: 8px;
-  background: linear-gradient(to right, #ef4444 0%, #f59e0b 50%, #22c55e 100%);
+  background: linear-gradient(to right, var(--am-danger) 0%, var(--am-warn) 50%, var(--am-ok) 100%);
   border-radius: 4px;
 }
 
@@ -293,9 +293,9 @@ const handleMove = (position) => {
   width: 16px;
   height: 16px;
   background: #fff;
-  border: 2px solid #3b82f6;
+  border: 2px solid var(--am-accent);
   border-radius: 50%;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--am-accent) 50%, transparent);
   transition: left 0.3s ease;
 }
 
@@ -303,7 +303,7 @@ const handleMove = (position) => {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 /* 控制按钮 */
@@ -327,7 +327,7 @@ const handleMove = (position) => {
 
 .slider-label {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   min-width: 40px;
 }
 
@@ -360,7 +360,7 @@ const handleMove = (position) => {
 .servo-info li {
   margin: 4px 0;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 @media (max-width: 768px) {

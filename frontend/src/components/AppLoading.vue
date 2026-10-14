@@ -26,7 +26,7 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--am-card-bg);
   backdrop-filter: blur(4px);
 }
 
@@ -59,7 +59,7 @@ defineProps({
   inset: 0;
   border-radius: 50%;
   border: 3px solid transparent;
-  border-top-color: #00d4ff;
+  border-top-color: var(--am-accent);
   animation: spin 1.5s linear infinite;
 }
 
@@ -69,14 +69,14 @@ defineProps({
 
 .ring:nth-child(2) {
   inset: 8px;
-  border-top-color: #00ff88;
+  border-top-color: var(--am-ok);
   animation-duration: 1.2s;
   animation-direction: reverse;
 }
 
 .ring:nth-child(3) {
   inset: 16px;
-  border-top-color: #ffc107;
+  border-top-color: var(--am-warn);
   animation-duration: 0.9s;
 }
 
@@ -86,13 +86,13 @@ defineProps({
 
 .loading-text {
   font-size: 14px;
-  color: #e2e8f0;
+  color: var(--am-text);
   margin: 0;
 }
 
 .loading-subtext {
   font-size: 12px;
-  color: #64748b;
+  color: var(--am-text-3);
   margin: 8px 0 0;
 }
 </style>

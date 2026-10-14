@@ -4,7 +4,7 @@
       <Region kind="input" title="接入对象" class="r-input">
         <div class="fields">
           <div class="field"><span class="k">设备</span>
-            <select class="sel" :value="state.device" :disabled="acq.running" @change="switchDevice($event.target.value)">
+            <select class="sel" :value="state.device" :disabled="embedded || acq.running" @change="switchDevice($event.target.value)">
               <option v-for="x in devs" :key="x.id" :value="x.id">{{ x.name }}</option></select></div>
           <div class="field"><span class="k">成形任务</span>
             <select class="sel" disabled><option>{{ d.task.name }}</option></select></div>
@@ -73,13 +73,15 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import Region from '../components/Region.vue'
 import EChart from '../components/EChart.vue'
 import { api, mediaUrl } from '../api.js'
 import { devicesFor, selectDevice, state } from '../state.js'
 import { useCall } from '../composables.js'
+import { pal } from '../theme.js'
 
+const embedded = inject('formingEmbedded', false)
 const { busy, call } = useCall()
 const d = ref(null)
 const layers = ref([])
@@ -136,25 +138,26 @@ const envList = computed(() => {
     { k: '储粉桶物位', v: f(e['储粉桶物位计'], 0), u: 'mm' },
   ]
 })
-const axisFont = { fontSize: 16, color: '#52606d' }
 const torqueOption = computed(() => {
+  const P = pal.value
+  const axisFont = { fontSize: 16, color: P.axis }
   const t = d.value.torque
   const sin = t.events.find((e) => e.name === '熔化开始')
   return {
     animation: false,
     grid: { left: 52, right: 18, top: 40, bottom: 46 },
-    legend: { top: 0, right: 6, itemWidth: 26, itemHeight: 4, icon: 'rect', textStyle: { fontSize: 15 } },
+    legend: { top: 0, right: 6, itemWidth: 26, itemHeight: 4, icon: 'rect', textStyle: { fontSize: 15, color: P.text } },
     xAxis: { type: 'value', name: '相对铺粉开始的时间/s', nameLocation: 'middle', nameGap: 26, nameTextStyle: axisFont,
       axisLabel: axisFont, min: Math.floor(t.t[0]), max: Math.ceil(t.t[t.t.length - 1]), splitLine: { show: false } },
-    yAxis: { type: 'value', name: '扭矩/%', nameTextStyle: axisFont, axisLabel: axisFont, splitLine: { lineStyle: { color: '#eef0f3' } } },
+    yAxis: { type: 'value', name: '扭矩/%', nameTextStyle: axisFont, axisLabel: axisFont, splitLine: { lineStyle: { color: P.split } } },
     series: [
-      { name: '刮刀扭矩', type: 'line', showSymbol: false, lineStyle: { width: 1.8, color: '#3b6ba5' }, itemStyle: { color: '#3b6ba5' },
+      { name: '刮刀扭矩', type: 'line', showSymbol: false, lineStyle: { width: 1.8, color: P.scraper }, itemStyle: { color: P.scraper },
         data: t.t.map((x, i) => [x, t.scraper[i]]),
-        markArea: { silent: true, itemStyle: { color: 'rgba(59,107,165,0.08)' }, label: { fontSize: 15, color: '#3b6ba5' },
+        markArea: { silent: true, itemStyle: { color: P.recoatArea }, label: { fontSize: 15, color: P.scraper },
           data: [[{ name: '铺粉', xAxis: 0 }, { xAxis: t.recoatDur }]] },
-        markLine: { silent: true, symbol: 'none', lineStyle: { color: '#555', type: 'dashed', width: 1.2 },
-          label: { fontSize: 15, formatter: '熔化开始', position: 'end', distance: 2 }, data: sin ? [{ xAxis: sin.s }] : [] } },
-      { name: '加工平台扭矩', type: 'line', showSymbol: false, lineStyle: { width: 1.8, color: '#7b8794' }, itemStyle: { color: '#7b8794' },
+        markLine: { silent: true, symbol: 'none', lineStyle: { color: P.mark, type: 'dashed', width: 1.2 },
+          label: { fontSize: 15, color: P.text, formatter: '熔化开始', position: 'end', distance: 2 }, data: sin ? [{ xAxis: sin.s }] : [] } },
+      { name: '加工平台扭矩', type: 'line', showSymbol: false, lineStyle: { width: 1.8, color: P.platform }, itemStyle: { color: P.platform },
         data: t.t.map((x, i) => [x, t.platform[i]]) },
     ],
   }
@@ -162,33 +165,33 @@ const torqueOption = computed(() => {
 </script>
 
 <style scoped>
-.r-input { flex: 0 0 470px; }
-.r-param { flex: 1; min-width: 0; }
-.r-op { flex: 0 0 280px; }
+.r-input { flex: 470 0 470px; }
+.r-param { flex: 416 1 416px; min-width: 0; }
+.r-op { flex: 280 0 280px; }
 .r-vis { flex: 1; }
 .fields { gap: 6px 14px; }
 .chs { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 8px; font-size: 15px; justify-content: start; }
 .chs .ch { cursor: default; }
-.state { font-size: 17px; white-space: nowrap; display: flex; align-items: center; gap: 6px; color: #2f7d4f; font-weight: 700; }
+.state { font-size: 17px; white-space: nowrap; display: flex; align-items: center; gap: 6px; color: var(--ok); font-weight: 700; }
 .state .led { width: 12px; height: 12px; }
-.grid { height: 100%; display: grid; grid-template-columns: 300px 300px 1fr; grid-template-rows: 282px 1fr; gap: 12px; }
-.img { width: 100%; flex: 1; min-height: 0; object-fit: contain; background: #f3f5f8; border-radius: 4px; }
+.grid { height: 100%; display: grid; grid-template-columns: minmax(0, 300fr) minmax(0, 300fr) minmax(0, 540fr); grid-template-rows: minmax(0, 282fr) minmax(0, 278fr); gap: 12px; }
+.img { width: 100%; flex: 1; min-height: 0; object-fit: contain; background: var(--img-bg); border-radius: 4px; }
 .progress { margin-bottom: 8px; }
 .pg-row { display: flex; justify-content: space-between; font-size: 16px; color: var(--text-2); }
 .pg-row b { color: var(--text); }
-.bar { height: 10px; background: #e6eaf0; border-radius: 5px; margin-top: 4px; overflow: hidden; }
+.bar { height: 10px; background: var(--track-2); border-radius: 5px; margin-top: 4px; overflow: hidden; }
 .fill { height: 100%; background: var(--nav-bg); transition: width .4s; }
 .env { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 18px; }
 .env-item { display: flex; align-items: baseline; gap: 6px; font-size: 16px; }
 .ek { color: var(--text-2); flex: 1; white-space: nowrap; }
 .env-item b { font-size: 17px; }
 .eu { color: var(--text-2); font-size: 14px; width: 40px; }
-.alarm { margin-top: auto; font-size: 15px; background: #fdf3e7; border: 1px solid #f1d3a8; border-radius: 5px; padding: 4px 8px;
+.alarm { margin-top: auto; font-size: 15px; background: var(--alarm-bg); border: 1px solid var(--alarm-border); border-radius: 5px; padding: 4px 8px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.al-tag { color: #b26a00; font-weight: 700; margin-right: 8px; }
+.al-tag { color: var(--alarm-ink); font-weight: 700; margin-right: 8px; }
 .c-torque { grid-column: 1 / 3; }
 .tbl { font-size: 15.5px; }
 .tbl th, .tbl td { padding: 3px 6px; }
-.ok { color: #2f7d4f; }
-.bad { color: #a12622; }
+.ok { color: var(--ok); }
+.bad { color: var(--danger-ink); }
 </style>

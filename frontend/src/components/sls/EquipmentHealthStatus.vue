@@ -272,8 +272,8 @@ const onImageError = (e) => {
 <style scoped>
 /* 样式与SLM版本相同，省略以节省空间 */
 .health-status-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
 }
 
 .card-header {
@@ -285,7 +285,7 @@ const onImageError = (e) => {
 .header-title {
   font-size: 16px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .header-actions {
@@ -310,18 +310,18 @@ const onImageError = (e) => {
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  background: rgba(30, 41, 59, 0.5);
-  border: 2px solid rgba(100, 116, 139, 0.2);
+  background: var(--am-card-bg-2);
+  border: 2px solid var(--am-card-border-2);
 }
 
 .status-image-container.fault {
-  border-color: rgba(239, 68, 68, 0.5);
+  border-color: color-mix(in srgb, var(--am-danger) 50%, transparent);
   animation: border-pulse 2s infinite;
 }
 
 @keyframes border-pulse {
-  0%, 100% { border-color: rgba(239, 68, 68, 0.5); }
-  50% { border-color: rgba(239, 68, 68, 0.8); }
+  0%, 100% { border-color: color-mix(in srgb, var(--am-danger) 50%, transparent); }
+  50% { border-color: color-mix(in srgb, var(--am-danger) 80%, transparent); }
 }
 
 .status-image {
@@ -340,14 +340,14 @@ const onImageError = (e) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(239, 68, 68, 0.2);
+  background: color-mix(in srgb, var(--am-danger) 22%, transparent);
   animation: pulse 2s infinite;
 }
 
 .fault-text {
   font-size: 14px;
   font-weight: 600;
-  color: #ef4444;
+  color: var(--am-danger);
 }
 
 .current-status-bar {
@@ -357,7 +357,7 @@ const onImageError = (e) => {
   padding: 12px 16px;
   border-radius: 8px;
   border-left: 4px solid;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
 }
 
 .status-dot-large {
@@ -380,7 +380,7 @@ const onImageError = (e) => {
 
 .status-code {
   font-size: 11px;
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 .status-text-section {
@@ -391,13 +391,13 @@ const onImageError = (e) => {
 
 .main-status {
   padding: 16px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
   border-left: 4px solid;
 }
 
 .main-status.fault {
-  background: rgba(239, 68, 68, 0.1);
+  background: color-mix(in srgb, var(--am-danger) 13%, transparent);
 }
 
 .status-title {
@@ -408,14 +408,14 @@ const onImageError = (e) => {
 
 .status-description {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   line-height: 1.6;
 }
 
 .subsection-title {
   font-size: 14px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   margin-bottom: 12px;
 }
 
@@ -427,14 +427,14 @@ const onImageError = (e) => {
 
 .subsystem-item {
   padding: 12px;
-  background: rgba(30, 41, 59, 0.3);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
 }
 
 .subsystem-item.fault {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: color-mix(in srgb, var(--am-danger) 13%, transparent);
+  border-color: color-mix(in srgb, var(--am-danger) 30%, transparent);
 }
 
 .subsystem-item.disabled {
@@ -455,18 +455,18 @@ const onImageError = (e) => {
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: color-mix(in srgb, var(--am-ok) 22%, transparent);
+  color: var(--am-ok);
 }
 
 .subsystem-icon.fault {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--am-danger) 22%, transparent);
+  color: var(--am-danger);
 }
 
 .subsystem-icon.disabled {
-  background: rgba(100, 116, 139, 0.2);
-  color: #64748b;
+  background: var(--am-card-bg-2);
+  color: var(--am-text-3);
 }
 
 .subsystem-info {
@@ -479,21 +479,21 @@ const onImageError = (e) => {
 .subsystem-name {
   font-size: 13px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .subsystem-status {
   font-size: 12px;
-  color: #22c55e;
+  color: var(--am-ok);
 }
 
 .subsystem-status.fault {
-  color: #ef4444;
+  color: var(--am-danger);
 }
 
 .status-tags-section {
   padding: 12px;
-  background: rgba(30, 41, 59, 0.3);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
 }
 

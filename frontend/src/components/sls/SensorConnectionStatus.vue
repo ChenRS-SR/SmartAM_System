@@ -206,8 +206,8 @@ const handleRefresh = () => {
 
 <style scoped>
 .sensor-status-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
 }
 
 .card-header {
@@ -219,7 +219,7 @@ const handleRefresh = () => {
 .header-title {
   font-size: 16px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .sensor-grid {
@@ -233,9 +233,9 @@ const handleRefresh = () => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
   transition: all 0.3s ease;
 }
 
@@ -251,24 +251,24 @@ const handleRefresh = () => {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  background: rgba(100, 116, 139, 0.2);
-  color: #64748b;
+  background: var(--am-card-bg-2);
+  color: var(--am-text-3);
   transition: all 0.3s ease;
 }
 
 .sensor-icon.connected {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: color-mix(in srgb, var(--am-ok) 22%, transparent);
+  color: var(--am-ok);
 }
 
 .sensor-icon.disconnected {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--am-danger) 22%, transparent);
+  color: var(--am-danger);
 }
 
 .sensor-icon.disabled {
-  background: rgba(100, 116, 139, 0.1);
-  color: #475569;
+  background: var(--am-card-bg-2);
+  color: var(--am-text-3);
 }
 
 .sensor-info {
@@ -281,7 +281,7 @@ const handleRefresh = () => {
 .sensor-name {
   font-size: 14px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--am-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -293,24 +293,24 @@ const handleRefresh = () => {
 
 .sensor-status {
   font-size: 12px;
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 .sensor-status.connected {
-  color: #22c55e;
+  color: var(--am-ok);
 }
 
 .sensor-status.disconnected {
-  color: #ef4444;
+  color: var(--am-danger);
 }
 
 .sensor-status.disabled {
-  color: #475569;
+  color: var(--am-text-3);
 }
 
 .sensor-detail {
   font-size: 11px;
-  color: #64748b;
+  color: var(--am-text-3);
   font-family: 'Courier New', monospace;
 }
 

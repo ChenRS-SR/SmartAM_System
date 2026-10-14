@@ -2,7 +2,7 @@
   <div class="device-group-page">
     <div class="page-header">
       <div>
-        <h1 class="page-title">设备群监测</h1>
+        <h1 class="page-title">设备群总览</h1>
         <div class="page-subtitle">
           {{ sourceDeviceStore.sourceInfo.diagnosisPolicy || 'SLS 设备群实时状态' }}
         </div>
@@ -355,31 +355,31 @@ onMounted(async () => {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .page-subtitle {
   margin-top: 6px;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .source-bar {
   min-height: 44px;
   margin-bottom: 18px;
   padding: 10px 14px;
-  border: 1px solid rgba(100, 116, 139, 0.26);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--am-card-bg);
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 12px;
 }
 
 .source-bar strong {
-  color: #cbd5e1;
+  color: var(--am-text);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -396,9 +396,9 @@ onMounted(async () => {
 .summary-item {
   min-height: 76px;
   padding: 14px 16px;
-  border: 1px solid rgba(100, 116, 139, 0.28);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.58);
+  background: var(--am-card-bg);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -406,16 +406,16 @@ onMounted(async () => {
 
 .summary-item strong {
   font-size: 28px;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .summary-label {
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 13px;
 }
 
 .summary-item.danger strong {
-  color: #f87171;
+  color: var(--am-danger);
 }
 
 .device-grid {
@@ -427,9 +427,9 @@ onMounted(async () => {
 .device-card,
 .add-device-tile {
   min-height: 390px;
-  border: 1px solid rgba(100, 116, 139, 0.28);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.62);
+  background: var(--am-card-bg);
 }
 
 .device-card {
@@ -439,13 +439,13 @@ onMounted(async () => {
 }
 
 .device-card:hover {
-  border-color: rgba(45, 212, 191, 0.65);
+  border-color: color-mix(in srgb, var(--am-accent) 65%, transparent);
   transform: translateY(-2px);
-  background: rgba(15, 23, 42, 0.82);
+  background: var(--am-card-bg);
 }
 
 .device-card.fault {
-  border-color: rgba(239, 68, 68, 0.52);
+  border-color: color-mix(in srgb, var(--am-danger) 52%, transparent);
 }
 
 .device-card.offline {
@@ -456,7 +456,7 @@ onMounted(async () => {
   position: relative;
   width: 100%;
   aspect-ratio: 18 / 11;
-  background: #0f172a;
+  background: var(--am-card-bg);
   overflow: hidden;
 }
 
@@ -476,10 +476,10 @@ onMounted(async () => {
   gap: 6px;
   padding: 5px 9px;
   border-radius: 999px;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-size: 12px;
-  background: rgba(15, 23, 42, 0.78);
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
 }
 
 .data-tag {
@@ -488,32 +488,32 @@ onMounted(async () => {
   left: 10px;
   padding: 5px 9px;
   border-radius: 999px;
-  color: #f8fafc;
+  color: var(--am-text);
   font-size: 12px;
   font-weight: 600;
-  background: rgba(15, 23, 42, 0.78);
-  border: 1px solid rgba(251, 191, 36, 0.42);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-warn) 42%, transparent);
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #94a3b8;
+  background: var(--am-card-bg-2);
 }
 
 .status-chip.healthy .status-dot {
-  background: #22c55e;
-  box-shadow: 0 0 8px #22c55e;
+  background: var(--am-ok);
+  box-shadow: 0 0 8px var(--am-ok);
 }
 
 .status-chip.fault .status-dot {
-  background: #ef4444;
-  box-shadow: 0 0 8px #ef4444;
+  background: var(--am-danger);
+  box-shadow: 0 0 8px var(--am-danger);
 }
 
 .status-chip.offline .status-dot {
-  background: #64748b;
+  background: var(--am-card-bg-2);
 }
 
 .device-content {
@@ -532,7 +532,7 @@ onMounted(async () => {
 
 .device-title-row h2 {
   margin: 0 0 4px;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-size: 18px;
   font-weight: 600;
   line-height: 1.25;
@@ -540,21 +540,21 @@ onMounted(async () => {
 
 .device-title-row span,
 .device-meta {
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 12px;
 }
 
 .icon-btn {
   width: 32px;
   height: 32px;
-  color: #cbd5e1;
+  color: var(--am-text);
 }
 
 .device-meta {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.18);
+  border-bottom: 1px solid var(--am-card-border-2);
   padding-bottom: 10px;
 }
 
@@ -568,9 +568,9 @@ onMounted(async () => {
   min-width: 0;
   min-height: 62px;
   padding: 8px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
   border-radius: 6px;
-  background: rgba(30, 41, 59, 0.48);
+  background: var(--am-card-bg-2);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -578,7 +578,7 @@ onMounted(async () => {
 }
 
 .preview-item span {
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 12px;
 }
 
@@ -587,7 +587,7 @@ onMounted(async () => {
   max-width: 100%;
   min-width: 0;
   margin-top: 3px;
-  color: #f8fafc;
+  color: var(--am-text);
   font-size: 18px;
   line-height: 1.1;
   overflow: hidden;
@@ -600,7 +600,7 @@ onMounted(async () => {
 }
 
 .preview-item em {
-  color: #64748b;
+  color: var(--am-text-3);
   font-size: 11px;
   font-style: normal;
 }
@@ -612,7 +612,7 @@ onMounted(async () => {
 }
 
 .add-device-tile {
-  color: #94a3b8;
+  color: var(--am-text-2);
   border-style: dashed;
   display: flex;
   align-items: center;
@@ -629,8 +629,8 @@ onMounted(async () => {
 }
 
 .add-device-tile:hover {
-  color: #2dd4bf;
-  border-color: rgba(45, 212, 191, 0.7);
+  color: var(--am-accent);
+  border-color: color-mix(in srgb, var(--am-accent) 70%, transparent);
 }
 
 .thumbnail-editor {
@@ -644,8 +644,8 @@ onMounted(async () => {
   height: 110px;
   border-radius: 6px;
   object-fit: cover;
-  border: 1px solid rgba(100, 116, 139, 0.28);
-  background: #0f172a;
+  border: 1px solid var(--am-card-border);
+  background: var(--am-card-bg);
 }
 
 @media (max-width: 900px) {

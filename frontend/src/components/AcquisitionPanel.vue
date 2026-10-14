@@ -920,17 +920,17 @@ onUnmounted(() => {
 
 .param-value.param-low {
   background: #fdf6ec;
-  color: #e6a23c;
+  color: var(--am-warn);
 }
 
 .param-value.param-normal {
   background: #f0f9ff;
-  color: #67c23a;
+  color: var(--am-ok);
 }
 
 .param-value.param-high {
   background: #fef0f0;
-  color: #f56c6c;
+  color: var(--am-danger);
 }
 
 .param-hint {

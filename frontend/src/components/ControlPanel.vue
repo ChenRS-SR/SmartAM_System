@@ -278,8 +278,8 @@ const resetParams = async () => {
 
 <style scoped>
 .control-panel {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   border-radius: 12px;
   padding: 16px;
 }
@@ -290,13 +290,13 @@ const resetParams = async () => {
   gap: 10px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
 }
 
 .panel-title {
   font-size: 16px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .control-section {
@@ -305,7 +305,7 @@ const resetParams = async () => {
 
 .section-title {
   font-size: 13px;
-  color: #a0aec0;
+  color: var(--am-text-2);
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -342,7 +342,7 @@ const resetParams = async () => {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #a0aec0;
+  color: var(--am-text-2);
 }
 
 .threshold-control {
@@ -360,7 +360,7 @@ const resetParams = async () => {
   text-align: center;
   font-size: 16px;
   font-weight: 600;
-  color: #00d4ff;
+  color: var(--am-accent);
 }
 
 .manual-controls {
@@ -378,7 +378,7 @@ const resetParams = async () => {
 .control-label {
   width: 100px;
   font-size: 13px;
-  color: #a0aec0;
+  color: var(--am-text-2);
 }
 
 .control-row :deep(.el-input-number) {

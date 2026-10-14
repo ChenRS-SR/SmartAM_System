@@ -259,8 +259,8 @@ onUnmounted(() => {
 
 <style scoped>
 .chart-container {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -270,14 +270,14 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   background: rgba(0, 0, 0, 0.2);
 }
 
 .chart-title {
   font-size: 14px;
   font-weight: 500;
-  color: #00d4ff;
+  color: var(--am-accent);
 }
 
 .current-temps {
@@ -285,7 +285,7 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--am-accent) 10%, transparent);
 }
 
 .chart-body {

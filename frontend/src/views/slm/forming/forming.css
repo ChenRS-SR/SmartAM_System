@@ -1,13 +1,27 @@
 /* 成形监测模块样式。变量与通用类都限定在 .forming-root 内，集成到 SmartAM 时不影响其暗色主题。 */
 .forming-root {
+  /* 浅色（独立运行与 SmartAM 浅色主题）；深色值见下方 html.dark */
   --nav-bg: #1d3557;
   --nav-bg-active: #2c4d7a;
   --nav-text: #dbe4f0;
+  --btn-fg: #1d3557;
   --page-bg: #eef1f5;
   --card-bg: #ffffff;
+  --field-bg: #f8fafc;
+  --img-bg: #f3f5f8;
+  --photo-bg: #e9edf2;
   --border: #d5dbe3;
+  --border-2: #e3e7ec;
+  --line: #f0f2f5;
+  --track: #edf0f4;
+  --track-2: #e6eaf0;
+  --row-cur: #eef3fa;
+  --chip-bg: #e8ecf1;
+  --inp-border: #9fb0c6;
   --text: #1f2933;
   --text-2: #52606d;
+  --text-3: #8592a3;
+  --ink: #222222;       /* 阈值竖线、当前层标线 */
   --proc: #b2312e;      /* 工艺因素、工艺诱发异常、零件区 */
   --proc-soft: #f3d9d8;
   --dev: #3b6ba5;       /* 设备因素、设备诱发异常、粉床区 */
@@ -16,13 +30,77 @@
   --normal: #8a939e;
   --warn: #e8890c;      /* 异常类结果警示色 */
   --warn-soft: #fff3e0;
+  --warn-ink: #b35f00;
   --ok: #2f7d4f;        /* 正常类结果 */
   --ok-soft: #e7f5ec;
+  --led: #2fa35a;
+  --led-idle: #9aa5b1;
+  --danger-ink: #a12622;
+  --danger-soft: #fdecea;
+  --danger-border: #f1b7b3;
+  --alarm-bg: #fdf3e7;
+  --alarm-border: #f1d3a8;
+  --alarm-ink: #b26a00;
+  --alarm-tag: #c27c0e;
+  --aux-chip: #5d7290;
+  --tq-weight: #8fa8c4;
+  --powder-sw: #c9ccd1;
+  --powder-sw-border: #9aa0a8;
+  --state-bg: rgba(231, 245, 236, .95);
+  --state-idle-bg: rgba(241, 243, 246, .95);
   color: var(--text);
   font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
   font-size: 17px;
   line-height: 1.5;
 }
+/* SmartAM 深色主题（html.dark）下的同一风格深色版本 */
+html.dark .forming-root {
+  --nav-bg: #3d6aa6;
+  --nav-bg-active: #2c4d7a;
+  --btn-fg: #9cc0ec;
+  --page-bg: #0d1726;
+  --card-bg: #15243a;
+  --field-bg: #1a2c46;
+  --img-bg: #101d31;
+  --photo-bg: #101d31;
+  --border: #2b4262;
+  --border-2: #22364f;
+  --line: #1f3049;
+  --track: #22364f;
+  --track-2: #22364f;
+  --row-cur: #1d3557;
+  --chip-bg: #22364f;
+  --inp-border: #3a5578;
+  --text: #e3eaf3;
+  --text-2: #9fb0c6;
+  --text-3: #7a8ca3;
+  --ink: #e3eaf3;
+  --proc: #e0605c;
+  --proc-soft: rgba(224, 96, 92, .16);
+  --dev: #6f9bd1;
+  --dev-soft: rgba(111, 155, 209, .16);
+  --both: #b68bc0;
+  --normal: #6d7f96;
+  --warn: #f0a33a;
+  --warn-soft: rgba(240, 163, 58, .15);
+  --warn-ink: #f5b866;
+  --ok: #4cb782;
+  --ok-soft: rgba(76, 183, 130, .15);
+  --led-idle: #6d7f96;
+  --danger-ink: #f08a87;
+  --danger-soft: rgba(224, 96, 92, .16);
+  --danger-border: #7a2e2c;
+  --alarm-bg: rgba(240, 163, 58, .12);
+  --alarm-border: #6b4a1f;
+  --alarm-ink: #f5b866;
+  --aux-chip: #4a6487;
+  --tq-weight: #5f7a9c;
+  --powder-sw: #4a5b70;
+  --powder-sw-border: #6d7f96;
+  --state-bg: rgba(21, 36, 58, .9);
+  --state-idle-bg: rgba(21, 36, 58, .9);
+}
+
 .forming-root *, .forming-root *::before, .forming-root *::after { box-sizing: border-box; }
 .forming-root button, .forming-root input, .forming-root select { font: inherit; }
 
@@ -33,43 +111,44 @@
 .forming-root .field.wide { grid-column: 1 / 3; }
 .forming-root .k { color: var(--text-2); }
 .forming-root .sel { appearance: none; -webkit-appearance: none; border: 1px solid var(--border); border-radius: 5px; padding: 0 26px 0 10px;
-  height: 30px; background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%2352606d'/%3E%3C/svg%3E") no-repeat right 9px center;
+  height: 30px; background: var(--field-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%2352606d'/%3E%3C/svg%3E") no-repeat right 9px center;
   color: var(--text); cursor: pointer; font-size: 17px; }
 .forming-root .sel:disabled { cursor: default; opacity: 1; }
-.forming-root .inp { border: 1px solid #9fb0c6; border-radius: 4px; padding: 0 8px; width: 64px; height: 30px; text-align: right; background: #fff;
+html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%239fb0c6'/%3E%3C/svg%3E"); }
+.forming-root .inp { border: 1px solid var(--inp-border); border-radius: 4px; padding: 0 8px; width: 64px; height: 30px; text-align: right; background: var(--card-bg);
   font-weight: 700; color: var(--text); font-size: 17px; }
 .forming-root .inp::-webkit-inner-spin-button { display: none; }
 .forming-root .ch { white-space: nowrap; margin-right: 8px; cursor: pointer; user-select: none; }
 .forming-root .ck { display: inline-flex; width: 18px; height: 18px; border-radius: 3px; background: var(--nav-bg); color: #fff; font-size: 13px;
   font-style: normal; align-items: center; justify-content: center; margin-right: 5px; vertical-align: -2px; border: 1px solid var(--nav-bg); }
-.forming-root .ck.off { background: #fff; color: transparent; border-color: #9fb0c6; }
+.forming-root .ck.off { background: var(--card-bg); color: transparent; border-color: var(--inp-border); }
 .forming-root .ops { display: flex; gap: 10px; align-items: center; height: 100%; }
-.forming-root .btn { border: 1px solid var(--nav-bg); color: var(--nav-bg); background: #fff; border-radius: 6px; padding: 6px 12px; font-size: 18px;
+.forming-root .btn { border: 1px solid var(--btn-fg); color: var(--btn-fg); background: var(--card-bg); border-radius: 6px; padding: 6px 12px; font-size: 18px;
   white-space: nowrap; cursor: pointer; }
 .forming-root .btn.primary { background: var(--nav-bg); color: #fff; }
 .forming-root .btn:disabled { opacity: .45; cursor: default; }
 .forming-root .btn.busy { position: relative; }
-.forming-root .card { border: 1px solid #e3e7ec; border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; min-height: 0; min-width: 0;
-  background: #fff; }
+.forming-root .card { border: 1px solid var(--border-2); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  background: var(--card-bg); }
 .forming-root .card-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: baseline; }
 .forming-root .tm { font-size: 14px; font-weight: 400; color: var(--text-2); }
 .forming-root .chart { flex: 1; min-height: 0; }
 .forming-root .tbl { width: 100%; border-collapse: collapse; font-size: 16px; }
 .forming-root .tbl th { text-align: left; color: var(--text-2); font-weight: 600; border-bottom: 1px solid var(--border); padding: 4px 8px; white-space: nowrap; }
-.forming-root .tbl td { padding: 4px 8px; border-bottom: 1px solid #f0f2f5; white-space: nowrap; }
-.forming-root .tbl tr.cur td { background: #eef3fa; font-weight: 700; }
+.forming-root .tbl td { padding: 4px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.forming-root .tbl tr.cur td { background: var(--row-cur); font-weight: 700; }
 .forming-root .tbl tbody tr { cursor: pointer; }
 .forming-root .tag { border-radius: 10px; padding: 0 10px; font-size: 15px; white-space: nowrap; }
 .forming-root .t-def, .forming-root .t-dev { background: var(--warn); color: #fff; }
 .forming-root .t-nor { background: var(--ok-soft); color: var(--ok); }
 .forming-root .t-both { background: var(--warn); color: #fff; }
 .forming-root .t-proc { background: var(--warn); color: #fff; }
-.forming-root .led { width: 10px; height: 10px; border-radius: 50%; background: #2fa35a; display: inline-block; }
+.forming-root .led { width: 10px; height: 10px; border-radius: 50%; background: var(--led); display: inline-block; }
 .forming-root .led.run { box-shadow: 0 0 0 3px rgba(47,163,90,.25); animation: forming-pulse 1.2s infinite; }
 .forming-root .led.on { box-shadow: 0 0 0 3px rgba(47,163,90,.25); }
-.forming-root .led.idle { background: #9aa5b1; }
+.forming-root .led.idle { background: var(--led-idle); }
 @keyframes forming-pulse { 50% { box-shadow: 0 0 0 6px rgba(47,163,90,.05); } }
-.forming-root .err { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 20; background: #fdecea; color: #a12622;
-  border: 1px solid #f1b7b3; border-radius: 6px; padding: 4px 14px; font-size: 16px; white-space: nowrap; }
+.forming-root .err { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 20; background: var(--danger-soft); color: var(--danger-ink);
+  border: 1px solid var(--danger-border); border-radius: 6px; padding: 4px 14px; font-size: 16px; white-space: nowrap; }
 .forming-root .loading { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-2); font-size: 18px; }
 .forming-root .empty { display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 16px; flex: 1; }

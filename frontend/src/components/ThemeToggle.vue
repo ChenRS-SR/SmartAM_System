@@ -48,7 +48,7 @@ const handleCommand = (command) => {
 }
 
 .theme-btn:hover {
-  color: #00d4ff;
+  color: var(--am-accent);
   transform: rotate(15deg);
 }
 
@@ -60,7 +60,7 @@ const handleCommand = (command) => {
 }
 
 :deep(.el-dropdown-menu__item.active) {
-  color: #00d4ff;
-  background: rgba(0, 212, 255, 0.1);
+  color: var(--am-accent);
+  background: color-mix(in srgb, var(--am-accent) 13%, transparent);
 }
 </style>

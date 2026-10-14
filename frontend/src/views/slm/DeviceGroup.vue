@@ -113,6 +113,13 @@
             </div>
           </div>
           <div class="device-footer">
+            <el-button
+              v-if="formingDeviceIds.has(device.id)"
+              class="forming-entry"
+              type="primary"
+              size="small"
+              @click.stop="openForming(device.id)"
+            >成形监测</el-button>
             <el-tag v-if="device.databaseTag" type="warning" size="small">
               {{ device.databaseTag }}
             </el-tag>
@@ -569,6 +576,22 @@ const openEditDialog = (device) => {
   dialogVisible.value = true
 }
 
+// 已接入成形监测（数据接入、异常识别、异常溯源）的设备，卡片上显示跳转按钮
+const formingDeviceIds = ref(new Set())
+const loadFormingDevices = async () => {
+  try {
+    const r = await fetch('/api/slm/forming/devices')
+    if (!r.ok) return
+    formingDeviceIds.value = new Set((await r.json()).flatMap((d) => d.aliases || []))
+  } catch {
+    formingDeviceIds.value = new Set()
+  }
+}
+const openForming = (deviceId) => {
+  localStorage.setItem('slmSelectedDeviceId', deviceId)
+  router.push({ path: `/slm/device/${deviceId}`, query: { tab: 'access', org: selectedOrg.value } })
+}
+
 const openDeviceDashboard = (deviceId) => {
   localStorage.setItem('slmSelectedDeviceId', deviceId)
   router.push({ path: `/slm/device/${deviceId}`, query: { tab: 'status', org: selectedOrg.value } })
@@ -731,6 +754,7 @@ watch(() => deviceStore.devices.map((device) => device.id).join(','), () => {
 })
 
 onMounted(async () => {
+  loadFormingDevices()
   try {
     await deviceStore.loadDevicesFromBackend()
   } catch (error) {
@@ -1045,6 +1069,10 @@ onUnmounted(() => {
   color: var(--am-text-3);
   font-size: 11px;
   font-style: normal;
+}
+
+.forming-entry {
+  margin-right: 2px;
 }
 
 .device-footer {

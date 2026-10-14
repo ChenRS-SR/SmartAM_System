@@ -55,13 +55,13 @@ const refreshData = () => {
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   margin: 0;
 }
 
 .analysis-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
 }
 
 .card-header {
@@ -76,7 +76,7 @@ const refreshData = () => {
 
 .empty-desc {
   text-align: center;
-  color: #64748b;
+  color: var(--am-text-3);
   line-height: 2;
   margin-top: 20px;
 }

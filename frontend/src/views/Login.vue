@@ -3,7 +3,7 @@
     <div class="login-box">
       <div class="login-header">
         <el-icon size="48" color="#00d4ff"><Cpu /></el-icon>
-        <h1>SmartAM System</h1>
+        <h1>增材制造异常识别系统</h1>
         <p>智能增材制造监控系统</p>
       </div>
       
@@ -96,14 +96,14 @@ const handleLogin = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  background: var(--am-card-bg);
 }
 
 .login-box {
   width: 400px;
   padding: 40px;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 30%, transparent);
   border-radius: 16px;
   backdrop-filter: blur(10px);
 }
@@ -115,37 +115,37 @@ const handleLogin = () => {
 
 .login-header h1 {
   font-size: 28px;
-  color: #00d4ff;
+  color: var(--am-accent);
   margin: 16px 0 8px;
-  background: linear-gradient(90deg, #00d4ff, #00ff88);
+  background: linear-gradient(90deg, var(--am-accent), var(--am-ok));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .login-header p {
-  color: #a0aec0;
+  color: var(--am-text-2);
   font-size: 14px;
 }
 
 .login-form :deep(.el-input__wrapper) {
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   box-shadow: none;
 }
 
 .login-form :deep(.el-input__inner) {
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .login-footer {
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid rgba(0, 212, 255, 0.2);
+  border-top: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   text-align: center;
 }
 
 .login-footer p {
-  color: #64748b;
+  color: var(--am-text-3);
   font-size: 12px;
   margin: 4px 0;
 }

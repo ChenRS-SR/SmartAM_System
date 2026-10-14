@@ -126,8 +126,8 @@ const handleImageError = (channel) => {
 
 <style scoped>
 .realtime-display-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
 }
 
 .card-header {
@@ -139,7 +139,7 @@ const handleImageError = (channel) => {
 .header-title {
   font-size: 16px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .video-grid {
@@ -163,7 +163,7 @@ const handleImageError = (channel) => {
 .video-title {
   font-size: 14px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--am-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -172,7 +172,7 @@ const handleImageError = (channel) => {
 .video-wrapper {
   position: relative;
   aspect-ratio: 16/9;
-  background: rgba(30, 41, 59, 0.8);
+  background: var(--am-card-bg);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -195,7 +195,7 @@ const handleImageError = (channel) => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 .thermal-wrapper {
@@ -223,7 +223,7 @@ const handleImageError = (channel) => {
 }
 
 .temp-label {
-  color: #94a3b8;
+  color: var(--am-text-2);
   min-width: 32px;
 }
 
@@ -233,15 +233,15 @@ const handleImageError = (channel) => {
 }
 
 .temp-value.max {
-  color: #ef4444;
+  color: var(--am-danger);
 }
 
 .temp-value.min {
-  color: #3b82f6;
+  color: var(--am-accent);
 }
 
 .temp-value.avg {
-  color: #22c55e;
+  color: var(--am-ok);
 }
 
 @media (max-width: 768px) {

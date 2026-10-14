@@ -32,8 +32,8 @@ const getRowWidth = (i) => {
 
 <style scoped>
 .skeleton-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.1);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 10%, transparent);
   border-radius: 12px;
   padding: 16px;
   overflow: hidden;
@@ -45,7 +45,7 @@ const getRowWidth = (i) => {
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--am-accent) 10%, transparent);
 }
 
 .skeleton-title {
@@ -53,9 +53,9 @@ const getRowWidth = (i) => {
   height: 16px;
   background: linear-gradient(
     90deg,
-    rgba(0, 212, 255, 0.1) 25%,
-    rgba(0, 212, 255, 0.2) 50%,
-    rgba(0, 212, 255, 0.1) 75%
+    color-mix(in srgb, var(--am-accent) 13%, transparent) 25%,
+    color-mix(in srgb, var(--am-accent) 22%, transparent) 50%,
+    color-mix(in srgb, var(--am-accent) 13%, transparent) 75%
   );
   background-size: 200% 100%;
   border-radius: 4px;
@@ -67,9 +67,9 @@ const getRowWidth = (i) => {
   height: 24px;
   background: linear-gradient(
     90deg,
-    rgba(0, 212, 255, 0.1) 25%,
-    rgba(0, 212, 255, 0.2) 50%,
-    rgba(0, 212, 255, 0.1) 75%
+    color-mix(in srgb, var(--am-accent) 13%, transparent) 25%,
+    color-mix(in srgb, var(--am-accent) 22%, transparent) 50%,
+    color-mix(in srgb, var(--am-accent) 13%, transparent) 75%
   );
   background-size: 200% 100%;
   border-radius: 4px;
@@ -86,9 +86,9 @@ const getRowWidth = (i) => {
   height: 12px;
   background: linear-gradient(
     90deg,
-    rgba(0, 212, 255, 0.05) 25%,
-    rgba(0, 212, 255, 0.15) 50%,
-    rgba(0, 212, 255, 0.05) 75%
+    color-mix(in srgb, var(--am-accent) 8%, transparent) 25%,
+    color-mix(in srgb, var(--am-accent) 18%, transparent) 50%,
+    color-mix(in srgb, var(--am-accent) 8%, transparent) 75%
   );
   background-size: 200% 100%;
   border-radius: 4px;

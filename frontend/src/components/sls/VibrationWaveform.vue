@@ -35,6 +35,7 @@
 </template>
 
 <script setup>
+import { amVar } from '@/utils/themeColor'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Odometer } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
@@ -99,7 +100,7 @@ const initChart = () => {
     yAxis: {
       type: 'value',
       name: '振动速度(m/s)',
-      nameTextStyle: { color: '#94a3b8' },
+      nameTextStyle: { color: amVar('--am-text-2') },
       axisLine: { lineStyle: { color: '#475569' } },
       axisLabel: { color: '#64748b' },
       splitLine: { lineStyle: { color: '#1e293b' } }
@@ -132,7 +133,7 @@ const initChart = () => {
     ],
     legend: {
       data: ['X轴', 'Y轴', 'Z轴'],
-      textStyle: { color: '#94a3b8' },
+      textStyle: { color: amVar('--am-text-2') },
       top: 0
     }
   }
@@ -175,8 +176,8 @@ onUnmounted(() => {
 
 <style scoped>
 .vibration-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
 }
 
 .card-header {
@@ -190,7 +191,7 @@ onUnmounted(() => {
 .header-title {
   font-size: 16px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -218,7 +219,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
 }
 
@@ -230,13 +231,13 @@ onUnmounted(() => {
 
 .stat-label {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .stat-value {
   font-size: 14px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-family: 'Courier New', monospace;
 }
 

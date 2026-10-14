@@ -98,7 +98,8 @@ class Device:
     def public(self) -> dict:
         c = self.cfg
         return {'id': c['id'], 'name': c['name'], 'kind': c['kind'], 'laser': c['laser'], 'modalGroups': c['modalGroups'],
-                'modules': c['modules'], 'photo': f'devices/{c["id"]}/photo' if c.get('photo') else None}
+                'modules': c['modules'], 'aliases': c.get('aliases', []),
+                'photo': f'devices/{c["id"]}/photo' if c.get('photo') else None}
 
     def task_public(self) -> dict:
         return {'id': self.task_cfg['id'], 'name': self.task_cfg['name']}
@@ -442,9 +443,13 @@ class FormingService:
         self.started = datetime.now().isoformat(timespec='seconds')
 
     def get(self, device_id: str) -> Device:
-        if device_id not in self.devices:
-            raise ApiError(404, f'无设备 {device_id}')
-        return self.devices[device_id]
+        """device_id 可以是本模块的设备编号，也可以是 SmartAM 中的设备编号（devices.json 的 aliases）。"""
+        if device_id in self.devices:
+            return self.devices[device_id]
+        for d in self.devices.values():
+            if device_id in d.cfg.get('aliases', []):
+                return d
+        raise ApiError(404, f'设备 {device_id} 未接入成形监测')
 
     def status(self) -> dict:
         return {'name': '增材制造异常识别系统', 'version': '1.0', 'mode': 'replay', 'modeLabel': config.MODE_LABEL, 'started': self.started,

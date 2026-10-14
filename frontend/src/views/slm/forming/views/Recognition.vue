@@ -4,7 +4,7 @@
       <Region kind="input" title="识别对象" class="r-input">
         <div class="fields">
           <div class="field"><span class="k">设备</span>
-            <select class="sel" :value="state.device" :disabled="stepper.running.value" @change="switchDevice($event.target.value)">
+            <select class="sel" :value="state.device" :disabled="embedded || stepper.running.value" @change="switchDevice($event.target.value)">
               <option v-for="x in devs" :key="x.id" :value="x.id">{{ x.name }}</option></select></div>
           <div class="field"><span class="k">成形任务</span><select class="sel" disabled><option>{{ d.task.name }}</option></select></div>
           <div class="field"><span class="k">识别模型</span><select class="sel" disabled><option>{{ d.model.name }}</option></select></div>
@@ -94,14 +94,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import Region from '../components/Region.vue'
 import EChart from '../components/EChart.vue'
 import { api, mediaUrl } from '../api.js'
 import { devicesFor, selectDevice, state } from '../state.js'
 import { fmtPct, useCall, useStepper } from '../composables.js'
+import { pal } from '../theme.js'
 
 const MODS = [{ key: 'vis', label: '铺粉后图像' }, { key: 'tq', label: '扭矩' }]
+const embedded = inject('formingEmbedded', false)
 const { busy, call, report } = useCall()
 const stepper = useStepper(1200)
 const d = ref(null)
@@ -133,20 +135,21 @@ function toggleStep() {
 function switchDevice(id) { selectDevice(id); d.value = null; layers.value = []; run() }
 onMounted(() => run())
 
-const axisFont = { fontSize: 16, color: '#52606d' }
 const torqueOption = computed(() => {
+  const P = pal.value
+  const axisFont = { fontSize: 16, color: P.axis }
   const t = d.value.torque
   return {
     animation: false,
     grid: { left: 50, right: 14, top: 34, bottom: 44 },
-    legend: { top: 0, right: 0, itemWidth: 24, itemHeight: 4, icon: 'rect', textStyle: { fontSize: 15 } },
+    legend: { top: 0, right: 0, itemWidth: 24, itemHeight: 4, icon: 'rect', textStyle: { fontSize: 15, color: P.text } },
     xAxis: { type: 'value', name: '铺粉段时间/s', nameLocation: 'middle', nameGap: 26, nameTextStyle: axisFont, axisLabel: axisFont,
       min: 0, max: Math.ceil(t.t[t.t.length - 1]), splitLine: { show: false } },
-    yAxis: { type: 'value', name: '扭矩/%', nameTextStyle: axisFont, axisLabel: axisFont, splitLine: { lineStyle: { color: '#eef0f3' } } },
+    yAxis: { type: 'value', name: '扭矩/%', nameTextStyle: axisFont, axisLabel: axisFont, splitLine: { lineStyle: { color: P.split } } },
     series: [
-      { name: '刮刀扭矩', type: 'line', showSymbol: false, lineStyle: { width: 1.8, color: '#3b6ba5' }, itemStyle: { color: '#3b6ba5' },
+      { name: '刮刀扭矩', type: 'line', showSymbol: false, lineStyle: { width: 1.8, color: P.scraper }, itemStyle: { color: P.scraper },
         data: t.t.map((x, i) => [x, t.scraper[i]]) },
-      { name: '加工平台扭矩', type: 'line', showSymbol: false, lineStyle: { width: 1.8, color: '#7b8794' }, itemStyle: { color: '#7b8794' },
+      { name: '加工平台扭矩', type: 'line', showSymbol: false, lineStyle: { width: 1.8, color: P.platform }, itemStyle: { color: P.platform },
         data: t.t.map((x, i) => [x, t.platform[i]]) },
     ],
   }
@@ -154,36 +157,36 @@ const torqueOption = computed(() => {
 </script>
 
 <style scoped>
-.r-input { flex: 0 0 520px; }
-.r-param { flex: 1; min-width: 0; }
-.r-op { flex: 0 0 250px; }
+.r-input { flex: 520 0 520px; }
+.r-param { flex: 396 1 396px; min-width: 0; }
+.r-op { flex: 250 0 250px; }
 .r-vis { flex: 1; }
-.grid { height: 100%; display: grid; grid-template-columns: 330px 300px 1fr; grid-template-rows: 300px 1fr; gap: 12px; }
+.grid { height: 100%; display: grid; grid-template-columns: minmax(0, 330fr) minmax(0, 300fr) minmax(0, 510fr); grid-template-rows: minmax(0, 300fr) minmax(0, 260fr); gap: 12px; }
 .img { width: 100%; flex: 1; min-height: 0; }
 .vc { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-bottom: 14px; }
 .verdict { font-size: 30px; font-weight: 800; color: #fff; background: var(--warn); border-radius: 6px; padding: 8px 10px; text-align: center; margin-bottom: 16px; }
 .verdict.nor { background: var(--ok); }
 .prob-row { display: flex; justify-content: space-between; font-size: 17px; margin-top: 10px; }
 .prob-row b { font-size: 18px; }
-.pbar { position: relative; height: 12px; background: #e6eaf0; border-radius: 6px; margin: 4px 0 8px; }
+.pbar { position: relative; height: 12px; background: var(--track-2); border-radius: 6px; margin: 4px 0 8px; }
 .pfill { height: 100%; background: var(--warn); border-radius: 6px; }
-.th { position: absolute; top: -4px; width: 2px; height: 20px; background: #222; }
+.th { position: absolute; top: -4px; width: 2px; height: 20px; background: var(--ink); }
 .c-torque { grid-column: 1 / 3; }
 .m-sub { font-size: 17px; font-weight: 700; margin-top: 4px; }
 .m-sub.second { margin-top: 18px; }
 .m-hint { font-size: 14px; font-weight: 400; color: var(--text-2); margin-left: 10px; }
-.wbar { display: flex; height: 30px; border-radius: 6px; overflow: hidden; margin-top: 8px; background: #edf0f4; }
+.wbar { display: flex; height: 30px; border-radius: 6px; overflow: hidden; margin-top: 8px; background: var(--track); }
 .wseg { height: 100%; display: flex; align-items: center; padding-left: 12px; color: #fff; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; }
-.w-vis { background: #1d3557; }
-.w-tq { background: #8fa8c4; }
+.w-vis { background: var(--nav-bg); }
+.w-tq { background: var(--tq-weight); }
 .w-legend { display: flex; gap: 22px; font-size: 15px; color: var(--text-2); margin-top: 6px; }
 .sw { display: inline-block; width: 14px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 .single { display: grid; grid-template-columns: 140px 1fr 64px 58px; align-items: center; gap: 10px; margin-top: 10px; font-size: 16px; }
 .single.unused { opacity: .45; }
 .s-name { white-space: nowrap; }
-.s-track { position: relative; height: 12px; background: #edf0f4; border-radius: 6px; }
+.s-track { position: relative; height: 12px; background: var(--track); border-radius: 6px; }
 .s-fill { height: 100%; background: var(--warn); border-radius: 6px; }
-.s-th { position: absolute; top: -4px; width: 2px; height: 20px; background: #222; }
+.s-th { position: absolute; top: -4px; width: 2px; height: 20px; background: var(--ink); }
 .s-p { text-align: right; font-weight: 700; }
 .tag { text-align: center; }
 </style>

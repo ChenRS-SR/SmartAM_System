@@ -84,8 +84,8 @@ const predictionItems = computed(() => {
 
 <style scoped>
 .prediction-panel {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   border-radius: 12px;
   padding: 16px;
 }
@@ -96,13 +96,13 @@ const predictionItems = computed(() => {
   gap: 10px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
 }
 
 .panel-title {
   font-size: 16px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--am-text);
   flex: 1;
 }
 
@@ -121,18 +121,18 @@ const predictionItems = computed(() => {
 }
 
 .prediction-item.low {
-  border-left-color: #ffc107;
-  background: rgba(255, 193, 7, 0.1);
+  border-left-color: var(--am-warn);
+  background: color-mix(in srgb, var(--am-warn) 13%, transparent);
 }
 
 .prediction-item.normal {
-  border-left-color: #00ff88;
-  background: rgba(0, 255, 136, 0.1);
+  border-left-color: var(--am-ok);
+  background: color-mix(in srgb, var(--am-ok) 13%, transparent);
 }
 
 .prediction-item.high {
-  border-left-color: #ff4d4f;
-  background: rgba(255, 77, 79, 0.1);
+  border-left-color: var(--am-danger);
+  background: color-mix(in srgb, var(--am-danger) 13%, transparent);
 }
 
 .item-info {
@@ -144,7 +144,7 @@ const predictionItems = computed(() => {
 
 .item-name {
   font-size: 13px;
-  color: #a0aec0;
+  color: var(--am-text-2);
 }
 
 .item-label {
@@ -164,7 +164,7 @@ const predictionItems = computed(() => {
 
 .confidence-value {
   font-size: 12px;
-  color: #a0aec0;
+  color: var(--am-text-2);
   min-width: 40px;
   text-align: right;
 }

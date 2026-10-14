@@ -124,7 +124,7 @@ onUnmounted(() => {
 }
 
 .lazy-image-error {
-  color: #ff4d4f;
+  color: var(--am-danger);
 }
 
 .loading-icon {

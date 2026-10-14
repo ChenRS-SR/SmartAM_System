@@ -128,7 +128,6 @@
 
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
-import { formingMenu } from './views/slm/forming/routes.js'
 import { useRoute, useRouter } from 'vue-router'
 import { useDataStore } from './stores/data'
 import { useResponsive } from './composables/useResponsive'
@@ -187,14 +186,25 @@ const slmMenuItems = computed(() => [
       { key: 'slm-device-health', name: '设备健康状态', path: slmDevicePath('health'), tab: 'health' },
     ]
   },
-  // 成形监测：逐层数据接入、异常识别与异常溯源，四个子页面见 views/slm/forming/routes.js
-  formingMenu('/slm/forming'),
+  {
+    // 成形监测（增材制造异常识别系统）：作为具体设备的工作区标签，组件见 views/slm/forming/
+    key: 'slm-forming',
+    name: '成形监测',
+    path: slmDevicePath('access'),
+    icon: 'DataAnalysis',
+    tab: 'access',
+    children: [
+      { key: 'slm-forming-access', name: '数据接入', path: slmDevicePath('access'), tab: 'access' },
+      { key: 'slm-forming-recognition', name: '异常识别', path: slmDevicePath('recognition'), tab: 'recognition' },
+      { key: 'slm-forming-trace', name: '异常溯源', path: slmDevicePath('trace'), tab: 'trace' },
+    ]
+  },
   { key: 'slm-settings', name: '设置', path: '/slm/settings', icon: 'Setting' },
 ])
 
 // SLS 菜单
 const slsMenuItems = [
-  { name: '设备群监测', path: '/sls/dashboard', icon: 'Grid' },
+  { name: '设备群总览', path: '/sls/dashboard', icon: 'Grid' },
   { name: '设备状态监测', path: '/sls/device', icon: 'Monitor' },
   { name: '设置', path: '/sls/settings', icon: 'Setting' },
 ]
@@ -209,6 +219,12 @@ const menuItems = computed(() => {
 // 判断菜单项是否激活
 const isActive = (item) => {
   const path = item.path || ''
+  if (item.key === 'slm-forming') {
+    return route.path.startsWith('/slm/device') && ['access', 'recognition', 'trace'].includes(String(route.query.tab))
+  }
+  if (item.key === 'slm-device') {
+    return route.path.startsWith('/slm/device') && !['access', 'recognition', 'trace'].includes(String(route.query.tab))
+  }
   if (item.tab) {
     const currentTab = route.query.tab || 'status'
     return route.path.startsWith('/slm/device') && currentTab === item.tab
@@ -218,9 +234,6 @@ const isActive = (item) => {
   }
   if (path.startsWith('/sls/device') && route.path.startsWith('/sls/device')) {
     return true
-  }
-  if (item.key === 'slm-forming') {
-    return route.path.startsWith('/slm/forming')
   }
   return route.path === path
 }

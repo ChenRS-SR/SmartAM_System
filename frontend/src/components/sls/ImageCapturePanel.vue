@@ -233,8 +233,8 @@ const addLog = (type, message) => {
 
 <style scoped>
 .capture-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
 }
 
 .card-header {
@@ -246,7 +246,7 @@ const addLog = (type, message) => {
 .header-title {
   font-size: 16px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -269,20 +269,20 @@ const addLog = (type, message) => {
   flex-direction: column;
   align-items: center;
   padding: 16px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
 }
 
 .stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-family: 'Courier New', monospace;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   margin-top: 4px;
 }
 
@@ -311,13 +311,13 @@ const addLog = (type, message) => {
 
 .setting-label {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   min-width: 60px;
 }
 
 .setting-value {
   font-size: 13px;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-family: 'Courier New', monospace;
   min-width: 40px;
 }
@@ -330,7 +330,7 @@ const addLog = (type, message) => {
   max-height: 200px;
   overflow-y: auto;
   padding: 12px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
 }
 
@@ -338,7 +338,7 @@ const addLog = (type, message) => {
   display: flex;
   gap: 12px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+  border-bottom: 1px solid var(--am-card-border-2);
   font-size: 12px;
 }
 
@@ -347,30 +347,30 @@ const addLog = (type, message) => {
 }
 
 .log-time {
-  color: #64748b;
+  color: var(--am-text-3);
   font-family: 'Courier New', monospace;
   min-width: 60px;
 }
 
 .log-message {
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .log-item.trigger .log-message {
-  color: #22c55e;
+  color: var(--am-ok);
 }
 
 .log-item.success .log-message {
-  color: #3b82f6;
+  color: var(--am-accent);
 }
 
 .log-item.error .log-message {
-  color: #ef4444;
+  color: var(--am-danger);
 }
 
 .log-empty {
   text-align: center;
-  color: #64748b;
+  color: var(--am-text-3);
   padding: 20px;
 }
 

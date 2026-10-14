@@ -147,8 +147,8 @@ onMounted(() => {
 
 <style scoped>
 .api-test-panel {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   border-radius: 12px;
   padding: 16px;
 }
@@ -159,7 +159,7 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
 }
 
 .header-title {
@@ -168,7 +168,7 @@ onMounted(() => {
   gap: 10px;
   font-size: 16px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .header-actions {
@@ -196,18 +196,18 @@ onMounted(() => {
 }
 
 .test-item.success {
-  border-left-color: #00ff88;
-  background: rgba(0, 255, 136, 0.1);
+  border-left-color: var(--am-ok);
+  background: color-mix(in srgb, var(--am-ok) 13%, transparent);
 }
 
 .test-item.warning {
-  border-left-color: #ffc107;
-  background: rgba(255, 193, 7, 0.1);
+  border-left-color: var(--am-warn);
+  background: color-mix(in srgb, var(--am-warn) 13%, transparent);
 }
 
 .test-item.error {
-  border-left-color: #ff4d4f;
-  background: rgba(255, 77, 79, 0.1);
+  border-left-color: var(--am-danger);
+  background: color-mix(in srgb, var(--am-danger) 13%, transparent);
 }
 
 .test-icon {
@@ -221,15 +221,15 @@ onMounted(() => {
 }
 
 .test-item.success .test-icon {
-  color: #00ff88;
+  color: var(--am-ok);
 }
 
 .test-item.warning .test-icon {
-  color: #ffc107;
+  color: var(--am-warn);
 }
 
 .test-item.error .test-icon {
-  color: #ff4d4f;
+  color: var(--am-danger);
 }
 
 .test-content {
@@ -240,13 +240,13 @@ onMounted(() => {
 .test-name {
   font-size: 14px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--am-text);
   margin-bottom: 4px;
 }
 
 .test-message {
   font-size: 13px;
-  color: #a0aec0;
+  color: var(--am-text-2);
 }
 
 .test-details {
@@ -260,7 +260,7 @@ onMounted(() => {
 .test-details :deep(.el-collapse-item__header) {
   background: transparent;
   border: none;
-  color: #00d4ff;
+  color: var(--am-accent);
   font-size: 12px;
 }
 
@@ -273,13 +273,13 @@ onMounted(() => {
   margin: 0;
   padding: 8px;
   font-size: 11px;
-  color: #a0aec0;
+  color: var(--am-text-2);
   overflow-x: auto;
 }
 
 .test-time {
   font-size: 12px;
-  color: #64748b;
+  color: var(--am-text-3);
   white-space: nowrap;
 }
 
@@ -321,21 +321,21 @@ onMounted(() => {
 }
 
 .summary-item.success {
-  background: rgba(0, 255, 136, 0.1);
+  background: color-mix(in srgb, var(--am-ok) 13%, transparent);
 }
 
 .summary-item.warning {
-  background: rgba(255, 193, 7, 0.1);
+  background: color-mix(in srgb, var(--am-warn) 13%, transparent);
 }
 
 .summary-item.error {
-  background: rgba(255, 77, 79, 0.1);
+  background: color-mix(in srgb, var(--am-danger) 13%, transparent);
 }
 
 .summary-label {
   display: block;
   font-size: 12px;
-  color: #a0aec0;
+  color: var(--am-text-2);
   margin-bottom: 4px;
 }
 
@@ -343,18 +343,18 @@ onMounted(() => {
   display: block;
   font-size: 20px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .summary-item.success .summary-value {
-  color: #00ff88;
+  color: var(--am-ok);
 }
 
 .summary-item.warning .summary-value {
-  color: #ffc107;
+  color: var(--am-warn);
 }
 
 .summary-item.error .summary-value {
-  color: #ff4d4f;
+  color: var(--am-danger);
 }
 </style>

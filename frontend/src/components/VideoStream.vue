@@ -58,8 +58,8 @@ const handleError = () => {
 
 <style scoped>
 .video-stream-container {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -69,14 +69,14 @@ const handleError = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   background: rgba(0, 0, 0, 0.2);
 }
 
 .video-title {
   font-size: 14px;
   font-weight: 500;
-  color: #00d4ff;
+  color: var(--am-accent);
 }
 
 .video-wrapper {
@@ -102,7 +102,7 @@ const handleError = () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: #a0aec0;
+  color: var(--am-text-2);
   gap: 12px;
 }
 

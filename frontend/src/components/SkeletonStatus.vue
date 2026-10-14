@@ -10,8 +10,8 @@
 
 <style scoped>
 .skeleton-status {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.1);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 10%, transparent);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -25,9 +25,9 @@
   border-radius: 12px;
   background: linear-gradient(
     90deg,
-    rgba(0, 212, 255, 0.1) 25%,
-    rgba(0, 212, 255, 0.2) 50%,
-    rgba(0, 212, 255, 0.1) 75%
+    color-mix(in srgb, var(--am-accent) 13%, transparent) 25%,
+    color-mix(in srgb, var(--am-accent) 22%, transparent) 50%,
+    color-mix(in srgb, var(--am-accent) 13%, transparent) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -46,9 +46,9 @@
   border-radius: 4px;
   background: linear-gradient(
     90deg,
-    rgba(0, 212, 255, 0.1) 25%,
-    rgba(0, 212, 255, 0.2) 50%,
-    rgba(0, 212, 255, 0.1) 75%
+    color-mix(in srgb, var(--am-accent) 13%, transparent) 25%,
+    color-mix(in srgb, var(--am-accent) 22%, transparent) 50%,
+    color-mix(in srgb, var(--am-accent) 13%, transparent) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -60,9 +60,9 @@
   border-radius: 4px;
   background: linear-gradient(
     90deg,
-    rgba(0, 212, 255, 0.1) 25%,
-    rgba(0, 212, 255, 0.2) 50%,
-    rgba(0, 212, 255, 0.1) 75%
+    color-mix(in srgb, var(--am-accent) 13%, transparent) 25%,
+    color-mix(in srgb, var(--am-accent) 22%, transparent) 50%,
+    color-mix(in srgb, var(--am-accent) 13%, transparent) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;

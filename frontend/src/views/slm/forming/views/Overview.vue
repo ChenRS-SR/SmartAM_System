@@ -86,25 +86,25 @@ onMounted(load)
 .link { color: var(--dev); text-decoration: none; }
 .sep { color: var(--text-2); }
 .switch { margin-left: auto; color: var(--text-2); font-size: 16px; display: flex; align-items: center; gap: 8px; }
-.top { display: flex; gap: 16px; height: 400px; flex: none; }
-.photo { position: relative; flex: 0 0 520px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: #e9edf2; }
+.top { display: flex; gap: 16px; flex: 400 1 400px; min-height: 0; }
+.photo { position: relative; flex: 520 1 520px; min-width: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--photo-bg); }
 .photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 45%; display: block; }
-.no-photo { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #9aa5b1; }
+.no-photo { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: var(--led-idle); }
 .photo .state { position: absolute; top: 12px; right: 12px; }
-.tag.state { font-size: 15px; background: rgba(231,245,236,.95); color: #2f7d4f; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 1px 10px; }
-.tag.state.idle { background: rgba(241,243,246,.95); color: #52606d; }
-.info { flex: 1; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tag.state { font-size: 15px; background: var(--state-bg); color: var(--ok); display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 1px 10px; }
+.tag.state.idle { background: var(--state-idle-bg); color: var(--text-2); }
+.info { flex: 658 1 658px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .name { font-size: 32px; font-weight: 800; color: var(--nav-bg); }
 .kind { font-size: 17px; color: var(--text-2); margin-top: -4px; }
 .sec { font-size: 16px; color: var(--text-2); margin-top: 6px; }
 .sec-sub { margin-left: 10px; font-size: 15px; }
 .groups { display: flex; flex-direction: column; gap: 8px; }
 .grp { display: flex; align-items: center; gap: 14px; font-size: 17px; }
-.g-name { flex: 0 0 150px; font-size: 15px; font-weight: 700; color: #fff; background: #5d7290; border-radius: 5px; padding: 2px 10px; text-align: center; }
+.g-name { flex: 0 0 150px; font-size: 15px; font-weight: 700; color: #fff; background: var(--aux-chip); border-radius: 5px; padding: 2px 10px; text-align: center; }
 .g-name.main { background: var(--nav-bg); }
-.g-name.st { background: #e8ecf1; color: var(--text-2); }
+.g-name.st { background: var(--chip-bg); color: var(--text-2); }
 .mod { font-size: 17px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.ok { color: #2fa35a; font-style: normal; font-size: 12px; }
+.ok { color: var(--led); font-style: normal; font-size: 12px; }
 .latest { display: flex; align-items: center; gap: 12px; }
 .res { color: #fff; font-weight: 700; font-size: 19px; border-radius: 6px; padding: 2px 14px; white-space: nowrap; }
 .r-dev { background: var(--warn); }
@@ -114,14 +114,14 @@ onMounted(load)
 .detail { font-size: 16px; color: var(--text-2); }
 .btns { margin-top: auto; display: flex; gap: 10px; }
 .btn { padding: 6px 16px; font-size: 17px; }
-.ev-card { flex: 1; border-radius: 10px; padding: 12px 18px; border-color: var(--border); }
+.ev-card { flex: 270 1 270px; border-radius: 10px; padding: 12px 18px; border-color: var(--border); }
 .ev-card .card-title { font-size: 20px; }
 .tbl.ev { font-size: 17px; table-layout: fixed; }
 .tbl.ev th { padding: 5px 8px; }
 .tbl.ev th:nth-child(1) { width: 150px; } .tbl.ev th:nth-child(2) { width: 130px; }
 .tbl.ev td { padding: 7px 8px; overflow: hidden; text-overflow: ellipsis; }
 .etag { font-size: 15px; border-radius: 10px; padding: 1px 10px; color: #fff; }
-.e-设备报警 { background: #c27c0e; }
+.e-设备报警 { background: var(--alarm-tag); }
 .e-异常识别 { background: var(--warn); }
 .e-异常溯源 { background: var(--warn); }
 </style>

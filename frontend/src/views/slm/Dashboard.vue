@@ -169,7 +169,7 @@
         </div>
       </template>
 
-      <template v-else>
+      <template v-else-if="activePanel === 'health'">
         <!-- 设备健康状态 -->
         <div class="health-section">
           <EquipmentHealthStatus
@@ -181,8 +181,15 @@
         </div>
       </template>
 
+      <template v-else>
+        <!-- 成形监测：数据接入 / 异常识别 / 异常溯源 -->
+        <div class="forming-section">
+          <FormingPanel :device="selectedDeviceId" :module="activePanel" />
+        </div>
+      </template>
+
       <!-- 视情维护可视化模块 -->
-      <div class="maintenance-section">
+      <div v-if="!isFormingPanel" class="maintenance-section">
         <MaintenanceDecisionPanel @system-click="openMaintenanceDetail" />
       </div>
     </section>
@@ -212,6 +219,7 @@ import RegulationControl from '../../components/slm/RegulationControl.vue'
 import FeatureCurvePanel from '../../components/slm/FeatureCurvePanel.vue'
 import MaintenanceDecisionPanel from '../../components/common/MaintenanceDecisionPanel.vue'
 import MaintenanceDetailDialog from '../../components/common/MaintenanceDetailDialog.vue'
+import FormingPanel from './forming/FormingPanel.vue'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
 import { useROIStore } from '../../stores/roiStore'
 import { readSlmBenchSettings } from '../../utils/slmBenchSettings'
@@ -262,7 +270,11 @@ const canUseDistortionCorrection = computed(() => (
 const panelNavItems = [
   { key: 'status', name: '实时状态信息', description: '集中显示实时参数和设备状态。' },
   { key: 'control', name: '闭环调控', description: '展示层进度、调控状态和特征曲线。' },
-  { key: 'health', name: '设备健康状态', description: '展示 SLM 设备健康诊断和子系统状态。' }
+  { key: 'health', name: '设备健康状态', description: '展示 SLM 设备健康诊断和子系统状态。' },
+  // 成形监测（增材制造异常识别系统）：逐层数据接入、异常识别与异常溯源，组件见 ./forming/
+  { key: 'access', name: '数据接入', description: '逐层接入铺粉后、熔化后图像，刮刀与加工平台扭矩和设备状态参数。', forming: true },
+  { key: 'recognition', name: '异常识别', description: '融合图像与扭矩的跨设备适配识别，给出逐层异常概率与各模态作用。', forming: true },
+  { key: 'trace', name: '异常溯源', description: '两区联盟博弈判断异常由工艺因素还是设备因素诱发，并给出支撑区域与处置对象。', forming: true }
 ]
 const panelKeys = panelNavItems.map((item) => item.key)
 const activePanel = computed(() => {
@@ -272,6 +284,7 @@ const activePanel = computed(() => {
 const activePanelMeta = computed(() => panelNavItems.find((item) => item.key === activePanel.value) || panelNavItems[0])
 const activePanelTitle = computed(() => activePanelMeta.value.name)
 const activePanelDescription = computed(() => activePanelMeta.value.description)
+const isFormingPanel = computed(() => !!activePanelMeta.value.forming)
 
 // 状态
 const isRunning = ref(false)

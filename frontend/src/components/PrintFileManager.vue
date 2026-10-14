@@ -298,8 +298,8 @@ onMounted(() => {
 
 <style scoped>
 .file-manager {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   border-radius: 12px;
   padding: 16px;
 }
@@ -314,7 +314,7 @@ onMounted(() => {
 .file-title {
   margin: 0;
   font-size: 16px;
-  color: #00d4ff;
+  color: var(--am-accent);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -329,7 +329,7 @@ onMounted(() => {
 .file-list {
   max-height: 400px;
   overflow-y: auto;
-  border: 1px solid rgba(0, 212, 255, 0.1);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 10%, transparent);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.2);
 }
@@ -344,12 +344,12 @@ onMounted(() => {
 }
 
 .file-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 212, 255, 0.3);
+  background: color-mix(in srgb, var(--am-accent) 31%, transparent);
   border-radius: 3px;
 }
 
 .file-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 212, 255, 0.5);
+  background: color-mix(in srgb, var(--am-accent) 50%, transparent);
 }
 
 .file-item {
@@ -358,19 +358,19 @@ onMounted(() => {
   align-items: center;
   padding: 12px 14px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--am-accent) 5%, transparent);
   border-left: 3px solid transparent;
   transition: all 0.2s;
   user-select: none;
 }
 
 .file-item:hover {
-  background: rgba(0, 212, 255, 0.08);
+  background: color-mix(in srgb, var(--am-accent) 11%, transparent);
 }
 
 .file-item.selected {
-  background: rgba(0, 212, 255, 0.15);
-  border-left-color: #00d4ff;
+  background: color-mix(in srgb, var(--am-accent) 18%, transparent);
+  border-left-color: var(--am-accent);
 }
 
 .file-left {
@@ -382,7 +382,7 @@ onMounted(() => {
 }
 
 .file-icon {
-  color: #00d4ff;
+  color: var(--am-accent);
   margin-top: 2px;
 }
 
@@ -393,7 +393,7 @@ onMounted(() => {
 
 .file-name {
   font-size: 14px;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -405,7 +405,7 @@ onMounted(() => {
 
 .file-path {
   font-size: 11px;
-  color: #64748b;
+  color: var(--am-text-3);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -421,14 +421,14 @@ onMounted(() => {
 
 .meta-item {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .meta-item.time {
-  color: #f59e0b;
+  color: var(--am-warn);
 }
 
 .file-actions {
@@ -438,14 +438,14 @@ onMounted(() => {
 }
 
 .select-hint {
-  color: #64748b;
+  color: var(--am-text-3);
   font-size: 16px;
 }
 
 .file-empty {
   padding: 40px 20px;
   text-align: center;
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 .file-empty p {
@@ -470,7 +470,7 @@ onMounted(() => {
 
 .controls-title {
   font-size: 13px;
-  color: #00d4ff;
+  color: var(--am-accent);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -478,7 +478,7 @@ onMounted(() => {
 
 .print-filename {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   max-width: 150px;
   white-space: nowrap;
   overflow: hidden;
@@ -493,7 +493,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #64748b;
+  color: var(--am-text-3);
   margin-top: 4px;
 }
 

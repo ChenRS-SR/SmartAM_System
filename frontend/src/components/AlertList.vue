@@ -72,8 +72,8 @@ const dismissAll = () => {
   right: 24px;
   width: 360px;
   max-height: 400px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(255, 77, 79, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-danger) 30%, transparent);
   border-radius: 12px;
   overflow: hidden;
   z-index: 2000;
@@ -85,15 +85,15 @@ const dismissAll = () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: rgba(255, 77, 79, 0.1);
-  border-bottom: 1px solid rgba(255, 77, 79, 0.2);
+  background: color-mix(in srgb, var(--am-danger) 13%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--am-danger) 20%, transparent);
 }
 
 .alert-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #ff4d4f;
+  color: var(--am-danger);
   font-weight: 500;
 }
 
@@ -116,15 +116,15 @@ const dismissAll = () => {
 }
 
 .alert-item.error {
-  background: rgba(255, 77, 79, 0.05);
+  background: color-mix(in srgb, var(--am-danger) 8%, transparent);
 }
 
 .alert-item.warning {
-  background: rgba(255, 193, 7, 0.05);
+  background: color-mix(in srgb, var(--am-warn) 8%, transparent);
 }
 
 .alert-item.info {
-  background: rgba(0, 212, 255, 0.05);
+  background: color-mix(in srgb, var(--am-accent) 8%, transparent);
 }
 
 .alert-icon {
@@ -137,18 +137,18 @@ const dismissAll = () => {
 }
 
 .alert-item.error .alert-icon {
-  background: rgba(255, 77, 79, 0.2);
-  color: #ff4d4f;
+  background: color-mix(in srgb, var(--am-danger) 22%, transparent);
+  color: var(--am-danger);
 }
 
 .alert-item.warning .alert-icon {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
+  background: color-mix(in srgb, var(--am-warn) 22%, transparent);
+  color: var(--am-warn);
 }
 
 .alert-item.info .alert-icon {
-  background: rgba(0, 212, 255, 0.2);
-  color: #00d4ff;
+  background: color-mix(in srgb, var(--am-accent) 22%, transparent);
+  color: var(--am-accent);
 }
 
 .alert-content {
@@ -158,14 +158,14 @@ const dismissAll = () => {
 
 .alert-message {
   font-size: 13px;
-  color: #e2e8f0;
+  color: var(--am-text);
   margin-bottom: 4px;
   word-wrap: break-word;
 }
 
 .alert-time {
   font-size: 11px;
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 .dismiss-btn {

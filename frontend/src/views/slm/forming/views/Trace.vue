@@ -4,7 +4,7 @@
       <Region kind="input" title="监测数据" class="r-input">
         <div class="fields">
           <div class="field"><span class="k">设备</span>
-            <select class="sel" :value="state.device" :disabled="stepper.running.value" @change="switchDevice($event.target.value)">
+            <select class="sel" :value="state.device" :disabled="embedded || stepper.running.value" @change="switchDevice($event.target.value)">
               <option v-for="x in devs" :key="x.id" :value="x.id">{{ x.name }}</option></select></div>
           <div class="field"><span class="k">成形任务</span><select class="sel" disabled><option>{{ d.task.name }}</option></select></div>
           <div class="field"><span class="k">成形层</span>
@@ -119,14 +119,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import Region from '../components/Region.vue'
 import EChart from '../components/EChart.vue'
 import { api, mediaUrl } from '../api.js'
 import { devicesFor, selectDevice, state } from '../state.js'
 import { fmtPct, useCall, useStepper } from '../composables.js'
+import { pal } from '../theme.js'
 
-const C = { proc: '#b2312e', dev: '#3b6ba5', axis: '#52606d' }
+const embedded = inject('formingEmbedded', false)
 const { busy, call, report } = useCall()
 const stepper = useStepper(1500)
 const d = ref(null)
@@ -186,23 +187,25 @@ const upperText = computed(() => {
 const zoneText = (z) => (z && z.length ? z.join('、') : '无')
 const mx = (a, b) => Math.max(a, b)
 const probs = computed(() => [
-  { name: '工艺诱发异常概率', v: d.value.factors.proc.prob, color: C.proc },
-  { name: '设备诱发异常概率', v: d.value.factors.dev.prob, color: C.dev },
+  { name: '工艺诱发异常概率', v: d.value.factors.proc.prob, color: 'var(--proc)' },
+  { name: '设备诱发异常概率', v: d.value.factors.dev.prob, color: 'var(--dev)' },
 ])
 const verdictCls = computed(() => ({ '由二者共同诱发': 'v-both', '由工艺因素诱发': 'v-proc', '由设备因素诱发': 'v-dev' }[d.value.conclusion] || 'v-nor'))
 const tagCls = (r) => ({ '由二者共同诱发': 't-both', '由工艺因素诱发': 't-proc', '由设备因素诱发': 't-dev' }[r] || 't-nor')
 const tagTxt = (r) => ({ '由二者共同诱发': '二者共同', '由工艺因素诱发': '工艺因素', '由设备因素诱发': '设备因素' }[r] || '未见异常')
 
-const axisFont = { fontSize: 16, color: C.axis }
 const curveOption = computed(() => {
+  const P = pal.value
+  const C = P
+  const axisFont = { fontSize: 16, color: P.axis }
   const cv = d.value.curve
   const L = cv.layers
   const x0 = L.length ? L[0].layer : cv.from
   const x1 = L.length ? L[L.length - 1].layer : cv.to
   const lo = Math.floor(x0 / 5) * 5
   const hi = Math.ceil((x1 + 3) / 5) * 5
-  const cur = { silent: true, symbol: 'none', data: [{ xAxis: d.value.layer, lineStyle: { color: '#222', width: 1.4 },
-    label: { show: true, formatter: '当前层', fontSize: 15, position: 'end', distance: 2 } }] }
+  const cur = { silent: true, symbol: 'none', data: [{ xAxis: d.value.layer, lineStyle: { color: P.ink, width: 1.4 },
+    label: { show: true, color: P.text, formatter: '当前层', fontSize: 15, position: 'end', distance: 2 } }] }
   const lim = (name, v, color, type) => ({ name, type: 'line', symbol: 'none', z: 5, lineStyle: { width: 1.8, color, type }, itemStyle: { color },
     data: [[lo, v], [hi, v]] })
   const series = d.value.mode === 'dual'
@@ -211,39 +214,39 @@ const curveOption = computed(() => {
           data: L.map((x) => [x.layer, mx(x.proc_part, x.proc_powder)]), markLine: cur },
         { name: '设备侧', type: 'line', showSymbol: false, lineStyle: { width: 1.6, color: C.dev }, itemStyle: { color: C.dev },
           data: L.map((x) => [x.layer, mx(x.dev_part, x.dev_powder)]) },
-        lim('工艺上限水平', cv.upper.proc, '#7a1f1d', 'dashed'),
-        lim('设备上限水平', cv.upper.dev, '#1d3a63', 'dotted'),
+        lim('工艺上限水平', cv.upper.proc, P.upperProc, 'dashed'),
+        lim('设备上限水平', cv.upper.dev, P.upperDev, 'dotted'),
       ]
     : [
         { name: '零件区', type: 'line', symbol: 'circle', symbolSize: 5, lineStyle: { width: 1.8, color: C.proc }, itemStyle: { color: C.proc },
           data: L.map((x) => [x.layer, x.part]), markLine: cur },
         { name: '粉床区', type: 'line', symbol: 'circle', symbolSize: 5, lineStyle: { width: 1.8, color: C.dev }, itemStyle: { color: C.dev },
           data: L.map((x) => [x.layer, x.powder]) },
-        lim('上限水平', cv.upper.dev, '#2f7d4f', 'dashed'),
+        lim('上限水平', cv.upper.dev, P.upper, 'dashed'),
       ]
   return {
     animation: false,
     grid: { left: 50, right: 24, top: 52, bottom: 46 },
-    legend: { top: 0, left: 'center', itemWidth: 26, itemHeight: 10, textStyle: { fontSize: 16 } },
+    legend: { top: 0, left: 'center', itemWidth: 26, itemHeight: 10, textStyle: { fontSize: 16, color: P.text } },
     xAxis: { type: 'value', min: lo, max: hi, name: '层号', nameLocation: 'middle', nameGap: 26,
       nameTextStyle: axisFont, axisLabel: { ...axisFont, formatter: (v) => String(v) }, splitLine: { show: false } },
     yAxis: { type: 'value', name: '贡献', nameTextStyle: { ...axisFont, align: 'left' }, nameGap: 10, axisLabel: axisFont, splitNumber: 4,
-      splitLine: { lineStyle: { color: '#eef0f3' } } },
+      splitLine: { lineStyle: { color: P.split } } },
     series,
   }
 })
 </script>
 
 <style scoped>
-.r-input { flex: 0 0 600px; }
-.r-param { flex: 1; min-width: 0; }
-.r-op { flex: 0 0 290px; }
+.r-input { flex: 600 0 600px; }
+.r-param { flex: 276 1 276px; min-width: 0; }
+.r-op { flex: 290 0 290px; }
 .r-vis { flex: 1; }
 .fields { gap: 8px 22px; }
 .fields.one { grid-template-columns: auto; gap: 8px; }
 .ref-inp { width: 80px; }
 .btn { padding: 6px 14px; }
-.vis-grid { height: 100%; display: grid; grid-template-columns: 300px 1fr 330px; grid-template-rows: 300px 1fr; gap: 12px; }
+.vis-grid { height: 100%; display: grid; grid-template-columns: minmax(0, 300fr) minmax(0, 510fr) minmax(0, 330fr); grid-template-rows: minmax(0, 300fr) minmax(0, 260fr); gap: 12px; }
 .card { padding: 8px 12px; }
 .overlay { flex: 1; min-height: 0; width: 100%; }
 .part { fill: rgba(178, 49, 46, 0.30); stroke: #b2312e; stroke-width: 0.6; vector-effect: non-scaling-stroke; }
@@ -252,34 +255,34 @@ const curveOption = computed(() => {
 .sw { display: inline-block; width: 16px; height: 12px; margin-right: 5px; vertical-align: -1px; border-radius: 2px; }
 .sw-part { background: rgba(178, 49, 46, 0.45); border: 1px solid #b2312e; }
 .sw-band { background: rgba(178, 49, 46, 0.12); border: 1px dashed #b2312e; }
-.sw-powder { background: #c9ccd1; border: 1px solid #9aa0a8; }
+.sw-powder { background: var(--powder-sw); border: 1px solid var(--powder-sw-border); }
 .lg { font-size: 15px; font-weight: 400; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
-.lim-sw { display: inline-block; width: 3px; height: 16px; background: #222; }
+.lim-sw { display: inline-block; width: 3px; height: 16px; background: var(--ink); }
 .grp { margin-top: 8px; }
 .g-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 17px; font-weight: 700; }
 .g-sum { font-size: 15px; font-weight: 400; color: var(--text-2); }
 .g-sum b { font-size: 17px; color: var(--text); }
 .zrow { display: grid; grid-template-columns: 58px 1fr 54px 60px; align-items: center; gap: 8px; margin-top: 6px; font-size: 16px; }
 .z-name { white-space: nowrap; }
-.z-track { position: relative; height: 20px; background: #edf0f4; border-radius: 4px; }
+.z-track { position: relative; height: 20px; background: var(--track); border-radius: 4px; }
 .z-fill { height: 100%; border-radius: 4px; }
-.z-fill.f-part { background: #b2312e; }
-.z-fill.f-powder { background: #3b6ba5; }
+.z-fill.f-part { background: var(--proc); }
+.z-fill.f-powder { background: var(--dev); }
 .z-fill.dim { opacity: 0.35; }
-.z-lim { position: absolute; top: -4px; width: 3px; height: 28px; background: #222; margin-left: -1px; }
+.z-lim { position: absolute; top: -4px; width: 3px; height: 28px; background: var(--ink); margin-left: -1px; }
 .z-val { text-align: right; font-weight: 400; color: var(--text-2); }
 .z-val.over { font-weight: 700; color: var(--text); }
 .z-tag { font-size: 14px; border-radius: 10px; padding: 0 8px; text-align: center; white-space: nowrap; }
 .z-tag.on { background: var(--warn); color: #fff; font-weight: 700; }
 .z-tag.off { background: var(--ok-soft); color: var(--ok); }
-.hint { margin-top: auto; font-size: 14px; color: #8592a3; line-height: 1.35; }
+.hint { margin-top: auto; font-size: 14px; color: var(--text-3); line-height: 1.35; }
 .verdict { font-size: 25px; font-weight: 800; color: #fff; border-radius: 6px; padding: 6px 10px; text-align: center; margin-bottom: 6px; }
 .v-dev, .v-proc, .v-both { background: var(--warn); }
 .v-nor { background: var(--ok); }
 .prob { margin-top: 6px; }
 .p-head { display: flex; justify-content: space-between; font-size: 16px; }
 .p-head b { font-size: 17px; }
-.track { height: 8px; background: #edf0f4; border-radius: 4px; overflow: hidden; margin-top: 2px; }
+.track { height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; margin-top: 2px; }
 .fill { height: 100%; border-radius: 4px; }
 .kv { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 16px; flex-wrap: nowrap; }
 .kv.ev { align-items: flex-start; margin-top: 8px; }
@@ -291,14 +294,14 @@ const curveOption = computed(() => {
 .act-row { display: flex; gap: 6px; }
 .act-box { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
   background: var(--warn-soft); border-left: 5px solid var(--warn); border-radius: 4px; padding: 6px 10px; }
-.act-t { font-size: 20px; font-weight: 700; color: #b35f00; white-space: nowrap; }
+.act-t { font-size: 20px; font-weight: 700; color: var(--warn-ink); white-space: nowrap; }
 .act-st { font-size: 13px; color: #fff; background: var(--warn); border-radius: 10px; padding: 1px 8px; white-space: nowrap; }
 .act.multi { display: flex; align-items: flex-start; gap: 8px; }
 .act.multi .act-k { margin: 6px 0 0; white-space: nowrap; }
 .act.multi .act-row { flex: 1; min-width: 0; flex-direction: column; gap: 4px; }
 .act-box.two { padding: 3px 8px; border-left-width: 4px; }
 .act-box.two .act-t { font-size: 16px; }
-.act-box.none { background: #f3f5f8; border-left-color: #c9d0d9; }
+.act-box.none { background: var(--img-bg); border-left-color: var(--border); }
 .act-box.none .act-t { color: var(--text-2); }
 .c-res.dense .verdict { font-size: 23px; padding: 3px 10px; margin-bottom: 2px; }
 .c-res.dense .prob { margin-top: 3px; }

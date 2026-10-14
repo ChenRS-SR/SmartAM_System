@@ -10,9 +10,6 @@ import SLSDeviceGroup from '../views/sls/DeviceGroup.vue'
 import SLSDashboard from '../views/sls/Dashboard.vue'
 import SLSSettings from '../views/sls/Settings.vue'
 
-// SLM 成形监测（设备总览、数据接入、异常识别、异常溯源）
-import { formingRoute } from '../views/slm/forming/routes.js'
-
 // 其他页面
 import DeviceSelect from '../views/DeviceSelect.vue'
 import Login from '../views/Login.vue'
@@ -39,7 +36,6 @@ const routes = [
     component: SLMDashboard,
     meta: { title: '设备状态监测', device: 'slm' }
   },
-  formingRoute({ prefix: '/slm/forming', fleetPath: '/slm/dashboard', meta: { device: 'slm' } }),
   {
     path: '/slm/settings',
     name: 'SLMSettings',
@@ -52,7 +48,7 @@ const routes = [
     path: '/sls/dashboard',
     name: 'SLSDeviceGroup',
     component: SLSDeviceGroup,
-    meta: { title: '设备群监测', device: 'sls' }
+    meta: { title: '设备群总览', device: 'sls' }
   },
   {
     path: '/sls/device/:deviceId?',
@@ -116,7 +112,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  document.title = to.meta.title ? `${to.meta.title} - SmartAM` : 'SmartAM System'
+  document.title = to.meta.title ? `${to.meta.title} - 增材制造异常识别系统` : '增材制造异常识别系统'
 
   const savedDeviceType = localStorage.getItem('deviceType')
   const targetDevice = to.meta.device

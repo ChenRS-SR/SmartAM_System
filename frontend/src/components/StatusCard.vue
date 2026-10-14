@@ -25,14 +25,14 @@ const props = defineProps({
   subValue: { type: String, default: '' },
   iconBg: { type: String, default: 'rgba(0, 212, 255, 0.2)' },
   iconColor: { type: String, default: '#00d4ff' },
-  valueColor: { type: String, default: '#e2e8f0' }
+  valueColor: { type: String, default: 'var(--am-text)' }
 })
 </script>
 
 <style scoped>
 .status-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -42,7 +42,7 @@ const props = defineProps({
 }
 
 .status-card:hover {
-  border-color: rgba(0, 212, 255, 0.4);
+  border-color: color-mix(in srgb, var(--am-accent) 40%, transparent);
   transform: translateY(-2px);
 }
 
@@ -63,7 +63,7 @@ const props = defineProps({
 
 .card-label {
   font-size: 13px;
-  color: #a0aec0;
+  color: var(--am-text-2);
   margin-bottom: 4px;
 }
 
@@ -75,7 +75,7 @@ const props = defineProps({
 
 .card-unit {
   font-size: 14px;
-  color: #a0aec0;
+  color: var(--am-text-2);
   margin-left: 4px;
 }
 
