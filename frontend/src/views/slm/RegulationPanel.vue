@@ -689,12 +689,12 @@ onMounted(() => {
 .mode-switch { margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
 .scene-info { margin-bottom: 15px; }
 .standard-params { margin: 15px 0; }
-.text-danger { color: #f56c6c; font-weight: bold; }
-.text-success { color: #67c23a; font-weight: bold; }
-.deviation { color: #999; font-size: 12px; margin-left: 10px; }
+.text-danger { color: var(--am-danger); font-weight: bold; }
+.text-success { color: var(--am-ok); font-weight: bold; }
+.deviation { color: var(--am-text-3); font-size: 12px; margin-left: 10px; }
 .current-status { display: flex; gap: 30px; margin: 20px 0; flex-wrap: wrap; }
 .status-item { display: flex; align-items: center; gap: 10px; }
-.status-item label { color: #666; min-width: 60px; }
+.status-item label { color: var(--am-text-2); min-width: 60px; }
 
 /* 层进度样式 */
 .layer-progress { margin: 20px 0; }
@@ -704,38 +704,38 @@ onMounted(() => {
   padding: 10px; 
   border-radius: 8px; 
   text-align: center;
-  background: #f5f7fa;
+  background: var(--am-card-bg-2);
   border: 2px solid transparent;
   transition: all 0.3s;
 }
 .layer-item.active { 
-  border-color: #409eff; 
-  background: #ecf5ff;
+  border-color: var(--am-accent); 
+  background: var(--am-accent-soft);
   transform: scale(1.05);
 }
-.layer-item.fault { background: #fef0f0; }
-.layer-item.fault.active { border-color: #f56c6c; }
-.layer-item.regulation { background: #fdf6ec; }
-.layer-item.regulation.active { border-color: #e6a23c; }
-.layer-item.recovered { background: #f0f9eb; }
-.layer-item.recovered.active { border-color: #67c23a; }
+.layer-item.fault { background: var(--am-danger-soft); }
+.layer-item.fault.active { border-color: var(--am-danger); }
+.layer-item.regulation { background: var(--am-warn-soft); }
+.layer-item.regulation.active { border-color: var(--am-warn); }
+.layer-item.recovered { background: var(--am-ok-soft); }
+.layer-item.recovered.active { border-color: var(--am-ok); }
 .layer-num { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-.layer-name { font-size: 12px; color: #666; margin-bottom: 3px; }
+.layer-name { font-size: 12px; color: var(--am-text-2); margin-bottom: 3px; }
 .layer-power { font-size: 14px; font-weight: bold; }
 
 .video-players { margin: 20px 0; }
 .video-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
 .video-item { text-align: center; }
-.video-item label { display: block; margin-bottom: 5px; font-weight: bold; color: #666; }
+.video-item label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--am-text-2); }
 .video-item video { width: 100%; max-height: 200px; border-radius: 8px; background: #000; }
 
 .diagnosis-section { padding: 15px; border-radius: 8px; margin: 15px 0; }
-.diagnosis-section.abnormal { background: #fef0f0; border: 1px solid #f56c6c; }
+.diagnosis-section.abnormal { background: var(--am-danger-soft); border: 1px solid var(--am-danger); }
 .regulation-action { margin-top: 20px; text-align: center; }
-.suggestion-box { background: #f5f7fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+.suggestion-box { background: var(--am-card-bg-2); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
 .suggestion-title { font-weight: bold; margin-bottom: 10px; }
 .suggestion-content { font-size: 18px; margin: 10px 0; }
-.recover-info { color: #666; margin-top: 10px; }
+.recover-info { color: var(--am-text-2); margin-top: 10px; }
 
 .regulating-section { text-align: center; padding: 20px; }
 .regulation-message { margin-top: 15px; font-size: 16px; }
@@ -745,6 +745,6 @@ onMounted(() => {
 .simulation-control { margin-top: 20px; }
 .control-bar { display: flex; gap: 15px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
 .frame-slider { padding: 0 20px; }
-.frame-labels { display: flex; justify-content: space-between; color: #999; font-size: 12px; margin-top: 5px; }
-.playback-info { text-align: center; color: #666; margin-top: 10px; }
+.frame-labels { display: flex; justify-content: space-between; color: var(--am-text-3); font-size: 12px; margin-top: 5px; }
+.playback-info { text-align: center; color: var(--am-text-2); margin-top: 10px; }
 </style>

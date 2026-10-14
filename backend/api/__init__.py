@@ -85,6 +85,14 @@ if SLM_ROI_AVAILABLE:
     router.include_router(slm_roi_router)
     print("[API] SLM ROI路由已注册: /api/slm/roi/*")
 
+# 成形监测（增材制造异常识别系统 v1.0：数据接入、异常识别、异常溯源），模块在 backend/forming_monitor/
+try:
+    from forming_monitor import router as forming_router
+    router.include_router(forming_router)
+    print("[API] 成形监测路由已注册: /api/slm/forming/*")
+except ImportError as e:
+    print(f"[API] 成形监测模块导入失败: {e}")
+
 # 健康检查
 @router.get("/health")
 async def health_check():

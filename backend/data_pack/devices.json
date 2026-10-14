@@ -1,0 +1,104 @@
+{
+ "devices": [
+  {
+   "id": "blt-s430",
+   "name": "BLT-S430",
+   "kind": "现场设备",
+   "laser": "双激光",
+   "photo": "devices/site_device.jpg",
+   "modalGroups": [
+    {
+     "g": "主模态（视觉）",
+     "items": [
+      "铺粉后图像",
+      "熔化后图像"
+     ]
+    },
+    {
+     "g": "辅助模态",
+     "items": [
+      "刮刀扭矩",
+      "加工平台扭矩"
+     ]
+    },
+    {
+     "g": "设备状态参数",
+     "items": [
+      "氧含量、压力、温度、气体流量等"
+     ]
+    }
+   ],
+   "modules": [
+    "access",
+    "recognition",
+    "trace"
+   ],
+   "default_layer": 2542,
+   "source": {
+    "type": "site_replay",
+    "device_code": "B17",
+    "build": "20240827-09-33",
+    "part": "零件1",
+    "task": {
+     "id": "T20240828",
+     "name": "2024年8月28日成形任务",
+     "startTime": "2024-08-28 09:05:51",
+     "layerThickness": 0.04
+    }
+   },
+   "recognizer": {
+    "bundle": "blt_s430_recog.pt",
+    "threshold": 0.5
+   },
+   "trace": {
+    "band_px": 12,
+    "upper_dev": 5.084,
+    "upper_rule": "适配开发集中标注正常且被识别模型判为正常的149层，零件区与粉床区贡献较大者的95%分位（离线数据导出/apply_region_rule.py）",
+    "process_factor": {
+     "illustrative": true,
+     "prob": 0.0312,
+     "part": 0.42,
+     "powder": 0.18,
+     "upper": 5.084,
+     "note": "该设备暂无工艺侧模型，工艺诱发异常概率及其两区贡献为示意值（作者2026-10-13要求），上限水平沿用设备侧数值，不进入论文结果"
+    }
+   }
+  },
+  {
+   "id": "cr-pbf-m130",
+   "name": "CR-PBF M130",
+   "kind": "实验室设备",
+   "laser": "单激光",
+   "photo": null,
+   "modalGroups": [
+    {
+     "g": "主模态（视觉）",
+     "items": [
+      "铺粉后图像",
+      "熔化后图像"
+     ]
+    },
+    {
+     "g": "辅助模态",
+     "items": [
+      "红外热像"
+     ]
+    }
+   ],
+   "modules": [
+    "trace"
+   ],
+   "default_layer": 152,
+   "source": {
+    "type": "result_replay",
+    "pack": "m130/trace_pack.json",
+    "task": {
+     "id": "T1120",
+     "name": "11月20日成形任务",
+     "startTime": null,
+     "layerThickness": null
+    }
+   }
+  }
+ ]
+}

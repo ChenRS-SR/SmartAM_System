@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 
 export const useThemeStore = defineStore('theme', () => {
   // 主题模式: 'dark' | 'light' | 'auto'
-  const themeMode = ref(localStorage.getItem('theme-mode') || 'dark')
+  const themeMode = ref(localStorage.getItem('theme-mode') || 'light')
   
   // 实际主题（auto 时根据系统偏好决定）
   const actualTheme = computed(() => {
@@ -53,34 +53,19 @@ export const useThemeStore = defineStore('theme', () => {
   watch(actualTheme, applyTheme, { immediate: true })
   
   // 主题配置
-  const themeConfig = computed(() => {
-    if (isDark.value) {
-      return {
-        '--bg-primary': '#0f172a',
-        '--bg-secondary': '#1e293b',
-        '--bg-card': 'rgba(15, 23, 42, 0.6)',
-        '--bg-hover': 'rgba(0, 212, 255, 0.1)',
-        '--text-primary': '#e2e8f0',
-        '--text-secondary': '#a0aec0',
-        '--text-muted': '#64748b',
-        '--border-color': 'rgba(0, 212, 255, 0.2)',
-        '--shadow-color': 'rgba(0, 0, 0, 0.5)'
-      }
-    } else {
-      return {
-        '--bg-primary': '#f8fafc',
-        '--bg-secondary': '#f1f5f9',
-        '--bg-card': 'rgba(255, 255, 255, 0.9)',
-        '--bg-hover': 'rgba(0, 212, 255, 0.05)',
-        '--text-primary': '#1e293b',
-        '--text-secondary': '#475569',
-        '--text-muted': '#94a3b8',
-        '--border-color': 'rgba(0, 212, 255, 0.3)',
-        '--shadow-color': 'rgba(0, 0, 0, 0.1)'
-      }
-    }
-  })
-  
+  // 主题配置：两种主题的具体颜色见 styles/am-theme.css，这里只把原有变量指向主题变量
+  const themeConfig = computed(() => ({
+    '--bg-primary': 'var(--am-page-bg)',
+    '--bg-secondary': 'var(--am-card-bg-2)',
+    '--bg-card': 'var(--am-card-bg)',
+    '--bg-hover': 'var(--am-accent-soft)',
+    '--text-primary': 'var(--am-text)',
+    '--text-secondary': 'var(--am-text-2)',
+    '--text-muted': 'var(--am-text-3)',
+    '--border-color': 'var(--am-card-border)',
+    '--shadow-color': isDark.value ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'
+  }))
+
   // 应用 CSS 变量
   watch(themeConfig, (config) => {
     const root = document.documentElement

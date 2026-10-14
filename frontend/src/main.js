@@ -7,6 +7,7 @@ import i18n from './i18n'
 // 全局样式
 import './styles/variables.css'
 import './styles/light-theme.css'
+import './styles/am-theme.css'
 
 // Element Plus
 import ElementPlus from 'element-plus'

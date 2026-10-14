@@ -1,0 +1,122 @@
+/*
+ * 系统主题（增材制造异常识别系统风格）。浅色为默认，深色为同一风格的深色版本，由主题开关切换（html.light / html.dark）。
+ * 页面与组件统一使用 --am-* 变量；原有的 --primary、--bg-card 等变量与 Element Plus 变量都映射到这里。
+ */
+html.light {
+  --am-nav-bg: #1d3557;
+  --am-nav-bg-active: #2c4d7a;
+  --am-nav-hover: rgba(255, 255, 255, 0.08);
+  --am-nav-text: #dbe4f0;
+  --am-nav-text-2: #9fb3cc;
+  --am-nav-line: rgba(255, 255, 255, 0.15);
+  --am-gold: #f4b942;
+  --am-page-bg: #eef1f5;
+  --am-header-bg: #ffffff;
+  --am-card-bg: #ffffff;
+  --am-card-bg-2: #f6f8fb;
+  --am-card-border: #d5dbe3;
+  --am-card-border-2: #e3e7ec;
+  --am-text: #1f2933;
+  --am-text-2: #52606d;
+  --am-text-3: #8592a3;
+  --am-primary: #1d3557;
+  --am-accent: #3b6ba5;
+  --am-accent-soft: #eaf1f9;
+  --am-ok: #2f7d4f;
+  --am-ok-soft: #e7f5ec;
+  --am-warn: #e8890c;
+  --am-warn-soft: #fdf3e7;
+  --am-danger: #b2312e;
+  --am-danger-soft: #f8e4e3;
+  --am-shadow: 0 1px 3px rgba(31, 41, 51, 0.06);
+  color-scheme: light;
+}
+
+html.dark {
+  --am-nav-bg: #0f1f35;
+  --am-nav-bg-active: #1d3557;
+  --am-nav-hover: rgba(255, 255, 255, 0.06);
+  --am-nav-text: #c9d5e4;
+  --am-nav-text-2: #8193ab;
+  --am-nav-line: rgba(255, 255, 255, 0.10);
+  --am-gold: #f4b942;
+  --am-page-bg: #0d1726;
+  --am-header-bg: #12213a;
+  --am-card-bg: #15243a;
+  --am-card-bg-2: #1a2c46;
+  --am-card-border: #263c5a;
+  --am-card-border-2: #22364f;
+  --am-text: #e3eaf3;
+  --am-text-2: #9fb0c6;
+  --am-text-3: #6d7f96;
+  --am-primary: #6f9bd1;
+  --am-accent: #6f9bd1;
+  --am-accent-soft: rgba(111, 155, 209, 0.14);
+  --am-ok: #4cb782;
+  --am-ok-soft: rgba(76, 183, 130, 0.14);
+  --am-warn: #f0a33a;
+  --am-warn-soft: rgba(240, 163, 58, 0.14);
+  --am-danger: #e0605c;
+  --am-danger-soft: rgba(224, 96, 92, 0.14);
+  --am-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}
+
+/* 原有变量映射到本主题 */
+html.light, html.dark {
+  --primary: var(--am-accent);
+  --primary-dark: var(--am-primary);
+  --success: var(--am-ok);
+  --warning: var(--am-warn);
+  --danger: var(--am-danger);
+  --bg-dark: var(--am-page-bg);
+  --bg-hover: var(--am-accent-soft);
+  --border-glow: none;
+
+  --el-color-primary: var(--am-accent);
+  --el-color-primary-light-3: color-mix(in srgb, var(--am-accent) 70%, var(--am-card-bg));
+  --el-color-primary-light-5: color-mix(in srgb, var(--am-accent) 50%, var(--am-card-bg));
+  --el-color-primary-light-7: color-mix(in srgb, var(--am-accent) 30%, var(--am-card-bg));
+  --el-color-primary-light-8: color-mix(in srgb, var(--am-accent) 20%, var(--am-card-bg));
+  --el-color-primary-light-9: color-mix(in srgb, var(--am-accent) 10%, var(--am-card-bg));
+  --el-color-primary-dark-2: var(--am-primary);
+  --el-color-success: var(--am-ok);
+  --el-color-warning: var(--am-warn);
+  --el-color-danger: var(--am-danger);
+  --el-bg-color: var(--am-card-bg);
+  --el-bg-color-page: var(--am-page-bg);
+  --el-bg-color-overlay: var(--am-card-bg);
+  --el-text-color-primary: var(--am-text);
+  --el-text-color-regular: var(--am-text);
+  --el-text-color-secondary: var(--am-text-2);
+  --el-text-color-placeholder: var(--am-text-3);
+  --el-border-color: var(--am-card-border);
+  --el-border-color-light: var(--am-card-border-2);
+  --el-border-color-lighter: var(--am-card-border-2);
+  --el-fill-color: var(--am-card-bg-2);
+  --el-fill-color-light: var(--am-card-bg-2);
+  --el-fill-color-blank: var(--am-card-bg);
+  --el-mask-color: color-mix(in srgb, var(--am-page-bg) 80%, transparent);
+}
+
+html.light body, html.dark body {
+  background: var(--am-page-bg);
+  color: var(--am-text);
+  font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+html.light ::-webkit-scrollbar-track, html.dark ::-webkit-scrollbar-track { background: transparent; }
+html.light ::-webkit-scrollbar-thumb, html.dark ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--am-text-3) 45%, transparent); }
+html.light ::selection, html.dark ::selection { background: var(--am-accent-soft); color: var(--am-text); }
+
+/* 通知与消息 */
+html .smartam-notification, html .el-message {
+  background: var(--am-card-bg) !important;
+  border: 1px solid var(--am-card-border) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+}
+html .smartam-notification .el-notification__title, html .el-message .el-message__content { color: var(--am-text) !important; }
+html .smartam-notification .el-notification__content { color: var(--am-text-2) !important; }
+html .smartam-notification.el-notification--success { border-left: 4px solid var(--am-ok) !important; }
+html .smartam-notification.el-notification--warning { border-left: 4px solid var(--am-warn) !important; }
+html .smartam-notification.el-notification--error { border-left: 4px solid var(--am-danger) !important; }

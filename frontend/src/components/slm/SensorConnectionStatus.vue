@@ -151,8 +151,8 @@ const disableAll = () => {
 
 <style scoped>
 .sensor-status-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
 }
 
 .card-header {
@@ -164,7 +164,7 @@ const disableAll = () => {
 .header-title {
   font-size: 16px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .sensor-grid {
@@ -179,9 +179,9 @@ const disableAll = () => {
   flex-direction: column;
   gap: 10px;
   padding: 12px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
   transition: opacity 0.2s ease, border-color 0.2s ease;
 }
 
@@ -207,18 +207,18 @@ const disableAll = () => {
 }
 
 .sensor-icon.status-connected {
-  background: rgba(34, 197, 94, 0.18);
-  color: #22c55e;
+  background: color-mix(in srgb, var(--am-ok) 20%, transparent);
+  color: var(--am-ok);
 }
 
 .sensor-icon.status-disconnected {
-  background: rgba(239, 68, 68, 0.16);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--am-danger) 18%, transparent);
+  color: var(--am-danger);
 }
 
 .sensor-icon.status-disabled {
-  background: rgba(100, 116, 139, 0.18);
-  color: #64748b;
+  background: var(--am-card-bg-2);
+  color: var(--am-text-3);
 }
 
 .sensor-info {
@@ -230,18 +230,18 @@ const disableAll = () => {
 }
 
 .sensor-name {
-  color: #e2e8f0;
+  color: var(--am-text);
   font-size: 14px;
   font-weight: 600;
 }
 
 .sensor-status {
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 12px;
 }
 
 .sensor-hint {
-  color: #64748b;
+  color: var(--am-text-3);
   font-size: 11px;
 }
 
@@ -250,7 +250,7 @@ const disableAll = () => {
   flex-wrap: wrap;
   gap: 10px;
   padding-top: 16px;
-  border-top: 1px solid rgba(100, 116, 139, 0.2);
+  border-top: 1px solid var(--am-card-border-2);
 }
 
 @media (max-width: 960px) {

@@ -121,3 +121,9 @@ test_websocket.py
 /*.MOV
 /*.mkv
 /*.MKV
+
+# 成形监测运行缓存（识别概率、博弈结果、缩放后的图像，可重算）
+backend/.cache/
+
+# 启动脚本运行时生成
+.smartam_backend.pid

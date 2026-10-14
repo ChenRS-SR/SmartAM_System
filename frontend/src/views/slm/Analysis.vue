@@ -21,13 +21,13 @@
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   margin: 0 0 20px 0;
 }
 
 .placeholder-card {
   border: none;
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--am-card-bg);
 }
 
 .placeholder-content {
@@ -37,12 +37,12 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .placeholder-content h3 {
   margin: 16px 0 8px 0;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .placeholder-content p {
@@ -51,7 +51,7 @@
 
 .sub-text {
   font-size: 14px;
-  color: #64748b;
+  color: var(--am-text-3);
   margin-top: 8px !important;
 }
 </style>

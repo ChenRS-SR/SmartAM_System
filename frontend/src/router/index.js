@@ -10,6 +10,9 @@ import SLSDeviceGroup from '../views/sls/DeviceGroup.vue'
 import SLSDashboard from '../views/sls/Dashboard.vue'
 import SLSSettings from '../views/sls/Settings.vue'
 
+// SLM 成形监测（设备总览、数据接入、异常识别、异常溯源）
+import { formingRoute } from '../views/slm/forming/routes.js'
+
 // 其他页面
 import DeviceSelect from '../views/DeviceSelect.vue'
 import Login from '../views/Login.vue'
@@ -28,7 +31,7 @@ const routes = [
     path: '/slm/dashboard',
     name: 'SLMDeviceGroup',
     component: SLMDeviceGroup,
-    meta: { title: '设备群监测', device: 'slm' }
+    meta: { title: '设备群总览', device: 'slm' }
   },
   {
     path: '/slm/device/:deviceId?',
@@ -36,6 +39,7 @@ const routes = [
     component: SLMDashboard,
     meta: { title: '设备状态监测', device: 'slm' }
   },
+  formingRoute({ prefix: '/slm/forming', fleetPath: '/slm/dashboard', meta: { device: 'slm' } }),
   {
     path: '/slm/settings',
     name: 'SLMSettings',

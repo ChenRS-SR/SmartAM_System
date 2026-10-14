@@ -2,7 +2,7 @@
   <div class="device-group-page">
     <div class="page-header">
       <div>
-        <h1 class="page-title">设备群监测</h1>
+        <h1 class="page-title">设备群总览</h1>
         <div class="page-subtitle">
           {{ deviceStore.sourceInfo.diagnosisPolicy || 'SLM 设备群实时状态' }}
         </div>
@@ -776,26 +776,26 @@ onUnmounted(() => {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .page-subtitle {
   margin-top: 6px;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .source-bar {
   min-height: 44px;
   margin-bottom: 18px;
   padding: 10px 14px;
-  border: 1px solid rgba(100, 116, 139, 0.26);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--am-card-bg);
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 12px;
   flex-wrap: wrap;
 }
@@ -811,17 +811,17 @@ onUnmounted(() => {
 }
 
 .org-select :deep(.el-input__wrapper) {
-  background: rgba(30, 41, 59, 0.8);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.3) inset;
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 30%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--am-accent) 30%, transparent) inset;
 }
 
 .org-select :deep(.el-input__inner) {
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .source-bar strong {
-  color: #cbd5e1;
+  color: var(--am-text);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -838,9 +838,9 @@ onUnmounted(() => {
 .summary-item {
   min-height: 76px;
   padding: 14px 16px;
-  border: 1px solid rgba(100, 116, 139, 0.28);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.58);
+  background: var(--am-card-bg);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -848,16 +848,16 @@ onUnmounted(() => {
 
 .summary-item strong {
   font-size: 28px;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .summary-label {
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 13px;
 }
 
 .summary-item.danger strong {
-  color: #f87171;
+  color: var(--am-danger);
 }
 
 .device-grid {
@@ -869,9 +869,9 @@ onUnmounted(() => {
 .device-card,
 .add-device-tile {
   min-height: 390px;
-  border: 1px solid rgba(100, 116, 139, 0.28);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.62);
+  background: var(--am-card-bg);
 }
 
 .device-card {
@@ -881,13 +881,13 @@ onUnmounted(() => {
 }
 
 .device-card:hover {
-  border-color: rgba(45, 212, 191, 0.65);
+  border-color: color-mix(in srgb, var(--am-accent) 65%, transparent);
   transform: translateY(-2px);
-  background: rgba(15, 23, 42, 0.82);
+  background: var(--am-card-bg);
 }
 
 .device-card.fault {
-  border-color: rgba(239, 68, 68, 0.52);
+  border-color: color-mix(in srgb, var(--am-danger) 52%, transparent);
 }
 
 .device-card.offline {
@@ -898,7 +898,7 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   aspect-ratio: 18 / 11;
-  background: #0f172a;
+  background: var(--am-card-bg);
   overflow: hidden;
 }
 
@@ -918,10 +918,10 @@ onUnmounted(() => {
   gap: 6px;
   padding: 5px 9px;
   border-radius: 999px;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-size: 12px;
-  background: rgba(15, 23, 42, 0.78);
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
 }
 
 .data-tag {
@@ -930,32 +930,32 @@ onUnmounted(() => {
   left: 10px;
   padding: 5px 9px;
   border-radius: 999px;
-  color: #f8fafc;
+  color: var(--am-text);
   font-size: 12px;
   font-weight: 600;
-  background: rgba(15, 23, 42, 0.78);
-  border: 1px solid rgba(251, 191, 36, 0.42);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-warn) 42%, transparent);
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #94a3b8;
+  background: var(--am-card-bg-2);
 }
 
 .status-chip.healthy .status-dot {
-  background: #22c55e;
-  box-shadow: 0 0 8px #22c55e;
+  background: var(--am-ok);
+  box-shadow: 0 0 8px var(--am-ok);
 }
 
 .status-chip.fault .status-dot {
-  background: #ef4444;
-  box-shadow: 0 0 8px #ef4444;
+  background: var(--am-danger);
+  box-shadow: 0 0 8px var(--am-danger);
 }
 
 .status-chip.offline .status-dot {
-  background: #64748b;
+  background: var(--am-card-bg-2);
 }
 
 .device-content {
@@ -974,7 +974,7 @@ onUnmounted(() => {
 
 .device-title-row h2 {
   margin: 0 0 4px;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-size: 18px;
   font-weight: 600;
   line-height: 1.25;
@@ -982,21 +982,21 @@ onUnmounted(() => {
 
 .device-title-row span,
 .device-meta {
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 12px;
 }
 
 .icon-btn {
   width: 32px;
   height: 32px;
-  color: #cbd5e1;
+  color: var(--am-text);
 }
 
 .device-meta {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.18);
+  border-bottom: 1px solid var(--am-card-border-2);
   padding-bottom: 10px;
 }
 
@@ -1010,9 +1010,9 @@ onUnmounted(() => {
   min-width: 0;
   min-height: 62px;
   padding: 8px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
   border-radius: 6px;
-  background: rgba(30, 41, 59, 0.48);
+  background: var(--am-card-bg-2);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1020,7 +1020,7 @@ onUnmounted(() => {
 }
 
 .preview-item span {
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 12px;
 }
 
@@ -1029,7 +1029,7 @@ onUnmounted(() => {
   max-width: 100%;
   min-width: 0;
   margin-top: 3px;
-  color: #f8fafc;
+  color: var(--am-text);
   font-size: 18px;
   line-height: 1.1;
   overflow: hidden;
@@ -1042,7 +1042,7 @@ onUnmounted(() => {
 }
 
 .preview-item em {
-  color: #64748b;
+  color: var(--am-text-3);
   font-size: 11px;
   font-style: normal;
 }
@@ -1060,7 +1060,7 @@ onUnmounted(() => {
   gap: 8px;
   margin-top: 8px;
   padding-top: 10px;
-  border-top: 1px solid rgba(100, 116, 139, 0.18);
+  border-top: 1px solid var(--am-card-border-2);
 }
 
 .component-status-item {
@@ -1071,15 +1071,15 @@ onUnmounted(() => {
   gap: 2px;
   padding: 8px 4px;
   border-radius: 6px;
-  background: rgba(30, 41, 59, 0.48);
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  background: var(--am-card-bg-2);
+  border: 1px solid var(--am-card-border-2);
   text-align: center;
   transition: all 0.2s ease;
 }
 
 .component-status-item .component-name {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   white-space: nowrap;
 }
 
@@ -1089,30 +1089,30 @@ onUnmounted(() => {
 }
 
 .component-status-item.status-normal {
-  border-color: rgba(34, 197, 94, 0.35);
+  border-color: color-mix(in srgb, var(--am-ok) 35%, transparent);
 }
 
 .component-status-item.status-normal .component-state {
-  color: #22c55e;
+  color: var(--am-ok);
 }
 
 .component-status-item.status-warning {
-  border-color: rgba(245, 158, 11, 0.45);
-  background: rgba(245, 158, 11, 0.08);
+  border-color: color-mix(in srgb, var(--am-warn) 45%, transparent);
+  background: color-mix(in srgb, var(--am-warn) 11%, transparent);
 }
 
 .component-status-item.status-warning .component-state {
-  color: #f59e0b;
+  color: var(--am-warn);
 }
 
 .component-status-item.status-danger {
-  border-color: rgba(239, 68, 68, 0.5);
-  background: rgba(239, 68, 68, 0.08);
+  border-color: color-mix(in srgb, var(--am-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--am-danger) 11%, transparent);
   animation: danger-pulse 2s infinite;
 }
 
 .component-status-item.status-danger .component-state {
-  color: #ef4444;
+  color: var(--am-danger);
 }
 
 .component-status-item.status-unknown {
@@ -1120,16 +1120,16 @@ onUnmounted(() => {
 }
 
 .component-status-item.status-unknown .component-state {
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 /* 装备群历史统计 */
 .maintenance-statistics-panel {
   margin-top: 18px;
   padding: 18px;
-  border: 1px solid rgba(100, 116, 139, 0.26);
+  border: 1px solid var(--am-card-border);
   border-radius: 10px;
-  background: rgba(15, 23, 42, 0.58);
+  background: var(--am-card-bg);
 }
 
 .maintenance-statistics-panel .panel-title {
@@ -1139,7 +1139,7 @@ onUnmounted(() => {
   margin-bottom: 14px;
   font-size: 15px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .maintenance-statistics-grid {
@@ -1153,9 +1153,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid rgba(100, 116, 139, 0.28);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.58);
+  background: var(--am-card-bg);
 }
 
 .maintenance-stat-icon {
@@ -1170,18 +1170,18 @@ onUnmounted(() => {
 }
 
 .maintenance-stat-icon.faults {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
+  background: color-mix(in srgb, var(--am-warn) 22%, transparent);
+  color: var(--am-warn);
 }
 
 .maintenance-stat-icon.preventive {
-  background: rgba(0, 212, 255, 0.2);
-  color: #00d4ff;
+  background: color-mix(in srgb, var(--am-accent) 22%, transparent);
+  color: var(--am-accent);
 }
 
 .maintenance-stat-icon.reduction {
-  background: rgba(0, 255, 136, 0.2);
-  color: #00ff88;
+  background: color-mix(in srgb, var(--am-ok) 22%, transparent);
+  color: var(--am-ok);
 }
 
 .maintenance-stat-content {
@@ -1192,25 +1192,25 @@ onUnmounted(() => {
 
 .maintenance-stat-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .maintenance-stat-value {
   font-size: 22px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-family: 'Courier New', monospace;
 }
 
 .maintenance-stat-unit {
   font-size: 13px;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--am-text-2);
   margin-left: 4px;
 }
 
 .add-device-tile {
-  color: #94a3b8;
+  color: var(--am-text-2);
   border-style: dashed;
   display: flex;
   align-items: center;
@@ -1227,8 +1227,8 @@ onUnmounted(() => {
 }
 
 .add-device-tile:hover {
-  color: #2dd4bf;
-  border-color: rgba(45, 212, 191, 0.7);
+  color: var(--am-accent);
+  border-color: color-mix(in srgb, var(--am-accent) 70%, transparent);
 }
 
 .thumbnail-editor {
@@ -1242,13 +1242,13 @@ onUnmounted(() => {
   height: 110px;
   border-radius: 6px;
   object-fit: cover;
-  border: 1px solid rgba(100, 116, 139, 0.28);
-  background: #0f172a;
+  border: 1px solid var(--am-card-border);
+  background: var(--am-card-bg);
 }
 
 @keyframes danger-pulse {
-  0%, 100% { box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
-  50% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.25); }
+  0%, 100% { box-shadow: 0 0 0 color-mix(in srgb, var(--am-danger) 0%, transparent); }
+  50% { box-shadow: 0 0 10px color-mix(in srgb, var(--am-danger) 25%, transparent); }
 }
 
 @media (max-width: 900px) {

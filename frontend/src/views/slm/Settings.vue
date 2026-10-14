@@ -424,13 +424,13 @@ onMounted(() => {
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   margin: 0 0 20px 0;
 }
 
 .settings-card {
   border: none;
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--am-card-bg);
 }
 
 .card-header {
@@ -438,7 +438,7 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .settings-content {
@@ -447,7 +447,7 @@ onMounted(() => {
 
 .form-hint {
   font-size: 12px;
-  color: #64748b;
+  color: var(--am-text-3);
   margin-top: 5px;
 }
 
@@ -472,18 +472,18 @@ onMounted(() => {
 }
 
 .channel-details h4 {
-  color: #e2e8f0;
+  color: var(--am-text);
   margin-bottom: 15px;
 }
 
 :deep(.el-descriptions__label) {
-  background: rgba(30, 41, 59, 0.8) !important;
-  color: #94a3b8 !important;
+  background: var(--am-card-bg) !important;
+  color: var(--am-text-2) !important;
 }
 
 :deep(.el-descriptions__content) {
-  background: rgba(15, 23, 42, 0.4) !important;
-  color: #e2e8f0 !important;
+  background: var(--am-card-bg) !important;
+  color: var(--am-text) !important;
 }
 
 </style>

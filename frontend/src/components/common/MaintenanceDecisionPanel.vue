@@ -128,7 +128,7 @@
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(0, 212, 255, 0.2); color: #00d4ff;">
+        <div class="stat-icon" style="background: var(--am-accent-soft); color: var(--am-accent);">
           <el-icon><FirstAidKit /></el-icon>
         </div>
         <div class="stat-content">
@@ -137,7 +137,7 @@
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(0, 255, 136, 0.2); color: #00ff88;">
+        <div class="stat-icon" style="background: var(--am-ok-soft); color: var(--am-ok);">
           <el-icon><CircleCheck /></el-icon>
         </div>
         <div class="stat-content">
@@ -238,9 +238,9 @@ const getReliabilityColor = (value) => {
 
 <style scoped>
 .maintenance-panel {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
-  color: #e2e8f0;
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
+  color: var(--am-text);
 }
 
 .card-header {
@@ -254,7 +254,7 @@ const getReliabilityColor = (value) => {
 .header-title {
   font-size: 16px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -279,15 +279,15 @@ const getReliabilityColor = (value) => {
   flex-direction: column;
   gap: 10px;
   padding: 14px;
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--am-card-bg-2);
   border-radius: 10px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
   transition: all 0.3s ease;
 }
 
 .system-card:hover {
-  border-color: rgba(0, 212, 255, 0.3);
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+  border-color: color-mix(in srgb, var(--am-accent) 30%, transparent);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--am-accent) 10%, transparent);
   cursor: pointer;
 }
 
@@ -298,9 +298,9 @@ const getReliabilityColor = (value) => {
   right: 10px;
   padding: 2px 6px;
   font-size: 10px;
-  color: #00d4ff;
-  background: rgba(0, 212, 255, 0.1);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  color: var(--am-accent);
+  background: color-mix(in srgb, var(--am-accent) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
   border-radius: 4px;
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -311,25 +311,25 @@ const getReliabilityColor = (value) => {
 }
 
 .system-card.risk-warning {
-  border-color: rgba(245, 158, 11, 0.4);
-  background: rgba(245, 158, 11, 0.05);
+  border-color: color-mix(in srgb, var(--am-warn) 40%, transparent);
+  background: color-mix(in srgb, var(--am-warn) 8%, transparent);
 }
 
 .system-card.risk-danger {
-  border-color: rgba(239, 68, 68, 0.5);
-  background: rgba(239, 68, 68, 0.08);
+  border-color: color-mix(in srgb, var(--am-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--am-danger) 11%, transparent);
   animation: danger-pulse 2s infinite;
 }
 
 @keyframes danger-pulse {
-  0%, 100% { box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
-  50% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.2); }
+  0%, 100% { box-shadow: 0 0 0 color-mix(in srgb, var(--am-danger) 0%, transparent); }
+  50% { box-shadow: 0 0 12px color-mix(in srgb, var(--am-danger) 20%, transparent); }
 }
 
 .system-title {
   font-size: 14px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   text-align: center;
 }
 
@@ -352,7 +352,7 @@ const getReliabilityColor = (value) => {
   right: 0;
   transform: translateY(-50%);
   height: 10px;
-  background: rgba(100, 116, 139, 0.2);
+  background: var(--am-card-bg-2);
   border-radius: 5px;
   overflow: hidden;
 }
@@ -380,8 +380,8 @@ const getReliabilityColor = (value) => {
   height: 100%;
   background: repeating-linear-gradient(
     to bottom,
-    #00d4ff 0px,
-    #00d4ff 3px,
+    var(--am-accent) 0px,
+    var(--am-accent) 3px,
     transparent 3px,
     transparent 6px
   );
@@ -391,12 +391,12 @@ const getReliabilityColor = (value) => {
   position: absolute;
   top: -16px;
   font-size: 10px;
-  color: #00d4ff;
-  background: rgba(15, 23, 42, 0.9);
+  color: var(--am-accent);
+  background: var(--am-card-bg);
   padding: 1px 4px;
   border-radius: 3px;
   white-space: nowrap;
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 30%, transparent);
 }
 
 .risk-labels {
@@ -411,7 +411,7 @@ const getReliabilityColor = (value) => {
 }
 
 .risk-threshold {
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .system-status {
@@ -423,9 +423,9 @@ const getReliabilityColor = (value) => {
 .reliability-section {
   margin-bottom: 20px;
   padding: 16px;
-  background: rgba(30, 41, 59, 0.3);
+  background: var(--am-card-bg-2);
   border-radius: 10px;
-  border: 1px solid rgba(100, 116, 139, 0.15);
+  border: 1px solid var(--am-card-border-2);
 }
 
 .section-header {
@@ -435,7 +435,7 @@ const getReliabilityColor = (value) => {
   margin-bottom: 12px;
   font-size: 14px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .reliability-grid {
@@ -450,9 +450,9 @@ const getReliabilityColor = (value) => {
   align-items: center;
   gap: 8px;
   padding: 12px 8px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 8px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
   text-align: center;
 }
 
@@ -474,7 +474,7 @@ const getReliabilityColor = (value) => {
 
 .rel-name {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   line-height: 1.3;
 }
 
@@ -486,7 +486,7 @@ const getReliabilityColor = (value) => {
 .rel-bar-bg {
   width: 100%;
   height: 4px;
-  background: rgba(100, 116, 139, 0.2);
+  background: var(--am-card-bg-2);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -505,9 +505,9 @@ const getReliabilityColor = (value) => {
 .advice-box {
   position: relative;
   padding: 20px 16px 16px;
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--am-card-bg-2);
   border-radius: 10px;
-  border: 1px solid rgba(100, 116, 139, 0.25);
+  border: 1px solid var(--am-card-border);
   min-height: 80px;
 }
 
@@ -516,12 +516,12 @@ const getReliabilityColor = (value) => {
   top: -10px;
   left: 12px;
   padding: 2px 10px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(0, 212, 255, 0.4);
+  background: var(--am-card-bg);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 40%, transparent);
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
-  color: #00d4ff;
+  color: var(--am-accent);
 }
 
 .advice-content {
@@ -536,7 +536,7 @@ const getReliabilityColor = (value) => {
   gap: 8px;
   margin: 0;
   font-size: 13px;
-  color: #cbd5e1;
+  color: var(--am-text);
   line-height: 1.6;
 }
 
@@ -548,7 +548,7 @@ const getReliabilityColor = (value) => {
 .advice-empty {
   margin: 0;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   text-align: center;
   padding: 12px 0;
 }
@@ -559,7 +559,7 @@ const getReliabilityColor = (value) => {
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(100, 116, 139, 0.2);
+  border-top: 1px solid var(--am-card-border-2);
 }
 
 .stat-card {
@@ -567,9 +567,9 @@ const getReliabilityColor = (value) => {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 10px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
 }
 
 .stat-icon {
@@ -580,8 +580,8 @@ const getReliabilityColor = (value) => {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
+  background: color-mix(in srgb, var(--am-warn) 22%, transparent);
+  color: var(--am-warn);
   flex-shrink: 0;
 }
 
@@ -593,13 +593,13 @@ const getReliabilityColor = (value) => {
 
 .stat-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .stat-value {
   font-size: 22px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-family: 'Courier New', monospace;
 }
 

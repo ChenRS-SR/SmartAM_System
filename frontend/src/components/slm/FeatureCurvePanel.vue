@@ -108,6 +108,7 @@
 </template>
 
 <script setup>
+import { amVar } from '@/utils/themeColor'
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { TrendCharts } from '@element-plus/icons-vue'
@@ -184,9 +185,9 @@ const currentValueColor = computed(() => {
     // 灰度均值：低值红色，高值绿色
     if (value < 50) return '#ef4444'
     if (value > 200) return '#22c55e'
-    return '#e2e8f0'
+    return 'var(--am-text)'
   }
-  return '#e2e8f0'
+  return 'var(--am-text)'
 })
 
 // 初始化图表
@@ -213,10 +214,10 @@ function initChart() {
     },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(15, 23, 42, 0.9)',
-      borderColor: 'rgba(100, 116, 139, 0.3)',
+      backgroundColor: amVar('--am-card-bg'),
+      borderColor: amVar('--am-card-border'),
       textStyle: {
-        color: '#e2e8f0'
+        color: amVar('--am-text')
       },
       formatter: function(params) {
         const data = params[0]
@@ -228,11 +229,11 @@ function initChart() {
       data: [],
       axisLine: {
         lineStyle: {
-          color: 'rgba(100, 116, 139, 0.3)'
+          color: amVar('--am-card-border')
         }
       },
       axisLabel: {
-        color: '#94a3b8',
+        color: amVar('--am-text-2'),
         fontSize: 10
       }
     },
@@ -240,16 +241,16 @@ function initChart() {
       type: 'value',
       axisLine: {
         lineStyle: {
-          color: 'rgba(100, 116, 139, 0.3)'
+          color: amVar('--am-card-border')
         }
       },
       axisLabel: {
-        color: '#94a3b8',
+        color: amVar('--am-text-2'),
         fontSize: 10
       },
       splitLine: {
         lineStyle: {
-          color: 'rgba(100, 116, 139, 0.1)'
+          color: amVar('--am-card-border-2')
         }
       }
     },
@@ -564,8 +565,8 @@ onUnmounted(() => {
 
 <style scoped>
 .feature-curve-panel {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
   overflow: hidden;
   padding: 16px;
@@ -583,7 +584,7 @@ onUnmounted(() => {
 .panel-title {
   font-size: 14px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .header-controls {
@@ -596,9 +597,9 @@ onUnmounted(() => {
 .chart-container {
   position: relative;
   height: 250px;
-  background: rgba(30, 41, 59, 0.3);
+  background: var(--am-card-bg-2);
   border-radius: 6px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
 }
 
 .chart {
@@ -616,7 +617,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 .no-data p {
@@ -626,7 +627,7 @@ onUnmounted(() => {
 
 .no-data .sub-text {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .stats-row {
@@ -635,20 +636,20 @@ onUnmounted(() => {
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(100, 116, 139, 0.2);
+  border-top: 1px solid var(--am-card-border-2);
 }
 
 .stat-item {
   text-align: center;
   padding: 8px;
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--am-card-bg-2);
   border-radius: 4px;
 }
 
 .stat-label {
   display: block;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   margin-bottom: 4px;
 }
 
@@ -656,15 +657,15 @@ onUnmounted(() => {
   display: block;
   font-size: 16px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .stat-value.max {
-  color: #ef4444;
+  color: var(--am-danger);
 }
 
 .stat-value.min {
-  color: #22c55e;
+  color: var(--am-ok);
 }
 
 .layer-indicator {
@@ -676,7 +677,7 @@ onUnmounted(() => {
 .debug-info {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid rgba(100, 116, 139, 0.2);
+  border-top: 1px solid var(--am-card-border-2);
 }
 
 @media (max-width: 768px) {

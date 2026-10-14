@@ -103,6 +103,7 @@
 </template>
 
 <script setup>
+import { amVar } from '@/utils/themeColor'
 import { computed, nextTick, ref, watch } from 'vue'
 import { ArrowLeft, ArrowRight, TrendCharts, Cpu } from '@element-plus/icons-vue'
 
@@ -208,25 +209,25 @@ const buildChartOption = () => {
       left: 'center',
       top: 12,
       textStyle: {
-        color: '#e2e8f0',
+        color: amVar('--am-text'),
         fontSize: 16,
         fontWeight: 600
       }
     },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderColor: 'rgba(0, 212, 255, 0.3)',
-      textStyle: { color: '#e2e8f0' },
+      backgroundColor: amVar('--am-card-bg'),
+      borderColor: amVar('--am-card-border'),
+      textStyle: { color: amVar('--am-text') },
       axisPointer: {
         type: 'cross',
-        lineStyle: { color: 'rgba(0, 212, 255, 0.3)' }
+        lineStyle: { color: amVar('--am-card-border') }
       }
     },
     legend: {
       data: ['监测点风险指标 W', '经济阈值 WL', '可靠性阈值 WR', '维修阈值上限 WU'],
       top: 44,
-      textStyle: { color: '#94a3b8' }
+      textStyle: { color: amVar('--am-text-2') }
     },
     grid: {
       left: 60,
@@ -240,19 +241,19 @@ const buildChartOption = () => {
       name: 'duration',
       nameLocation: 'middle',
       nameGap: 30,
-      nameTextStyle: { color: '#94a3b8' },
+      nameTextStyle: { color: amVar('--am-text-2') },
       data: data.duration,
-      axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.3)' } },
-      axisLabel: { color: '#94a3b8' },
-      splitLine: { show: true, lineStyle: { color: 'rgba(148, 163, 184, 0.1)' } }
+      axisLine: { lineStyle: { color: amVar('--am-card-border') } },
+      axisLabel: { color: amVar('--am-text-2') },
+      splitLine: { show: true, lineStyle: { color: amVar('--am-card-border-2') } }
     },
     yAxis: {
       type: 'value',
       name: '风险指标 W',
-      nameTextStyle: { color: '#94a3b8' },
-      axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.3)' } },
-      axisLabel: { color: '#94a3b8' },
-      splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.1)' } }
+      nameTextStyle: { color: amVar('--am-text-2') },
+      axisLine: { lineStyle: { color: amVar('--am-card-border') } },
+      axisLabel: { color: amVar('--am-text-2') },
+      splitLine: { lineStyle: { color: amVar('--am-card-border-2') } }
     },
     series: [
       {
@@ -338,10 +339,10 @@ defineExpose({
 
 <style>
 .maintenance-detail-dialog {
-  --el-dialog-bg-color: #0f172a !important;
+  --el-dialog-bg-color: var(--am-card-bg) !important;
   --el-dialog-box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
-  background: #0f172a !important;
-  border: 1px solid rgba(0, 212, 255, 0.35);
+  background: var(--am-card-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--am-accent) 35%, transparent);
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
@@ -350,31 +351,31 @@ defineExpose({
   --el-dialog-title-font-size: 16px;
   margin-right: 0;
   padding: 16px 20px;
-  background: #0f172a !important;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.25);
+  background: var(--am-card-bg) !important;
+  border-bottom: 1px solid var(--am-card-border);
 }
 
 .maintenance-detail-dialog .el-dialog__title {
-  color: #e2e8f0 !important;
+  color: var(--am-text) !important;
 }
 
 .maintenance-detail-dialog .el-dialog__footer {
-  background: #0f172a !important;
-  border-top: 1px solid rgba(100, 116, 139, 0.25);
+  background: var(--am-card-bg) !important;
+  border-top: 1px solid var(--am-card-border);
 }
 
 .maintenance-detail-dialog .el-dialog__body {
   padding: 20px;
-  background: #0f172a !important;
-  color: #e2e8f0;
+  background: var(--am-card-bg) !important;
+  color: var(--am-text);
 }
 
 .maintenance-detail-dialog .el-dialog__headerbtn .el-dialog__close {
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .maintenance-detail-dialog .el-dialog__headerbtn:hover .el-dialog__close {
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .detail-header {
@@ -387,11 +388,11 @@ defineExpose({
   margin: 0 0 4px;
   font-size: 18px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .detail-title .system-name {
-  color: #00d4ff;
+  color: var(--am-accent);
   margin-right: 6px;
 }
 
@@ -400,17 +401,17 @@ defineExpose({
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .detail-breadcrumb .el-icon {
   font-size: 12px;
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 .detail-panel {
-  background: rgba(30, 41, 59, 0.55);
-  border: 1px solid rgba(100, 116, 139, 0.28);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
   border-radius: 10px;
   padding: 18px;
   margin-bottom: 16px;
@@ -428,7 +429,7 @@ defineExpose({
   gap: 12px;
   margin-bottom: 14px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--am-accent) 10%, transparent);
 }
 
 .detail-panel-header h3 {
@@ -438,19 +439,19 @@ defineExpose({
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .detail-panel-header h3 .el-icon {
-  color: #00d4ff;
+  color: var(--am-accent);
 }
 
 .detail-chart-container {
   width: 100%;
   height: 420px;
   border-radius: 8px;
-  background: rgba(30, 41, 59, 0.3);
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  background: var(--am-card-bg-2);
+  border: 1px solid var(--am-card-border-2);
   overflow: hidden;
 }
 
@@ -461,7 +462,7 @@ defineExpose({
   gap: 20px;
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px solid rgba(100, 116, 139, 0.2);
+  border-top: 1px solid var(--am-card-border-2);
 }
 
 .detail-legend-item {
@@ -469,7 +470,7 @@ defineExpose({
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .detail-legend-line {
@@ -493,15 +494,15 @@ defineExpose({
 
 .detail-info-card {
   padding: 16px;
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--am-card-bg-2);
   border-radius: 10px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
   text-align: center;
 }
 
 .detail-info-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   margin-bottom: 8px;
 }
 
@@ -512,9 +513,9 @@ defineExpose({
 }
 
 .backend-tag {
-  background: rgba(0, 212, 255, 0.15) !important;
-  color: #00d4ff !important;
-  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  background: color-mix(in srgb, var(--am-accent) 18%, transparent) !important;
+  color: var(--am-accent) !important;
+  border: 1px solid color-mix(in srgb, var(--am-accent) 30%, transparent) !important;
 }
 
 @media (max-width: 900px) {

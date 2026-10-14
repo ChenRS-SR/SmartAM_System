@@ -2,9 +2,12 @@
   <div class="app-wrapper">
     <!-- 侧边栏（设备选择页不显示） -->
     <aside v-if="showSidebar" class="sidebar" :class="{ collapsed: isCollapsed }">
-      <div class="logo">
-        <el-icon size="32"><Cpu /></el-icon>
-        <span v-show="!isCollapsed" class="logo-text">SmartAM</span>
+      <div class="logo" :class="{ mini: isCollapsed }">
+        <template v-if="!isCollapsed">
+          <div class="brand-title"><span>增材制造</span><span>异常识别系统</span></div>
+          <div class="brand-ver">v1.0</div>
+        </template>
+        <div v-else class="brand-mini">增材</div>
       </div>
       
       <!-- 设备类型标识 -->
@@ -38,9 +41,16 @@
               <component :is="item.icon" />
             </el-icon>
             <span v-show="!isCollapsed" class="nav-text">{{ item.name }}</span>
+            <el-icon
+              v-if="item.children?.length && !isCollapsed"
+              class="nav-caret"
+              :class="{ closed: !isGroupOpen(item) }"
+              title="展开/收起"
+              @click.prevent.stop="toggleGroup(item)"
+            ><ArrowDown /></el-icon>
           </router-link>
 
-          <div v-if="item.children?.length && !isCollapsed" class="nav-children">
+          <div v-if="item.children?.length && !isCollapsed && isGroupOpen(item)" class="nav-children">
             <router-link
               v-for="child in item.children"
               :key="child.key || child.path"
@@ -118,6 +128,7 @@
 
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
+import { formingMenu } from './views/slm/forming/routes.js'
 import { useRoute, useRouter } from 'vue-router'
 import { useDataStore } from './stores/data'
 import { useResponsive } from './composables/useResponsive'
@@ -164,7 +175,7 @@ const slmDevicePath = (tab = 'status') => {
 
 // SLM 菜单：设备检测作为具体设备的二级工作区，三个子页面由 tab 区分。
 const slmMenuItems = computed(() => [
-  { key: 'slm-fleet', name: '设备群监测', path: '/slm/dashboard', icon: 'Grid' },
+  { key: 'slm-fleet', name: '设备群总览', path: '/slm/dashboard', icon: 'Grid' },
   {
     key: 'slm-device',
     name: '设备检测',
@@ -176,6 +187,8 @@ const slmMenuItems = computed(() => [
       { key: 'slm-device-health', name: '设备健康状态', path: slmDevicePath('health'), tab: 'health' },
     ]
   },
+  // 成形监测：逐层数据接入、异常识别与异常溯源，四个子页面见 views/slm/forming/routes.js
+  formingMenu('/slm/forming'),
   { key: 'slm-settings', name: '设置', path: '/slm/settings', icon: 'Setting' },
 ])
 
@@ -206,8 +219,27 @@ const isActive = (item) => {
   if (path.startsWith('/sls/device') && route.path.startsWith('/sls/device')) {
     return true
   }
+  if (item.key === 'slm-forming') {
+    return route.path.startsWith('/slm/forming')
+  }
   return route.path === path
 }
+
+// 二级菜单折叠：收起的分组记在 localStorage；进入某分组的页面时自动展开该分组
+const closedGroups = ref(new Set(JSON.parse(localStorage.getItem('nav-closed-groups') || '[]')))
+const saveClosedGroups = () => localStorage.setItem('nav-closed-groups', JSON.stringify([...closedGroups.value]))
+const isGroupOpen = (item) => !closedGroups.value.has(item.key)
+const toggleGroup = (item) => {
+  const s = new Set(closedGroups.value)
+  if (s.has(item.key)) s.delete(item.key)
+  else s.add(item.key)
+  closedGroups.value = s
+  saveClosedGroups()
+}
+watch(() => route.fullPath, () => {
+  const g = menuItems.value.find((item) => item.children?.length && (isActive(item) || item.children.some(isActive)))
+  if (g && closedGroups.value.has(g.key)) toggleGroup(g)
+})
 
 // 返回设备选择页
 const backToDeviceSelect = () => {
@@ -254,18 +286,19 @@ onMounted(async () => {
 .app-wrapper {
   display: flex;
   height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  color: #e2e8f0;
+  background: var(--am-page-bg);
+  color: var(--am-text);
 }
 
 /* 侧边栏 */
 .sidebar {
-  width: 240px;
-  background: rgba(15, 23, 42, 0.8);
-  border-right: 1px solid rgba(0, 212, 255, 0.2);
+  width: 232px;
+  background: var(--am-nav-bg);
+  color: var(--am-nav-text);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
+  flex: none;
 }
 
 .sidebar.collapsed {
@@ -273,132 +306,177 @@ onMounted(async () => {
 }
 
 .logo {
-  height: 64px;
+  padding: 18px 16px 16px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
-  color: #00d4ff;
+  border-bottom: 1px solid var(--am-nav-line);
 }
 
-.logo-text {
-  font-size: 20px;
-  font-weight: 600;
-  background: linear-gradient(90deg, #00d4ff, #00ff88);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.logo.mini {
+  padding: 18px 0;
+}
+
+.brand-title {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.brand-ver {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--am-gold);
+  border: 1px solid color-mix(in srgb, var(--am-gold) 60%, transparent);
+  border-radius: 10px;
+  padding: 0 8px;
+}
+
+.brand-mini {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--am-gold) 60%, transparent);
+  border-radius: 6px;
+  padding: 2px 4px;
 }
 
 /* 设备类型标识 */
 .device-badge {
   margin: 12px 16px 0;
-  padding: 6px 12px;
+  padding: 4px 12px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   font-size: 12px;
-  font-weight: 600;
-}
-
-.device-badge.fdm {
-  background: rgba(0, 212, 255, 0.15);
-  color: #00d4ff;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-}
-
-.device-badge.slm {
-  background: rgba(0, 255, 136, 0.15);
-  color: #00ff88;
-  border: 1px solid rgba(0, 255, 136, 0.3);
-}
-
-.device-badge.sls {
-  background: rgba(255, 149, 0, 0.15);
-  color: #ff9500;
-  border: 1px solid rgba(255, 149, 0, 0.3);
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--am-gold);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* 返回按钮区域 */
 .back-section {
-  padding: 8px 16px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  padding: 6px 12px 10px;
+  border-bottom: 1px solid var(--am-nav-line);
 }
 
 .back-section .el-button {
-  color: #94a3b8;
+  color: var(--am-nav-text-2);
   width: 100%;
   justify-content: flex-start;
 }
 
 .back-section .el-button:hover {
-  color: #00d4ff;
+  color: #fff;
+  background: var(--am-nav-hover);
 }
 
 .nav-menu {
   flex: 1;
-  padding: 16px 8px;
+  padding: 10px 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  overflow-y: auto;
 }
 
 .nav-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  color: #a0aec0;
+  padding: 12px 18px 12px 15px;
+  color: var(--am-nav-text);
   text-decoration: none;
-  transition: all 0.3s ease;
+  font-size: 16px;
+  border-left: 5px solid transparent;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar.collapsed .nav-item {
+  padding: 12px 0;
+  justify-content: center;
 }
 
 .nav-item:hover {
-  background: rgba(0, 212, 255, 0.1);
-  color: #00d4ff;
+  background: var(--am-nav-hover);
+  color: #fff;
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), transparent);
-  color: #00d4ff;
-  border-left: 3px solid #00d4ff;
+  background: var(--am-nav-bg-active);
+  color: #fff;
+  border-left-color: var(--am-gold);
+  font-weight: 700;
+}
+
+.nav-caret {
+  margin-left: auto;
+  font-size: 14px;
+  padding: 3px;
+  border-radius: 4px;
+  color: var(--am-nav-text-2);
+  transition: transform 0.2s ease;
+}
+
+.nav-caret:hover {
+  color: #fff;
+  background: var(--am-nav-hover);
+}
+
+.nav-caret.closed {
+  transform: rotate(-90deg);
 }
 
 .nav-children {
-  margin: 0 0 4px 22px;
-  padding-left: 12px;
-  border-left: 1px solid rgba(148, 163, 184, 0.22);
+  margin: 2px 0 6px 30px;
+  padding-left: 10px;
+  border-left: 1px solid var(--am-nav-line);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .nav-child {
-  min-height: 34px;
-  padding: 7px 10px;
-  border-radius: 6px;
-  color: #94a3b8;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  color: var(--am-nav-text-2);
   text-decoration: none;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   transition: color 0.2s ease, background 0.2s ease;
 }
 
-.nav-child:hover,
+.nav-child:hover {
+  color: #fff;
+  background: var(--am-nav-hover);
+}
+
 .nav-child.active {
-  color: #67e8f9;
-  background: rgba(34, 211, 238, 0.08);
+  color: #fff;
+  background: var(--am-nav-hover);
+  font-weight: 700;
+}
+
+.nav-child.active .nav-child-dot {
+  background: var(--am-gold);
+  opacity: 1;
 }
 
 .nav-child-dot {
@@ -410,37 +488,37 @@ onMounted(async () => {
 }
 
 .sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid rgba(0, 212, 255, 0.2);
+  padding: 14px 16px;
+  border-top: 1px solid var(--am-nav-line);
 }
 
 .connection-status {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  color: #ff4d4f;
+  font-size: 13px;
+  color: #f08a87;
 }
 
 .connection-status.connected {
-  color: #00ff88;
+  color: #8fd3a9;
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ff4d4f;
+  background: #e0605c;
 }
 
 .connection-status.connected .status-dot {
-  background: #00ff88;
-  box-shadow: 0 0 8px #00ff88;
+  background: #2fa35a;
+  box-shadow: 0 0 0 3px rgba(47, 163, 90, 0.25);
 }
 
 .connection-hint {
-  font-size: 10px;
-  color: #64748b;
+  font-size: 11px;
+  color: var(--am-nav-text-2);
   margin-top: 4px;
   padding-left: 16px;
 }
@@ -451,6 +529,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
 }
 
 .main-content.full-width {
@@ -458,25 +537,30 @@ onMounted(async () => {
 }
 
 .header {
-  height: 64px;
-  background: rgba(15, 23, 42, 0.6);
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  height: 58px;
+  background: var(--am-header-bg);
+  border-bottom: 1px solid var(--am-card-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 20px;
+  flex: none;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+}
+
+.header .el-button {
+  color: var(--am-text-2);
 }
 
 .page-title {
-  font-size: 18px;
-  font-weight: 500;
-  color: #e2e8f0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--am-text);
 }
 
 .header-right {
@@ -487,7 +571,7 @@ onMounted(async () => {
 
 .page-container {
   flex: 1;
-  padding: 24px;
+  padding: 16px 20px;
   overflow: auto;
 }
 

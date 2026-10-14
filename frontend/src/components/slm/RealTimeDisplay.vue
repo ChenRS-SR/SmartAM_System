@@ -405,9 +405,9 @@ function getROILabelStyle(roi) {
   display: flex;
   gap: 20px;
   padding: 12px 16px;
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--am-card-bg);
   border-radius: 8px;
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  border: 1px solid var(--am-card-border);
 }
 
 .status-item {
@@ -415,41 +415,41 @@ function getROILabelStyle(roi) {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .status-item.connected {
-  color: #22c55e;
+  color: var(--am-ok);
 }
 
 .status-item.waiting {
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .status-item.stored {
-  color: #38bdf8;
+  color: var(--am-accent);
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--am-danger);
 }
 
 .status-item.connected .status-dot {
-  background: #22c55e;
-  box-shadow: 0 0 8px #22c55e;
+  background: var(--am-ok);
+  box-shadow: 0 0 8px var(--am-ok);
 }
 
 .status-item.waiting .status-dot {
-  background: #64748b;
+  background: var(--am-card-bg-2);
   box-shadow: none;
 }
 
 .status-item.stored .status-dot {
-  background: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+  background: var(--am-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--am-accent) 80%, transparent);
 }
 
 /* 视频网格 - 三个并排 */
@@ -460,8 +460,8 @@ function getROILabelStyle(roi) {
 }
 
 .video-panel {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -472,8 +472,8 @@ function getROILabelStyle(roi) {
 }
 
 .video-panel.connected {
-  border-color: rgba(34, 197, 94, 0.5);
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.1);
+  border-color: color-mix(in srgb, var(--am-ok) 50%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--am-ok) 10%, transparent);
 }
 
 .panel-header {
@@ -481,14 +481,14 @@ function getROILabelStyle(roi) {
   justify-content: space-between;
   align-items: center;
   padding: 10px 12px;
-  background: rgba(30, 41, 59, 0.5);
-  border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+  background: var(--am-card-bg-2);
+  border-bottom: 1px solid var(--am-card-border-2);
 }
 
 .panel-title {
   font-size: 14px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .panel-badges {
@@ -501,7 +501,7 @@ function getROILabelStyle(roi) {
 .video-container {
   position: relative;
   aspect-ratio: 4/3;
-  background: #0f172a;
+  background: var(--am-card-bg);
   overflow: hidden;
 }
 
@@ -540,35 +540,35 @@ function getROILabelStyle(roi) {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #64748b;
+  color: var(--am-text-3);
 }
 
 .video-placeholder.error {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--am-danger) 13%, transparent);
+  color: var(--am-danger);
 }
 
 .video-placeholder .sub-text {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .video-placeholder.error .sub-text {
-  color: #f87171;
+  color: var(--am-danger);
 }
 
 /* ROI覆盖层 */
 .roi-overlay {
-  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.5), 0 0 10px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--am-danger) 50%, transparent), 0 0 10px color-mix(in srgb, var(--am-danger) 30%, transparent);
   animation: roi-pulse 2s ease-in-out infinite;
 }
 
 @keyframes roi-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.5), 0 0 10px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--am-danger) 50%, transparent), 0 0 10px color-mix(in srgb, var(--am-danger) 30%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.7), 0 0 15px rgba(239, 68, 68, 0.5);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--am-danger) 70%, transparent), 0 0 15px color-mix(in srgb, var(--am-danger) 50%, transparent);
   }
 }
 
@@ -583,8 +583,8 @@ function getROILabelStyle(roi) {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(30, 41, 59, 0.5);
-  border-top: 1px solid rgba(100, 116, 139, 0.2);
+  background: var(--am-card-bg-2);
+  border-top: 1px solid var(--am-card-border-2);
 }
 
 .temp-item {
@@ -596,7 +596,7 @@ function getROILabelStyle(roi) {
 
 .temp-label {
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--am-text-2);
 }
 
 .temp-value {
@@ -604,9 +604,9 @@ function getROILabelStyle(roi) {
   font-weight: 600;
 }
 
-.temp-max { color: #ef4444; }
-.temp-min { color: #3b82f6; }
-.temp-avg { color: #22c55e; }
+.temp-max { color: var(--am-danger); }
+.temp-min { color: var(--am-accent); }
+.temp-avg { color: var(--am-ok); }
 
 @media (max-width: 1200px) {
   .video-grid {

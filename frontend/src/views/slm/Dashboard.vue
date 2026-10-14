@@ -1374,13 +1374,13 @@ onUnmounted(() => {
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
   margin: 0;
 }
 
 .device-subtitle {
   margin-top: 6px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 13px;
 }
 
@@ -1404,26 +1404,26 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #f8fafc;
+  color: var(--am-text);
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .header-status-pill.success {
-  background: rgba(34, 197, 94, 0.22);
-  border: 1px solid rgba(34, 197, 94, 0.48);
+  background: color-mix(in srgb, var(--am-ok) 24%, transparent);
+  border: 1px solid color-mix(in srgb, var(--am-ok) 48%, transparent);
 }
 
 .header-status-pill.warning {
-  background: rgba(245, 158, 11, 0.24);
-  border: 1px solid rgba(245, 158, 11, 0.5);
+  background: color-mix(in srgb, var(--am-warn) 26%, transparent);
+  border: 1px solid color-mix(in srgb, var(--am-warn) 50%, transparent);
 }
 
 .header-status-pill.info {
-  background: rgba(100, 116, 139, 0.26);
-  border: 1px solid rgba(148, 163, 184, 0.32);
-  color: #cbd5e1;
+  background: var(--am-card-bg-2);
+  border: 1px solid var(--am-card-border);
+  color: var(--am-text);
 }
 
 .device-switch {
@@ -1439,9 +1439,9 @@ onUnmounted(() => {
 .subpage-header {
   min-height: 72px;
   padding: 14px 16px;
-  border: 1px solid rgba(100, 116, 139, 0.28);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--am-card-bg);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1450,14 +1450,14 @@ onUnmounted(() => {
 
 .subpage-header h2 {
   margin: 0;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-size: 18px;
   font-weight: 600;
 }
 
 .subpage-header p {
   margin: 6px 0 0;
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 13px;
 }
 
@@ -1478,16 +1478,16 @@ onUnmounted(() => {
 
 .parameter-panel {
   padding: 16px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
 }
 
 .stored-source-panel {
   min-height: 76px;
   padding: 16px;
-  background: rgba(14, 116, 144, 0.16);
-  border: 1px solid rgba(56, 189, 248, 0.34);
+  background: var(--am-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--am-accent) 34%, transparent);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -1503,20 +1503,20 @@ onUnmounted(() => {
 }
 
 .stored-source-panel strong {
-  color: #e0f2fe;
+  color: var(--am-text);
   font-size: 15px;
 }
 
 .stored-source-panel span {
-  color: #bae6fd;
+  color: var(--am-text-2);
   font-size: 13px;
 }
 
 .mock-vision-panel {
   min-height: 76px;
   padding: 14px 16px;
-  background: rgba(21, 128, 61, 0.14);
-  border: 1px solid rgba(34, 197, 94, 0.32);
+  background: var(--am-ok-soft);
+  border: 1px solid color-mix(in srgb, var(--am-ok) 32%, transparent);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -1532,12 +1532,12 @@ onUnmounted(() => {
 }
 
 .mock-vision-copy strong {
-  color: #dcfce7;
+  color: var(--am-text);
   font-size: 15px;
 }
 
 .mock-vision-copy span {
-  color: #bbf7d0;
+  color: var(--am-text-2);
   font-size: 13px;
 }
 
@@ -1555,7 +1555,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
-  color: #e2e8f0;
+  color: var(--am-text);
   font-weight: 600;
 }
 
@@ -1569,8 +1569,8 @@ onUnmounted(() => {
   min-height: 76px;
   padding: 10px 12px;
   border-radius: 6px;
-  border: 1px solid rgba(100, 116, 139, 0.22);
-  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid var(--am-card-border-2);
+  background: var(--am-card-bg-2);
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-rows: auto 1fr;
@@ -1580,20 +1580,20 @@ onUnmounted(() => {
 
 .parameter-name {
   grid-column: 1 / -1;
-  color: #94a3b8;
+  color: var(--am-text-2);
   font-size: 12px;
 }
 
 .parameter-value {
   min-width: 0;
-  color: #f8fafc;
+  color: var(--am-text);
   font-size: 22px;
   line-height: 1.1;
   overflow-wrap: anywhere;
 }
 
 .parameter-unit {
-  color: #64748b;
+  color: var(--am-text-3);
   font-size: 12px;
   padding-bottom: 2px;
 }

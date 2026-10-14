@@ -389,8 +389,8 @@ onMounted(async () => {
 
 <style scoped>
 .roi-config-panel {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
   border-radius: 8px;
   padding: 16px;
 }
@@ -401,18 +401,18 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+  border-bottom: 1px solid var(--am-card-border-2);
 }
 
 .panel-title {
   font-size: 14px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .section-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   margin-bottom: 8px;
 }
 
@@ -431,7 +431,7 @@ onMounted(async () => {
 
 .file-hint {
   font-size: 11px;
-  color: #64748b;
+  color: var(--am-text-3);
   margin-top: 4px;
 }
 
@@ -449,20 +449,20 @@ onMounted(async () => {
 
 .roi-item {
   padding: 10px 12px;
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  background: var(--am-card-bg-2);
+  border: 1px solid var(--am-card-border-2);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .roi-item:hover {
-  background: rgba(30, 41, 59, 0.8);
+  background: var(--am-card-bg);
 }
 
 .roi-item.active {
-  border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--am-accent);
+  background: color-mix(in srgb, var(--am-accent) 13%, transparent);
 }
 
 .roi-info {
@@ -475,20 +475,20 @@ onMounted(async () => {
 .roi-name {
   font-size: 13px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .roi-type {
   font-size: 11px;
-  color: #94a3b8;
-  background: rgba(100, 116, 139, 0.2);
+  color: var(--am-text-2);
+  background: var(--am-card-bg-2);
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 .roi-coords {
   font-size: 11px;
-  color: #64748b;
+  color: var(--am-text-3);
   font-family: monospace;
 }
 
@@ -498,7 +498,7 @@ onMounted(async () => {
 
 .feature-section :deep(.el-checkbox) {
   margin-right: 16px;
-  color: #e2e8f0;
+  color: var(--am-text);
 }
 
 .feature-section :deep(.el-checkbox__label) {
@@ -508,14 +508,14 @@ onMounted(async () => {
 .display-section {
   margin-bottom: 16px;
   padding: 12px;
-  background: rgba(30, 41, 59, 0.3);
+  background: var(--am-card-bg-2);
   border-radius: 6px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid var(--am-card-border-2);
 }
 
 .display-hint {
   font-size: 11px;
-  color: #64748b;
+  color: var(--am-text-3);
   margin-top: 8px;
 }
 
@@ -526,9 +526,9 @@ onMounted(async () => {
 }
 
 .example-collapse {
-  --el-collapse-border-color: rgba(100, 116, 139, 0.2);
+  --el-collapse-border-color: var(--am-card-border-2);
   --el-collapse-header-bg-color: transparent;
-  --el-collapse-header-text-color: #94a3b8;
+  --el-collapse-header-text-color: var(--am-text-2);
   --el-collapse-content-bg-color: transparent;
 }
 
@@ -542,12 +542,12 @@ onMounted(async () => {
 }
 
 .config-example {
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-card-border);
   border-radius: 4px;
   padding: 12px;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--am-text-2);
   overflow-x: auto;
   margin: 0;
 }
