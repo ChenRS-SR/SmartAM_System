@@ -1,0 +1,16 @@
+[
+  {
+    "part_id": 1,
+    "name": "叶轮 SLM-01",
+    "fill_power": 200,
+    "fill_speed": 1000,
+    "scan_spacing": 0.1
+  },
+  {
+    "part_id": 2,
+    "name": "涡轮盘 SLM-02",
+    "fill_power": 180,
+    "fill_speed": 1200,
+    "scan_spacing": 0.08
+  }
+]

@@ -159,6 +159,10 @@
           />
         </div>
 
+        <div class="slm-control-section">
+          <SlmControlPanel />
+        </div>
+
         <div class="feature-curve-section">
           <FeatureCurvePanel
             :current-layer="currentLayerInfo.number"
@@ -217,6 +221,7 @@ import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
 import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
 import RegulationControl from '../../components/slm/RegulationControl.vue'
 import FeatureCurvePanel from '../../components/slm/FeatureCurvePanel.vue'
+import SlmControlPanel from '../../components/slm/SlmControlPanel.vue'
 import MaintenanceDecisionPanel from '../../components/common/MaintenanceDecisionPanel.vue'
 import MaintenanceDetailDialog from '../../components/common/MaintenanceDetailDialog.vue'
 import FormingPanel from './forming/FormingPanel.vue'
@@ -1483,6 +1488,7 @@ onUnmounted(() => {
 
 .realtime-section,
 .regulation-section,
+.slm-control-section,
 .feature-curve-section,
 .health-section,
 .maintenance-section {

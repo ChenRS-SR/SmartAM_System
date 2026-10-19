@@ -93,6 +93,14 @@ try:
 except ImportError as e:
     print(f"[API] 成形监测模块导入失败: {e}")
 
+# SLM 闭环调控（参数监控 + 闭环反馈），模块在 backend/slm_control/
+try:
+    from slm_control import router as slm_control_router
+    router.include_router(slm_control_router)
+    print("[API] SLM闭环调控路由已注册: /api/slm/control/*")
+except ImportError as e:
+    print(f"[API] SLM闭环调控模块导入失败: {e}")
+
 # 健康检查
 @router.get("/health")
 async def health_check():

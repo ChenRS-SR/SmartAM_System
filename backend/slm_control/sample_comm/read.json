@@ -1,0 +1,15 @@
+{
+  "trigger": "pre_print",
+  "event": "parameter_sync",
+  "layer": 0,
+  "device_id": "8",
+  "job_name": "SLM_Job",
+  "timestamp": "2026-10-20 10:00:00",
+  "source": "SLM_Job",
+  "parameters": {
+    "fill_power": 200.0,
+    "fill_speed": 1000.0,
+    "scan_spacing": 0.1,
+    "powder_feed_rate": 5.0
+  }
+}

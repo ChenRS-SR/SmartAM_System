@@ -1,0 +1,37 @@
+{
+  "command_id": 7,
+  "data": {
+    "type": "detection_feedback",
+    "trigger": "post_detection",
+    "layer": 0,
+    "job_name": "manual",
+    "device_id": "camera_system",
+    "result_time": "2026-07-14 12:52:29",
+    "powder_insufficient": false,
+    "warpage": false,
+    "blade_damage": false,
+    "confidence": {
+      "powder_insufficient": 0.0,
+      "warpage": 0.0,
+      "blade_damage": 0.0
+    },
+    "action": "continue",
+    "recommended_action": "adjust_continue",
+    "blade_damage_alarm": false,
+    "stop_print": false,
+    "powder_multiplier": 1.0,
+    "recommended_powder_multiplier": 1.0,
+    "compensation": {
+      "fill_power": 130.0,
+      "fill_speed": 800.0,
+      "scan_spacing": 0.2
+    },
+    "message": "手动调整参数",
+    "defect_count": 0,
+    "defect_summary": "",
+    "coordinate_dry_run": false,
+    "defect_coordinate_unit": "mm",
+    "defect_coordinate_space": "galvo",
+    "defects": []
+  }
+}
