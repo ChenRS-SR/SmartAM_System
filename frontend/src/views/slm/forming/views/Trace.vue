@@ -1,14 +1,15 @@
 <template>
-  <div v-if="d" class="page">
+  <div v-if="d" class="page analysis-page trace-page">
     <div class="row-top">
       <Region kind="input" title="监测数据" class="r-input">
         <div class="fields">
           <div class="field"><span class="k">设备</span>
-            <select class="sel" :value="state.device" :disabled="embedded || stepper.running.value" @change="switchDevice($event.target.value)">
+            <select class="sel" :value="replaySession ? d.device.id : state.device" :disabled="embedded || stepper.running.value" @change="switchDevice($event.target.value)">
               <option v-for="x in devs" :key="x.id" :value="x.id">{{ x.name }}</option></select></div>
           <div class="field"><span class="k">成形任务</span><select class="sel" disabled><option>{{ d.task.name }}</option></select></div>
           <div class="field"><span class="k">成形层</span>
-            <select class="sel" :value="d.layer" :disabled="stepper.running.value || layers.length < 2" @change="run(+$event.target.value)">
+            <select class="sel" :value="d.layer" :disabled="!!replaySession || stepper.running.value || layers.length < 2" @change="run(+$event.target.value)">
+              <option v-if="replaySession" :value="d.layer">第 {{ d.layer }} 层</option>
               <option v-for="L in layers" :key="L" :value="L">第 {{ L }} 层</option></select></div>
           <div class="field"><span class="k">参照层</span><select class="sel" disabled><option>第 {{ d.refLayer }} 层</option></select></div>
         </div>
@@ -16,17 +17,20 @@
       <Region kind="param" title="溯源参数" class="r-param">
         <div class="fields one">
           <div class="field"><span class="k">零件区边缘邻域</span>
-            <input class="inp" type="number" min="0" max="40" step="1" :value="d.params.bandPx" :disabled="replay" @change="setBand($event.target.value)" />
+            <input class="inp" type="number" min="0" max="40" step="1" :value="d.params.bandPx" :disabled="replay || d.mode === 'dual'" @change="setBand($event.target.value)" />
             <span class="k">像素</span></div>
           <div class="field"><span class="k">参照层选取</span>
-            <select class="sel" :value="state.trace.refMode" :disabled="replay" @change="setRefMode($event.target.value)">
+            <select class="sel" :value="d.mode === 'dual' ? d.refMode : state.trace.refMode" :disabled="replay || d.mode === 'dual'" @change="setRefMode($event.target.value)">
               <option value="prev_normal">前序最近正常层</option><option value="manual">指定层</option></select>
-            <input v-if="state.trace.refMode === 'manual'" class="inp ref-inp" type="number" :value="state.trace.refLayer ?? d.refLayer"
+            <input v-if="d.mode !== 'dual' && state.trace.refMode === 'manual'" class="inp ref-inp" type="number" :value="state.trace.refLayer ?? d.refLayer"
               @change="setRefLayer($event.target.value)" /></div>
         </div>
       </Region>
       <Region kind="op" title="操作" class="r-op">
-        <div class="ops">
+        <div v-if="replaySession" class="ops replay-ops">
+          <span>{{ replaySession.playing ? '采集中' : '采集暂停' }}</span><span>随采集数据更新</span>
+        </div>
+        <div v-else class="ops">
           <button class="btn primary" :disabled="busy || stepper.running.value" @click="run(d.layer)">单层溯源</button>
           <button class="btn" :disabled="replay" @click="toggleStep">{{ stepper.running.value ? '停止溯源' : '逐层溯源' }}</button>
         </div>
@@ -64,6 +68,7 @@
               <span class="z-tag" :class="z.over ? 'on' : 'off'">{{ z.over ? '超过' : '未超过' }}</span>
             </div>
           </div>
+          <div v-if="replaySession && d.mode !== 'dual'" class="replay-note">工艺侧分析暂无数据，当前显示设备侧分析。</div>
           <div class="hint">任一区的贡献超过上限水平，判定该类诱发异常得到体现，超过的区为支撑区域；总改变量为两区贡献之和</div>
         </div>
 
@@ -88,12 +93,15 @@
         </div>
 
         <div class="card c-curve">
-          <div class="card-title">{{ d.mode === 'dual' ? '逐层两类诱发异常概率上较大区的贡献' : '逐层设备诱发异常概率上的贡献' }}</div>
+          <div class="card-title">逐层工艺侧与设备侧因果贡献</div>
+          <div class="curve-note">最近 {{ TRACE_WINDOW_SIZE }} 层（{{ curveStart }}–{{ d.layer }} 层） · 各侧取零件区与粉床区贡献的较大值。<template v-if="!hasProcessCurve">工艺侧暂无有效逐层结果，暂不绘制曲线。</template></div>
           <EChart :option="curveOption" class="chart" />
         </div>
 
         <div class="card c-rec">
           <div class="card-title">逐层溯源记录</div>
+          <!-- 窄屏下仅记录表局部滚动，保留所有字段。 -->
+          <div class="table-scroll" tabindex="0" role="region" aria-label="逐层溯源记录表格">
           <table class="tbl">
             <thead v-if="d.mode === 'dual'"><tr><th>层号</th><th>工艺较大区</th><th>设备较大区</th><th>结论</th></tr></thead>
             <thead v-else><tr><th>层号</th><th>零件区</th><th>粉床区</th><th>总改变量</th><th>结论</th></tr></thead>
@@ -111,34 +119,40 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </Region>
   </div>
-  <div v-else class="loading">正在溯源…</div>
+  <div v-else class="loading">{{ replaySession ? '当前时刻尚无可用溯源结果，等待完整层图像与正常参照层。' : '正在溯源…' }}</div>
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref, watch } from 'vue'
 import Region from '../components/Region.vue'
 import EChart from '../components/EChart.vue'
 import { api, mediaUrl } from '../api.js'
 import { devicesFor, selectDevice, state } from '../state.js'
 import { fmtPct, useCall, useStepper } from '../composables.js'
 import { pal } from '../theme.js'
+import { factorCurveRows } from '../traceCurve.js'
+import { layerWindow, TRACE_WINDOW_SIZE } from '../rollingWindow.js'
 
 const embedded = inject('formingEmbedded', false)
+const replaySession = inject('formingReplay', null)
 const { busy, call, report } = useCall()
 const stepper = useStepper(1500)
 const d = ref(null)
+// 回放设备从工作区共享快照读取，跳转时清空旧结果，不再启动页面各自的计时器。
+if (replaySession) watch(() => replaySession.snapshot?.trace, value => { d.value = value || null }, { immediate: true })
 const layers = ref([])
-const devs = computed(() => devicesFor('trace'))
+const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : devicesFor('trace'))
 const replay = computed(() => !!d.value.replay)
 
 async function run(layer) {
   const t = state.trace
   const r = await call(() => api.trace({ device_id: state.device, layer: layer ?? state.layer[state.device] ?? null,
-    band_px: t.bandPx, ref_mode: t.refMode, ref_layer: t.refMode === 'manual' ? t.refLayer : null, n_records: 5 }))
+    band_px: t.bandPx, ref_mode: t.refMode, ref_layer: t.refMode === 'manual' ? t.refLayer : null, n_records: 5, n_curve: TRACE_WINDOW_SIZE }))
   if (!r) return false
   d.value = r
   state.layer[state.device] = r.layer
@@ -162,7 +176,7 @@ function toggleStep() {
   else stepper.start(layers.value, d.value.layer, (L) => run(L))
 }
 function switchDevice(id) { selectDevice(id); d.value = null; layers.value = []; state.trace.bandPx = null; run() }
-onMounted(() => run())
+onMounted(() => { if (!replaySession) run() })
 
 const imgUrl = computed(() => mediaUrl(d.value.image.url, 1200))
 const viewBox = computed(() => {
@@ -174,7 +188,7 @@ const part = computed(() => toPts(d.value.partContours, d.value.image.width, d.v
 const band = computed(() => toPts(d.value.bandContours, d.value.image.width, d.value.image.height))
 const groups = computed(() => {
   const f = d.value.factors
-  const g = [{ key: 'dev', ...f.dev }, { key: 'proc', ...f.proc }]
+  const g = [{ key: 'dev', ...f.dev }, ...(f.proc ? [{ key: 'proc', ...f.proc }] : [])]
   const m = Math.max(...g.flatMap((q) => [...q.zones.map((z) => z.v), q.upper])) * 1.08
   const w = (v) => Math.max(v, 0) / m * 100
   return g.map((q) => ({ ...q, wTh: w(q.upper), zones: q.zones.map((z) => ({ ...z, w: w(z.v) })) }))
@@ -182,54 +196,48 @@ const groups = computed(() => {
 const upDev = computed(() => d.value.factors.dev.upper)
 const upperText = computed(() => {
   const f = d.value.factors
+  if (!f.proc) return f.dev.upper.toFixed(2)
   return f.dev.upper === f.proc.upper ? f.dev.upper.toFixed(2) : `工艺 ${f.proc.upper.toFixed(2)}　设备 ${f.dev.upper.toFixed(2)}`
 })
 const zoneText = (z) => (z && z.length ? z.join('、') : '无')
 const mx = (a, b) => Math.max(a, b)
 const probs = computed(() => [
-  { name: '工艺诱发异常概率', v: d.value.factors.proc.prob, color: 'var(--proc)' },
+  ...(d.value.factors.proc ? [{ name: '工艺诱发异常概率', v: d.value.factors.proc.prob, color: 'var(--proc)' }] : []),
   { name: '设备诱发异常概率', v: d.value.factors.dev.prob, color: 'var(--dev)' },
 ])
 const verdictCls = computed(() => ({ '由二者共同诱发': 'v-both', '由工艺因素诱发': 'v-proc', '由设备因素诱发': 'v-dev' }[d.value.conclusion] || 'v-nor'))
 const tagCls = (r) => ({ '由二者共同诱发': 't-both', '由工艺因素诱发': 't-proc', '由设备因素诱发': 't-dev' }[r] || 't-nor')
 const tagTxt = (r) => ({ '由二者共同诱发': '二者共同', '由工艺因素诱发': '工艺因素', '由设备因素诱发': '设备因素' }[r] || '未见异常')
+const visibleFactors = computed(() => layerWindow(factorCurveRows(d.value), d.value.layer))
+const curveStart = computed(() => Math.max(1, d.value.layer - TRACE_WINDOW_SIZE + 1))
+const hasProcessCurve = computed(() => visibleFactors.value.some(r => r.proc !== null))
 
 const curveOption = computed(() => {
   const P = pal.value
   const C = P
   const axisFont = { fontSize: 16, color: P.axis }
   const cv = d.value.curve
-  const L = cv.layers
-  const x0 = L.length ? L[0].layer : cv.from
-  const x1 = L.length ? L[L.length - 1].layer : cv.to
-  const lo = Math.floor(x0 / 5) * 5
-  const hi = Math.ceil((x1 + 3) / 5) * 5
+  const lo = curveStart.value
+  const hi = d.value.layer
   const cur = { silent: true, symbol: 'none', data: [{ xAxis: d.value.layer, lineStyle: { color: P.ink, width: 1.4 },
     label: { show: true, color: P.text, formatter: '当前层', fontSize: 15, position: 'end', distance: 2 } }] }
   const lim = (name, v, color, type) => ({ name, type: 'line', symbol: 'none', z: 5, lineStyle: { width: 1.8, color, type }, itemStyle: { color },
     data: [[lo, v], [hi, v]] })
-  const series = d.value.mode === 'dual'
-    ? [
+  const factors = visibleFactors.value
+  const series = [
         { name: '工艺侧', type: 'line', showSymbol: false, lineStyle: { width: 1.6, color: C.proc }, itemStyle: { color: C.proc },
-          data: L.map((x) => [x.layer, mx(x.proc_part, x.proc_powder)]), markLine: cur },
+          data: factors.map((x) => [x.layer, x.proc]), connectNulls: false },
         { name: '设备侧', type: 'line', showSymbol: false, lineStyle: { width: 1.6, color: C.dev }, itemStyle: { color: C.dev },
-          data: L.map((x) => [x.layer, mx(x.dev_part, x.dev_powder)]) },
-        lim('工艺上限水平', cv.upper.proc, P.upperProc, 'dashed'),
+          data: factors.map((x) => [x.layer, x.dev]), markLine: cur },
+        ...(hasProcessCurve.value ? [lim('工艺上限水平', cv.upper.proc, P.upperProc, 'dashed')] : []),
         lim('设备上限水平', cv.upper.dev, P.upperDev, 'dotted'),
-      ]
-    : [
-        { name: '零件区', type: 'line', symbol: 'circle', symbolSize: 5, lineStyle: { width: 1.8, color: C.proc }, itemStyle: { color: C.proc },
-          data: L.map((x) => [x.layer, x.part]), markLine: cur },
-        { name: '粉床区', type: 'line', symbol: 'circle', symbolSize: 5, lineStyle: { width: 1.8, color: C.dev }, itemStyle: { color: C.dev },
-          data: L.map((x) => [x.layer, x.powder]) },
-        lim('上限水平', cv.upper.dev, P.upper, 'dashed'),
       ]
   return {
     animation: false,
     grid: { left: 50, right: 24, top: 52, bottom: 46 },
     legend: { top: 0, left: 'center', itemWidth: 26, itemHeight: 10, textStyle: { fontSize: 16, color: P.text } },
     xAxis: { type: 'value', min: lo, max: hi, name: '层号', nameLocation: 'middle', nameGap: 26,
-      nameTextStyle: axisFont, axisLabel: { ...axisFont, formatter: (v) => String(v) }, splitLine: { show: false } },
+      minInterval: 1, nameTextStyle: axisFont, axisLabel: { ...axisFont, hideOverlap: true, formatter: (v) => String(v) }, splitLine: { show: false } },
     yAxis: { type: 'value', name: '贡献', nameTextStyle: { ...axisFont, align: 'left' }, nameGap: 10, axisLabel: axisFont, splitNumber: 4,
       splitLine: { lineStyle: { color: P.split } } },
     series,
@@ -308,6 +316,7 @@ const curveOption = computed(() => {
 .c-res.dense .kv.ev { margin-top: 5px; }
 .c-res.dense .ev-lines { line-height: 1.3; }
 .c-curve { grid-column: 1 / 3; }
+.curve-note { font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
 .tbl { font-size: 15px; }
 .tbl th { padding: 4px 3px; }
 .tbl td { padding: 5px 3px; }

@@ -32,5 +32,5 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.shell { position: relative; height: 100%; min-height: 720px; min-width: 1180px; background: var(--page-bg); }
+.shell { position: relative; min-height: 720px; min-width: 0; width: 100%; background: var(--page-bg); }
 </style>

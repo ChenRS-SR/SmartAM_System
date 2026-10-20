@@ -18,6 +18,7 @@ from . import config
 from .engine import Recognizer
 from .engine import preprocess as P
 from .sources.site_replay import SiteReplaySource
+from trace_results import DualTraceResults
 
 MOD_NAMES = {'vis': '铺粉后图像', 'tq': '刮刀与平台扭矩'}
 ACTIONS = {'dev': '检修刮刀与供粉机构', 'proc': '调整工艺参数'}
@@ -287,6 +288,10 @@ class Device:
             return self._trace_pack(layer, n_curve, n_records)
         layer = self.check_layer(layer if layer is not None else self.cursor())
         tc = self.cfg['trace']
+        if tc.get('dual_pack'):
+            if band_px not in (None, tc['band_px']) or ref_mode != 'prev_normal':
+                raise ApiError(422, '已归档双输出结果采用固定边缘邻域及前序最近正常层')
+            return self._trace_dual(layer, n_curve, n_records)
         band_px = int(tc['band_px'] if band_px is None else band_px)
         if not 0 <= band_px <= 40:
             raise ApiError(422, '边缘邻域应在 0～40 像素之间')
@@ -321,6 +326,30 @@ class Device:
         }
         self.log('异常溯源', layer, f'第{layer}层 {res["conclusion"]}' + (f'，处置对象：{"、".join(res["actions"])}' if res['actions'] else ''))
         return out
+
+    def _trace_dual(self, layer: int, n_curve: int, n_records: int) -> dict:
+        """接入同设备同任务双输出结果，避免将旧单输出模型当作两侧输出。"""
+        if not hasattr(self, '_dual'):
+            self._dual = DualTraceResults(config.PACK_DIR / self.cfg['trace']['dual_pack'])
+        row = self._dual.rows[layer]
+        if 'ref' not in row:
+            raise ApiError(409, '当前层之前没有被判为正常的层，无法选取参照层')
+        part, band = self._masks(layer, self._dual.pack['bandPx'])
+        x0, y0, x1, y1 = self.rec.crop
+        scale = min(224 / (y1 - y0), 224 / (x1 - x0))
+        nh, nw = round((y1 - y0) * scale), round((x1 - x0) * scale)
+        history = [r for r in self._dual.pack['layers'] if 'ref' in r and layer - n_curve < r['layer'] <= layer]
+        result = self._dual.apply({
+            'device': {'id': self.id, 'name': self.cfg['name']}, 'task': self.task_public(),
+            'layer': layer, 'time': self.layer_time(layer),
+            'image': {'url': f'media/{self.id}/{self.task_cfg["id"]}/{layer}/model_view', 'width': 896, 'height': 896,
+                      'content': [(224 - nw) // 2 / 224, (224 - nh) // 2 / 224, nw / 224, nh / 224]},
+            'partContours': P.contours(part), 'bandContours': P.contours(band),
+            'curve': {'from': layer - n_curve + 1, 'to': layer, 'layers': history},
+            'records': history[::-1][:n_records],
+        }, layer)
+        self.log('异常溯源', layer, f'第{layer}层 {result["conclusion"]}')
+        return result
 
     def trace_curve(self, layer: int, band_px: int, n: int = 41) -> dict:
         """当前层及之前若干层在设备诱发异常概率上的两区贡献（参照层规则同上）。"""

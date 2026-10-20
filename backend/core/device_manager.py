@@ -107,7 +107,8 @@ class DeviceManager:
             self._fdm_acquisition.stop()
             self._fdm_acquisition.disconnect_all_devices()
         elif self._current_type == DeviceType.SLS and self._sls_acquisition:
-            self._sls_acquisition.disconnect_all()
+            # SLS 通过 cleanup 停止采集并释放全部传感器连接。
+            self._sls_acquisition.cleanup()
         
         self._initialized = False
         logging.info(f"[DeviceManager] {self._current_type.value} 设备已停止")

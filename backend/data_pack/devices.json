@@ -51,6 +51,7 @@
     "threshold": 0.5
    },
    "trace": {
+    "dual_pack": "blt_s430/trace_dual.json",
     "band_px": 12,
     "upper_dev": 5.084,
     "upper_rule": "适配开发集中标注正常且被识别模型判为正常的149层，零件区与粉床区贡献较大者的95%分位（离线数据导出/apply_region_rule.py）",

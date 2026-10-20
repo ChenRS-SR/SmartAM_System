@@ -2,7 +2,7 @@
   <div class="slm-control">
     <div class="control-panel">
       <div class="panel-header">
-        <span class="panel-title">🎛️ SLM 参数监控 · 闭环反馈</span>
+        <span class="panel-title">输入能量调控与工艺参数</span>
         <div class="header-actions">
           <el-tag v-if="partsOffline" type="warning" effect="dark" size="small">试验台离线</el-tag>
           <el-tag v-if="partsFallback" type="info" effect="dark" size="small">样例零件</el-tag>
@@ -10,34 +10,42 @@
       </div>
 
       <!-- 状态 / 控制栏 -->
-      <div class="control-bar">
+      <div v-if="!historical" class="control-bar">
         <span class="status-dot" :class="statusDotClass"></span>
         <span class="status-text" :class="statusTextClass">{{ statusText }}</span>
         <span class="bar-meta">层号: {{ displayLayer }}</span>
         <span class="bar-meta">任务: {{ displayJob }}</span>
         <div class="bar-actions">
           <el-button :type="ready ? 'danger' : 'success'" size="small" @click="toggleReady">
-            {{ ready ? '⏹ 停止' : '▶ 准备' }}
+            {{ ready ? '停止监听' : '开始监听' }}
           </el-button>
           <el-button size="small" :disabled="!ready || requestDisabled" @click="requestUpdate">
             {{ requestDisabled ? '请求中…' : '请求更新' }}
           </el-button>
         </div>
       </div>
+      <div v-else class="control-bar replay-control-meta">
+        <span>历史案例 · 调控方案</span>
+        <span class="bar-meta">当前层：{{ replayContext?.layer ?? '—' }}</span>
+        <span class="bar-meta">{{ replayContext?.time }}</span>
+        <span class="bar-meta">参数初值来自配置，非历史实测；保存方案不下发设备。</span>
+      </div>
 
       <!-- 试验台事件 read.json -->
-      <div class="section-title">📡 试验台事件 read.json</div>
+      <template v-if="!historical">
+      <div class="section-title">试验台事件</div>
       <div class="event-grid">
         <div class="event-item" v-for="f in eventFields" :key="f.key">
           <span class="event-label">{{ f.label }}</span>
           <span class="event-value" :class="{ 'layer': f.key === 'layer' }">{{ eventValue(f.key) }}</span>
         </div>
       </div>
+      </template>
 
       <!-- 参数修改 -->
-      <div class="section-title">⚙️ 参数修改</div>
+      <div class="section-title">工艺参数调整</div>
       <div class="params-panel">
-        <div class="parts-row">
+        <div v-if="!historical" class="parts-row">
           <el-select
             v-model="selectedPartId"
             placeholder="请选择零件..."
@@ -53,37 +61,41 @@
               :value="p.part_id"
             />
           </el-select>
-          <el-button size="small" :loading="partsLoading" @click="fetchParts">🔄 刷新</el-button>
+          <el-button size="small" :loading="partsLoading" @click="fetchParts">刷新</el-button>
           <span class="part-info" :class="partInfoClass">{{ partInfoText }}</span>
         </div>
 
-        <div class="param-row" v-for="key in paramKeys" :key="key">
-          <div class="param-name">
-            {{ safeRanges[key]?.description || key }}
-            <span class="param-unit">({{ safeRanges[key]?.unit || '' }})</span>
-          </div>
-          <div class="param-bar">
-            <div class="bar-bg">
-              <div class="bar-fill" :style="{ width: barRatio(key) + '%', background: barColor(key) }"></div>
+        <div class="parameter-comparison">
+          <section class="parameter-form current-form" aria-label="当前工艺参数">
+            <h3>当前工艺参数</h3>
+            <p class="form-description">{{ historical ? '填写回调前的工艺基准；本案例未记录历史设定值。' : '核对设备同步值，也可填写待评估的工艺基准。' }}</p>
+            <div v-for="key in paramKeys" :key="key" class="parameter-field">
+              <label :for="`current-${key}`">{{ safeRanges[key]?.description || key }} <span>{{ safeRanges[key]?.unit || '' }}</span></label>
+              <el-input-number
+                :id="`current-${key}`" v-model="inputValues[key]"
+                :min="safeRanges[key]?.min" :max="safeRanges[key]?.max"
+                :step="paramDefs[key].step" :precision="paramDefs[key].precision"
+                :controls="false" :aria-label="`当前${safeRanges[key]?.description || key}`"
+                @change="paramsSource = '手动填写（未下发）'"
+              />
+              <small>配置范围 {{ safeRanges[key]?.min ?? '—' }}–{{ safeRanges[key]?.max ?? '—' }} {{ safeRanges[key]?.unit || '' }}</small>
             </div>
-            <div class="bar-scale">
-              <span>{{ safeRanges[key]?.min ?? 0 }}</span>
-              <span>{{ safeRanges[key]?.max ?? 0 }}</span>
+            <p class="form-source">来源：{{ paramsSource }}</p>
+          </section>
+          <section class="parameter-form adjusted-form" aria-label="调控后参数（待执行）">
+            <h3>调控后参数（待执行）</h3>
+            <p class="form-description">根据当前参数与能量偏移计算，仅改变选定的回调参数。</p>
+            <div v-for="key in paramKeys" :key="key" class="parameter-field">
+              <label :for="`adjusted-${key}`">{{ safeRanges[key]?.description || key }} <span>{{ safeRanges[key]?.unit || '' }}</span></label>
+              <el-input :id="`adjusted-${key}`" :model-value="executionParams ? executionParams[key].toFixed(paramDefs[key].precision) : ''"
+                readonly placeholder="待设置调控目标" :aria-label="`调控后${safeRanges[key]?.description || key}`" />
+              <small :class="{ changed: executionParams && executionParams[key] !== inputValues[key] }">{{ adjustmentDelta(key) }}</small>
             </div>
-          </div>
-          <div class="param-cur">当前: {{ formatVal(currentParams[key]) }} {{ safeRanges[key]?.unit || '' }}</div>
-          <el-input-number
-            v-model="inputValues[key]"
-            :min="safeRanges[key]?.min"
-            :max="safeRanges[key]?.max"
-            :step="paramDefs[key]?.step || 1"
-            :precision="paramDefs[key]?.precision ?? 0"
-            :controls="false"
-            size="small"
-            class="param-input"
-          />
+            <p class="form-source">随当前参数与调控目标更新；保存或发送后才形成调控记录。</p>
+          </section>
         </div>
 
+        <EnergyCorrectionControls :params="inputValues" :ranges="safeRanges" @plan="energyPlan = $event" />
         <div class="extra-row">
           <div class="extra-item">
             <span class="extra-label">铺粉量</span>
@@ -97,35 +109,34 @@
           </div>
         </div>
 
-        <div class="score-row">
-          <span class="score-label">综合评分 (VED)</span>
-          <div class="score-bar">
-            <div class="bar-bg">
-              <div class="bar-fill" :style="{ width: scoreRatio + '%', background: scoreColor }"></div>
-            </div>
-          </div>
-          <span class="score-text" :style="{ color: scoreColor }">{{ scoreText }}</span>
-        </div>
-        <div class="score-suggestion">{{ scoreSuggestion }}</div>
-        <div class="params-source">参数来源: {{ paramsSource }}</div>
-
         <div class="msg-row">
           <span class="msg-label">调整说明</span>
-          <el-input v-model="message" size="small" placeholder="手动调整参数" class="msg-input" />
+          <el-input v-model="message" size="small" placeholder="输入能量偏移调控" class="msg-input" />
         </div>
 
         <div class="action-row">
-          <el-button type="primary" size="small" :disabled="!ready || !selectedPartId" @click="sendAdjustment">
+          <el-button v-if="historical" type="primary" size="small" :disabled="!replayContext || !!energyPlan?.error || !energyPlan" @click="saveReplayPlan">保存调控方案</el-button>
+          <el-button v-else type="primary" size="small" :disabled="!ready || !selectedPartId || !executionParams" @click="sendAdjustment">
             发送调整参数
           </el-button>
-          <el-button type="danger" size="small" :disabled="!ready" @click="emergencyStop">紧急停止</el-button>
+          <el-button v-if="!historical" type="danger" size="small" :disabled="!ready" @click="emergencyStop">紧急停止</el-button>
           <el-button size="small" @click="resetDefaults">恢复默认</el-button>
         </div>
         <div v-if="sendStatus" class="send-status" :class="sendStatusClass">{{ sendStatus }}</div>
       </div>
 
+      <section v-if="historical" class="saved-plans">
+        <h3>调控方案记录</h3>
+        <p v-if="!savedPlans.length">尚无保存方案。历史数据未包含调参执行反馈。</p>
+        <article v-for="plan in savedPlans" :key="plan.savedAt">
+          <b>第 {{ plan.layer }} 层 · {{ plan.historyTime }}</b>
+          <p>目标 {{ plan.target }} J/mm³；方案 {{ plan.energy.toFixed(3) }} J/mm³；功率 {{ plan.parameters.fill_power }} W；速度 {{ plan.parameters.fill_speed }} mm/s</p>
+          <span>方案已保存 · 未下发 · 无执行反馈</span>
+        </article>
+      </section>
+      <template v-else>
       <!-- 最新反馈 feedback.json -->
-      <div class="section-title">📥 最新反馈 feedback.json</div>
+      <div class="section-title">最新调控指令</div>
       <div class="feedback-panel">
         <div class="fb-action" :style="{ color: fbActionColor }">{{ fbActionText }}</div>
         <div class="fb-time">{{ fbData.result_time || '' }}</div>
@@ -141,8 +152,10 @@
           <span class="fb-label">消息:</span>
           <span class="fb-msg">{{ fbData.message || '--' }}</span>
         </div>
-        <div class="fb-json-title">feedback.json JSON:</div>
-        <pre class="fb-json">{{ feedbackJson }}</pre>
+        <details class="feedback-details">
+          <summary>查看原始反馈报文</summary>
+          <pre class="fb-json">{{ feedbackJson }}</pre>
+        </details>
       </div>
 
       <!-- 日志 -->
@@ -166,6 +179,7 @@
           </div>
         </div>
       </div>
+      </template>
     </div>
   </div>
 </template>
@@ -174,6 +188,18 @@
 import { ref, reactive, computed, onMounted, onUnmounted, h } from 'vue'
 import axios from 'axios'
 import { ElMessageBox } from 'element-plus'
+import EnergyCorrectionControls from './EnergyCorrectionControls.vue'
+import { energyDensity } from './energyCorrection'
+
+const props = defineProps({
+  historical: { type: Boolean, default: false },
+  replayContext: { type: Object, default: null },
+})
+const energyPlan = ref(null)
+// 调控结果直接随当前参数和目标更新，无推荐采纳状态；无效结果不可下发。
+const executionParams = computed(() => energyPlan.value && !energyPlan.value.error ? energyPlan.value.parameters : null)
+const savedPlans = ref([])
+const PLAN_KEY = computed(() => `smartam-energy-plans-${props.replayContext.caseId}`)
 
 const BASE = '/api/slm/control'
 
@@ -203,7 +229,6 @@ const partsOffline = ref(false)
 const partsFallback = ref(false)
 
 const safeRanges = ref({})
-const energyWindow = ref({ min: 50, max: 120 })
 
 const event = ref(null)
 const feedback = ref(null)
@@ -214,11 +239,11 @@ const partInfoClass = ref('')
 
 const currentParams = reactive({ fill_power: 200, fill_speed: 1000, scan_spacing: 0.1, powder_feed_rate: 5.0 })
 const inputValues = reactive({ fill_power: 200, fill_speed: 1000, scan_spacing: 0.1, powder_feed_rate: 5.0 })
-const paramsSource = ref('默认值')
+const paramsSource = ref(props.historical ? '配置初值（方案编辑，非历史实测）' : '默认值')
 
 const powderAmount = ref(0.06)
 const powderMult = ref(1.0)
-const message = ref('手动调整参数')
+const message = ref('输入能量偏移调控')
 
 const sendStatus = ref('')
 const sendStatusClass = ref('')
@@ -231,8 +256,8 @@ let pollTimer = null
 
 // ---- 计算属性 ----
 const statusText = computed(() => {
-  if (!ready.value) return '⏸ 未就绪'
-  return event.value ? '● 监听中' : '● 等待数据...'
+  if (!ready.value) return '未监听'
+  return event.value ? '监听中' : '等待数据...'
 })
 const statusTextClass = computed(() => {
   if (!ready.value) return 'idle'
@@ -248,7 +273,7 @@ const displayJob = computed(() => (event.value ? event.value.job_name : '--'))
 const fbData = computed(() => (feedback.value && feedback.value.data) || {})
 
 const fbActionText = computed(() => {
-  if (!feedback.value) return '等待检测...'
+  if (!feedback.value) return '暂无调控指令'
   const d = fbData.value
   if (d.stop_print || d.action === 'stop') return 'STOP - 停止打印'
   if (d.action === 'continue') return 'CONTINUE - 继续打印'
@@ -268,51 +293,6 @@ const powderColor = computed(() => {
   return 'var(--am-ok)'
 })
 const feedbackJson = computed(() => (feedback.value ? JSON.stringify(feedback.value, null, 2) : ''))
-
-// ---- VED 评分（currentParams + 铺粉量） ----
-const ved = computed(() => {
-  const p = Number(currentParams.fill_power)
-  const s = Number(currentParams.fill_speed)
-  const h = Number(currentParams.scan_spacing)
-  const t = Number(powderAmount.value)
-  if (!(p && s && h && t)) return null
-  const denom = s * h * t
-  if (denom <= 0) return null
-  return p / denom
-})
-const scoreStatus = computed(() => {
-  if (ved.value == null) return 'unknown'
-  if (ved.value < energyWindow.value.min) return 'low'
-  if (ved.value > energyWindow.value.max) return 'high'
-  return 'ok'
-})
-const scoreText = computed(() => {
-  switch (scoreStatus.value) {
-    case 'ok': return `✓ 适中 (${ved.value.toFixed(1)} J/mm³)`
-    case 'low': return `↓ 过低 (${ved.value.toFixed(1)} J/mm³)`
-    case 'high': return `↑ 过高 (${ved.value.toFixed(1)} J/mm³)`
-    default: return '--'
-  }
-})
-const scoreColor = computed(() => {
-  switch (scoreStatus.value) {
-    case 'ok': return 'var(--am-ok)'
-    case 'low': return 'var(--am-danger)'
-    case 'high': return 'var(--am-warn)'
-    default: return 'var(--am-text-3)'
-  }
-})
-const scoreSuggestion = computed(() => {
-  if (ved.value == null) return '参数不完整，无法计算体能量密度'
-  if (ved.value < energyWindow.value.min) return '体能量密度偏低，建议提高功率或降低速度，避免未熔合缺陷'
-  if (ved.value > energyWindow.value.max) return '体能量密度偏高，建议降低功率或提高速度，避免过熔/气孔'
-  return '体能量密度在工艺窗口内，无需调整'
-})
-const scoreRatio = computed(() => {
-  const barMax = energyWindow.value.max * 1.5
-  if (ved.value == null || barMax <= 0) return 0
-  return Math.max(0, Math.min(100, (ved.value / barMax) * 100))
-})
 
 // ---- 工具 ----
 function now() { return new Date().toTimeString().slice(0, 8) }
@@ -335,26 +315,13 @@ function setSendStatus(text, cls) {
   }
 }
 
-function barRatio(key) {
-  const safe = safeRanges.value[key]
-  if (!safe) return 0
-  const val = Number(currentParams[key] ?? 0)
-  if (safe.max <= safe.min) return 0
-  return Math.max(0, Math.min(100, ((val - safe.min) / (safe.max - safe.min)) * 100))
-}
-function barColor(key) {
-  const ratio = barRatio(key) / 100
-  if (ratio < 0.1 || ratio > 0.9) return 'var(--am-danger)'
-  if (ratio < 0.25 || ratio > 0.75) return 'var(--am-warn)'
-  return 'var(--am-ok)'
-}
-
 // ---- 就绪 / 停止 ----
 function toggleReady() {
   if (ready.value) stopMonitoring()
   else startMonitoring()
 }
 function startMonitoring() {
+  if (props.historical) return
   ready.value = true
   lastLayer = -1
   addEventLog('开始监听 read.json...', 'ok')
@@ -492,11 +459,12 @@ async function requestUpdate() {
 
 // ---- 发送调整参数 ----
 async function sendAdjustment() {
+  if (props.historical || !executionParams.value) return
   if (!selectedPartId.value) { setSendStatus('请先选择 SLC 零件', 'warn'); return }
 
   const p = {}
   for (const key of paramKeys) {
-    const val = Number(inputValues[key])
+    const val = Number(executionParams.value[key])
     const safe = safeRanges.value[key]
     if (!safe || !(safe.min <= val && val <= safe.max)) {
       addEventLog(`参数越界: ${key}=${val} 不在 [${safe?.min}, ${safe?.max}] 范围内`, 'error')
@@ -510,7 +478,7 @@ async function sendAdjustment() {
   const mult = Number(powderMult.value)
   if (!(0.5 <= mult && mult <= 2.0)) { setSendStatus('送粉倍率应在 0.5~2.0', 'error'); return }
 
-  const msg = message.value || '手动调整参数'
+  const msg = message.value || '输入能量偏移调控'
   const partName = parts.value.find(x => x.part_id === selectedPartId.value)?.name || '?'
 
   const lines = [
@@ -557,7 +525,7 @@ async function sendAdjustment() {
     else addSendLog('feedback.json ✗ 写入失败', 'error')
 
     if (data.ok) {
-      for (const key of paramKeys) currentParams[key] = p[key]
+      for (const key of paramKeys) { currentParams[key] = p[key]; inputValues[key] = p[key] }
       paramsSource.value = `API+文件 (part_id=${body.part_id})`
       addEventLog(
         `发送成功: part=${body.part_id}:${partName} P=${p.fill_power}W v=${p.fill_speed}mm/s h=${p.scan_spacing}mm feed=${p.powder_feed_rate}g/min mult=${mult}x`,
@@ -579,6 +547,7 @@ async function sendAdjustment() {
 
 // ---- 紧急停止 ----
 async function emergencyStop() {
+  if (props.historical) return
   try {
     await ElMessageBox.confirm('确认写入紧急停止指令到 feedback.json？', '紧急停止', {
       type: 'error',
@@ -610,15 +579,58 @@ function resetDefaults() {
   for (const key of paramKeys) {
     const d = safeRanges.value[key]?.default ?? 0
     inputValues[key] = d
-    currentParams[key] = d
   }
   powderAmount.value = 0.06
   powderMult.value = 1.0
-  message.value = '手动调整参数'
-  paramsSource.value = '默认值'
+  message.value = '输入能量偏移调控'
+  paramsSource.value = props.historical ? '配置初值（方案编辑，非历史实测）' : '默认值'
   addEventLog('参数输入已恢复默认值（未发送）', 'info')
   addSendLog('参数已恢复默认值（未发送）', 'info')
-  setSendStatus('已恢复默认值，点击发送生效', 'accent')
+  setSendStatus(props.historical ? '方案输入已恢复配置初值' : '已恢复默认值，点击发送生效', 'accent')
+}
+
+function adjustmentDelta(key) {
+  if (!executionParams.value) return '设置有效的目标与层厚后生成'
+  const delta = executionParams.value[key] - inputValues[key]
+  if (delta === 0) return '保持当前值'
+  return `较当前 ${delta > 0 ? '+' : ''}${delta.toFixed(paramDefs[key].precision)} ${safeRanges.value[key].unit}`
+}
+
+function saveReplayPlan() {
+  if (!props.historical || !props.replayContext || !energyPlan.value || energyPlan.value.error) return
+  for (const key of paramKeys) {
+    const value = executionParams.value[key]
+    const range = safeRanges.value[key]
+    if (!Number.isFinite(value) || !range || value < range.min || value > range.max) {
+      setSendStatus(`${range?.description || key}超出配置范围`, 'error')
+      return
+    }
+  }
+  if (!(powderAmount.value > 0) || !(powderMult.value >= 0.5 && powderMult.value <= 2)) {
+    setSendStatus('请检查铺粉量与送粉倍率', 'error')
+    return
+  }
+  const frame = props.replayContext
+  const plan = {
+    savedAt: new Date().toISOString(), layer: frame.layer, historyTime: frame.time,
+    analysisLayer: frame.trace?.layer ?? null, conclusion: frame.trace?.conclusion ?? null,
+    parameters: { ...executionParams.value }, baselineParameters: { ...inputValues },
+    parameterSource: 'energy_offset_control', actuator: energyPlan.value.actuator,
+    thickness: energyPlan.value.thickness,
+    target: energyPlan.value.target, tolerance: energyPlan.value.tolerance,
+    energy: energyDensity(executionParams.value, energyPlan.value.thickness),
+    powderAmount: powderAmount.value, powderMultiplier: powderMult.value, message: message.value,
+    status: 'draft',
+  }
+  // 方案与原始回放结果分开保存，绝不作为历史执行反馈。
+  const plans = [plan, ...savedPlans.value].slice(0, 50)
+  try {
+    localStorage.setItem(PLAN_KEY.value, JSON.stringify(plans))
+    savedPlans.value = plans
+    setSendStatus('调控方案已保存，未下发设备', 'ok')
+  } catch (e) {
+    setSendStatus('本地保存失败，请检查浏览器存储空间', 'error')
+  }
 }
 
 // ---- 生命周期 ----
@@ -626,8 +638,12 @@ onMounted(async () => {
   try {
     const { data } = await axios.get(`${BASE}/config`)
     safeRanges.value = data.safe_ranges || {}
-    energyWindow.value = data.energy_density_window || { min: 50, max: 120 }
-  } catch (e) { /* 使用内置默认值 */ }
+    if (props.historical) {
+      Object.assign(inputValues, data.defaults)
+      const stored = localStorage.getItem(PLAN_KEY.value)
+      if (stored) savedPlans.value = JSON.parse(stored)
+    }
+  } catch (e) { setSendStatus('参数配置或已存方案读取失败，请刷新重试', 'error') }
 })
 
 onUnmounted(stopPolling)
@@ -635,6 +651,12 @@ onUnmounted(stopPolling)
 
 <style scoped>
 .slm-control { display: flex; flex-direction: column; gap: 16px; }
+.replay-control-meta { flex-wrap: wrap; }
+.saved-plans { padding: 0 16px 16px; color: var(--am-text); }
+.saved-plans h3 { font-size: 14px; }
+.saved-plans p,.saved-plans span { font-size: 12px; line-height: 1.8; color: var(--am-text-2); }
+.saved-plans article { padding: 12px 0; border-top: 1px solid var(--am-card-border); }
+.saved-plans b { font-size: 13px; }
 .control-panel { background: var(--am-card-bg); border: 1px solid var(--am-card-border); border-radius: 8px; overflow: hidden; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--am-card-bg-2); border-bottom: 1px solid var(--am-card-border-2); }
 .panel-title { font-size: 14px; font-weight: 600; color: var(--am-text); }
@@ -662,6 +684,20 @@ onUnmounted(stopPolling)
 .event-value.layer { color: var(--am-accent); }
 
 .params-panel { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 10px; }
+.parameter-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.parameter-form { padding: 18px; border: 1px solid var(--am-card-border); border-radius: 3px; min-width: 0; }
+.parameter-form h3 { margin: 0 0 8px; font-size: 16px; color: var(--am-text); }
+.adjusted-form { background: var(--am-card-bg-2); border-top: 3px solid var(--am-accent); padding-top: 16px; }
+.form-description, .form-source { font-size: 12px; color: var(--am-text-2); line-height: 1.7; }
+.form-description { min-height: 22px; margin: 0 0 16px; }
+.form-source { margin: 16px 0 0; }
+.parameter-field { display: grid; grid-template-columns: 132px minmax(0, 1fr); align-items: center; gap: 6px 14px; margin-bottom: 14px; }
+.parameter-field label { font-size: 13px; color: var(--am-text); }
+.parameter-field label span { color: var(--am-text-2); font-size: 12px; margin-left: 6px; }
+.parameter-field .el-input-number, .parameter-field .el-input { width: 100%; min-width: 0; }
+.parameter-field small { grid-column: 2; color: var(--am-text-3); font-size: 12px; }
+.parameter-field small.changed { color: var(--am-accent); font-weight: 600; }
+.adjusted-form :deep(.el-input__inner) { font-weight: 600; text-align: center; }
 .parts-row { display: flex; align-items: center; gap: 10px; }
 .parts-select { width: 260px; }
 .part-info { font-size: 12px; color: var(--am-text-2); }
@@ -669,27 +705,10 @@ onUnmounted(stopPolling)
 .part-info.warn { color: var(--am-warn); }
 .part-info.error { color: var(--am-danger); }
 
-.param-row { display: grid; grid-template-columns: 120px 1fr 120px 150px; gap: 10px; align-items: center; }
-.param-name { font-size: 12px; color: var(--am-text); }
-.param-unit { font-size: 11px; color: var(--am-text-3); }
-.param-bar { display: flex; flex-direction: column; gap: 2px; }
-.bar-bg { height: 8px; background: var(--am-card-bg-2); border: 1px solid var(--am-card-border-2); border-radius: 4px; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s, background 0.3s; }
-.bar-scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--am-text-3); }
-.param-cur { font-size: 12px; color: var(--am-text-2); }
-.param-input { width: 150px; }
-
 .extra-row { display: flex; gap: 24px; }
 .extra-item { display: flex; align-items: center; gap: 8px; }
 .extra-label { font-size: 12px; color: var(--am-text); }
 .extra-unit { font-size: 12px; color: var(--am-text-3); }
-
-.score-row { display: grid; grid-template-columns: 120px 1fr 180px; gap: 10px; align-items: center; }
-.score-label { font-size: 12px; color: var(--am-text); }
-.score-bar .bar-bg { height: 10px; }
-.score-text { font-size: 13px; font-weight: 600; text-align: right; }
-.score-suggestion { font-size: 12px; color: var(--am-text-2); }
-.params-source { font-size: 12px; color: var(--am-text-3); }
 
 .msg-row { display: flex; align-items: center; gap: 10px; }
 .msg-label { font-size: 12px; color: var(--am-text); flex-shrink: 0; }
@@ -709,7 +728,7 @@ onUnmounted(stopPolling)
 .fb-label { color: var(--am-text-2); }
 .fb-comp { color: var(--am-warn); margin-right: 14px; }
 .fb-msg { color: var(--am-text-2); }
-.fb-json-title { font-size: 11px; color: var(--am-text-3); }
+.feedback-details summary { cursor: pointer; font-size: 12px; color: var(--am-text-2); margin-bottom: 8px; }
 .fb-json { margin: 0; padding: 10px; background: var(--am-card-bg-2); border: 1px solid var(--am-card-border-2); border-radius: 6px; font-family: Consolas, Monaco, monospace; font-size: 11px; color: var(--am-text-2); max-height: 220px; overflow: auto; white-space: pre-wrap; }
 
 .log-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px 16px; }
@@ -723,6 +742,8 @@ onUnmounted(stopPolling)
 .log-error { color: var(--am-danger); }
 .log-ok { color: var(--am-ok); }
 
-@media (max-width: 1200px) { .event-grid { grid-template-columns: repeat(2, 1fr); } .param-row, .score-row { grid-template-columns: 1fr; } }
-@media (max-width: 768px) { .event-grid { grid-template-columns: 1fr; } .log-panel { grid-template-columns: 1fr; } }
+@media (max-width: 1200px) { .event-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1000px) { .parameter-comparison { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .parameter-field { grid-template-columns: minmax(0, 1fr); } .parameter-field small { grid-column: 1; } }
+@media (max-width: 768px) { .event-grid { grid-template-columns: 1fr; } .log-panel { grid-template-columns: 1fr; } .extra-row, .control-bar, .parts-row, .action-row { flex-wrap: wrap; } .extra-item { flex-wrap: wrap; } .parts-select { max-width: 100%; } }
 </style>

@@ -165,7 +165,8 @@ const normalizeDevice = (device, index) => {
     realData: device.realData || null,
     updatedAt: device.updatedAt || '',
     dataDirectory: device.dataDirectory || '',
-    source: device.source || (device.dataTag ? '7103' : 'manual')
+    source: device.source || (device.dataTag ? '7103' : 'manual'),
+    replayCase: device.replayCase || null
   }
 }
 

@@ -38,9 +38,6 @@
       </div>
       <span>数据源</span>
       <strong>{{ deviceStore.sourceInfo.sourceRoot || '正在加载 7103 数据' }}</strong>
-      <el-tag size="small" :type="isMockMode ? 'warning' : 'info'">
-        {{ isMockMode ? '模拟模式' : '真实模式' }}
-      </el-tag>
       <el-tag size="small" type="info">状态码 0-4</el-tag>
     </section>
 
@@ -85,7 +82,7 @@
               <h2>{{ device.name }}</h2>
               <span>{{ device.model }}</span>
             </div>
-            <el-tooltip content="编辑设备" placement="top">
+            <el-tooltip v-if="!device.replayCase" content="编辑设备" placement="top">
               <el-button
                 text
                 class="icon-btn"
@@ -114,7 +111,7 @@
           </div>
           <div class="device-footer">
             <el-button
-              v-if="formingDeviceIds.has(device.id)"
+              v-if="device.replayCase || formingDeviceIds.has(device.id)"
               class="forming-entry"
               type="primary"
               size="small"
@@ -278,6 +275,7 @@
 </template>
 
 <script setup>
+import { useReplayStore, REPLAY_CASES } from '../../stores/replay'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -447,10 +445,25 @@ const toMockDevice = (device) => {
   }
 }
 
-const displayDevices = computed(() => {
-  if (isMockMode.value) return deviceStore.devices.map(toMockDevice)
-  return deviceStore.devices.map((device) => toRealtimeDevice(device, realtimeSamples.value[device.id]))
-})
+const caseSessions = new Map(REPLAY_CASES.map(item => [item.id, useReplayStore(item.id)]))
+const displayDevices = computed(() => deviceStore.devices.map(device => {
+  // 此设备使用独立共享数据流，不被其他设备的数据模式改写。
+  if (device.replayCase) {
+    const replay = caseSessions.get(device.replayCase)
+    const frame = replay.snapshot
+    // 仅统一展示口径，保留原设备来源；采集状态跟随共享时间轴，不生成健康评级。
+    const acquisitionStatus = replay.error ? '数据异常' : !frame ? '等待数据' : replay.playing ? '采集中' : '采集暂停'
+    return { ...device, name: device.name, dataTag: '', databaseTag: '', online: !!frame && !replay.error,
+      health: 'unknown', healthData: { status: 'unknown' }, statusText: acquisitionStatus,
+      parameters: [
+        { id: 'current_layer', name: '当前层', value: frame?.layer ?? '—', unit: '层' },
+        { id: 'data_time', name: '采集时间', value: frame?.time ?? '等待数据', unit: '' },
+        { id: 'record_status', name: '状态参数', value: acquisitionStatus, unit: '' }
+      ] }
+
+  }
+  return isMockMode.value ? toMockDevice(device) : toRealtimeDevice(device, realtimeSamples.value[device.id])
+}))
 
 const filteredDevices = computed(() => {
   if (selectedOrg.value === 'all') return displayDevices.value
@@ -498,7 +511,7 @@ const deviceComponentStatus = (device) => {
 
   // 根据设备整体状态码生成部件状态，与 MaintenanceDecisionPanel 的风险等级语义一致
   const getStatus = (key) => {
-    if (!device?.online || statusCode === -1) return 'unknown'
+    if (device.replayCase || !device?.online || statusCode === -1) return 'unknown'
     if (statusCode === 0) return 'normal'
     if (statusCode === 1) return key === 'powder' ? 'danger' : 'normal'
     if (statusCode === 2) return key === 'laser' ? 'danger' : 'normal'
@@ -518,7 +531,7 @@ const deviceComponentStatus = (device) => {
   return components.map((component) => {
     const status = getStatus(component.key)
     const stateMap = {
-      unknown: '离线',
+      unknown: device.online ? '暂无数据' : '离线',
       normal: '正常',
       warning: '预警',
       danger: '超阈值'
@@ -546,7 +559,7 @@ const statusText = (device) => {
 }
 
 const healthTagType = (device) => {
-  if (!device.online) return 'info'
+  if (!device.online || device.health === 'unknown') return 'info'
   return device.health === 'fault' ? 'danger' : 'success'
 }
 
@@ -757,6 +770,7 @@ onMounted(async () => {
   loadFormingDevices()
   try {
     await deviceStore.loadDevicesFromBackend()
+    await Promise.all(deviceStore.devices.filter(device => device.replayCase).map(device => caseSessions.get(device.replayCase).open()))
   } catch (error) {
     ElMessage.error(error.message || '加载7103设备群数据失败')
   }

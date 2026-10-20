@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="dashboard-header">
       <div class="title-block">
-        <h1 class="page-title">{{ selectedDeviceName }} 设备状态监测</h1>
+        <h1 class="page-title">{{ selectedDeviceName }} {{ isFormingPanel ? '成形质量' : '装备诊断' }}</h1>
         <div class="device-subtitle">
           {{ selectedDevice?.dataTag || '7103设备' }} · {{ selectedDevice?.model || 'SLM 设备' }} · {{ selectedDevice?.location || '未设置位置' }}
         </div>
@@ -26,6 +26,7 @@
           <el-icon><ArrowLeft /></el-icon>
           设备群
         </el-button>
+        <template v-if="activePanel !== 'control'">
         <!-- 模式指示器 -->
         <span
           class="header-status-pill"
@@ -53,6 +54,7 @@
         >
           {{ isRunning ? '停止采集' : '开始采集' }}
         </el-button>
+        </template>
       </div>
     </div>
 
@@ -64,13 +66,13 @@
         </div>
         <div class="subpage-tabs">
           <el-button
-            v-for="panel in panelNavItems"
+            v-for="(panel, index) in visiblePanelItems"
             :key="panel.key"
             :type="activePanel === panel.key ? 'primary' : 'default'"
             plain
             @click="switchPanel(panel.key)"
           >
-            {{ panel.name }}
+            <span v-if="isFormingPanel" class="step-number">{{ index + 1 }}</span>{{ panel.name }}
           </el-button>
         </div>
       </div>
@@ -104,77 +106,8 @@
             </div>
           </div>
         </section>
-      </template>
 
-      <template v-else-if="activePanel === 'control'">
-        <!-- 华科四台模拟设备专用视觉处理，真实硬件和7103存储数据不受影响。 -->
-        <section v-if="isHuakeVideoMockDevice" class="mock-vision-panel">
-          <div class="mock-vision-copy">
-            <strong>华科模拟视觉处理</strong>
-            <span>ROI叠加已应用到三路视频，畸变校正可在原始视频和校正视频之间切换。</span>
-          </div>
-          <div class="mock-vision-actions">
-            <el-tag type="success" size="small">ROI已叠加</el-tag>
-            <el-switch
-              v-model="distortionCorrectionEnabled"
-              active-text="畸变校正"
-              inactive-text="原始视频"
-              :disabled="!canUseDistortionCorrection"
-            />
-          </div>
-        </section>
-
-        <!-- CH1/CH2/CH3 连接状态和视频画面同页展示。 -->
-        <SensorConnectionStatus
-          v-if="!settings.use_mock || selectedMockSourceType !== 'stored7103'"
-          :sensor-status="sensorStatus"
-          @toggle-sensor="handleToggleSensor"
-          @refresh="refreshStatus"
-        />
-
-        <!-- 闭环调控页同步展示三路视频，便于观察调控效果。 -->
-        <div class="control-video-section">
-          <RealTimeDisplay
-            :sensor-status="sensorStatus"
-            :latest-data="latestData"
-            :stream-key="streamKey"
-            :display-paused="displayPaused"
-            :last-frames="lastFrames"
-            :use-mock-mode="settings.use_mock"
-            :mock-source-type="selectedMockSourceType"
-            :waiting-for-realtime="waitingForRealtimeData"
-            :distortion-correction-enabled="canUseDistortionCorrection && distortionCorrectionEnabled"
-          />
-        </div>
-
-        <!-- 闭环调控和特征曲线只在闭环调控子页面显示 -->
-        <div class="regulation-section">
-          <RegulationControl
-            ref="regulationControl"
-            :use-mock-mode="settings.use_mock"
-            :mock-case="selectedMockCase"
-            :mock-case-available="selectedMockCaseAvailability.ready"
-            :is-acquiring="isRunning"
-            @layer-changed="onLayerChanged"
-          />
-        </div>
-
-        <div class="slm-control-section">
-          <SlmControlPanel />
-        </div>
-
-        <div class="feature-curve-section">
-          <FeatureCurvePanel
-            :current-layer="currentLayerInfo.number"
-            :is-layer-start="currentLayerInfo.isStart"
-            :is-layer-end="currentLayerInfo.isEnd"
-            :is-running="isRunning"
-          />
-        </div>
-      </template>
-
-      <template v-else-if="activePanel === 'health'">
-        <!-- 设备健康状态 -->
+        <!-- 同一设备的运行参数与健康诊断同页展示，共用当前设备及数据状态。 -->
         <div class="health-section">
           <EquipmentHealthStatus
             :health-data="healthData"
@@ -182,6 +115,14 @@
             :is-mock-mode="settings.use_mock"
             :diagnosis-data="diagnosisData"
           />
+        </div>
+      </template>
+
+      <template v-else-if="activePanel === 'control'">
+        <!-- 调控承接成形分析，仅保留参数调整和指令反馈。 -->
+        <QualityControlContext :device="selectedDeviceId" @open-trace="switchPanel('trace')" />
+        <div class="slm-control-section">
+          <SlmControlPanel :key="selectedDeviceId" />
         </div>
       </template>
 
@@ -193,7 +134,7 @@
       </template>
 
       <!-- 视情维护可视化模块 -->
-      <div v-if="!isFormingPanel" class="maintenance-section">
+      <div v-if="activePanel === 'status'" class="maintenance-section">
         <MaintenanceDecisionPanel @system-click="openMaintenanceDetail" />
       </div>
     </section>
@@ -216,11 +157,8 @@ import { ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
-import SensorConnectionStatus from '../../components/slm/SensorConnectionStatus.vue'
-import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
 import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
-import RegulationControl from '../../components/slm/RegulationControl.vue'
-import FeatureCurvePanel from '../../components/slm/FeatureCurvePanel.vue'
+import QualityControlContext from '../../components/slm/QualityControlContext.vue'
 import SlmControlPanel from '../../components/slm/SlmControlPanel.vue'
 import MaintenanceDecisionPanel from '../../components/common/MaintenanceDecisionPanel.vue'
 import MaintenanceDetailDialog from '../../components/common/MaintenanceDetailDialog.vue'
@@ -273,13 +211,12 @@ const canUseDistortionCorrection = computed(() => (
 ))
 
 const panelNavItems = [
-  { key: 'status', name: '实时状态信息', description: '集中显示实时参数和设备状态。' },
-  { key: 'control', name: '闭环调控', description: '展示层进度、调控状态和特征曲线。' },
-  { key: 'health', name: '设备健康状态', description: '展示 SLM 设备健康诊断和子系统状态。' },
+  { key: 'status', name: '设备监测', description: '集中展示设备实时参数、健康诊断与子系统状态，并关联维护建议。' },
   // 成形监测（增材制造异常识别系统）：逐层数据接入、异常识别与异常溯源，组件见 ./forming/
   { key: 'access', name: '数据接入', description: '逐层接入铺粉后、熔化后图像，刮刀与加工平台扭矩和设备状态参数。', forming: true },
   { key: 'recognition', name: '异常识别', description: '融合图像与扭矩的跨设备适配识别，给出逐层异常概率与各模态作用。', forming: true },
-  { key: 'trace', name: '异常溯源', description: '两区联盟博弈判断异常由工艺因素还是设备因素诱发，并给出支撑区域与处置对象。', forming: true }
+  { key: 'trace', name: '异常溯源', description: '两区联盟博弈判断异常由工艺因素还是设备因素诱发，并给出支撑区域与处置对象。', forming: true },
+  { key: 'control', name: '闭环调控', description: '承接异常识别与溯源结果，核对工艺参数、下发调整并查看指令反馈。', forming: true }
 ]
 const panelKeys = panelNavItems.map((item) => item.key)
 const activePanel = computed(() => {
@@ -290,6 +227,7 @@ const activePanelMeta = computed(() => panelNavItems.find((item) => item.key ===
 const activePanelTitle = computed(() => activePanelMeta.value.name)
 const activePanelDescription = computed(() => activePanelMeta.value.description)
 const isFormingPanel = computed(() => !!activePanelMeta.value.forming)
+const visiblePanelItems = computed(() => panelNavItems.filter(panel => !!panel.forming === isFormingPanel.value))
 
 // 状态
 const isRunning = ref(false)
@@ -403,10 +341,7 @@ const selectedStored7103HealthData = computed(() => {
   return cloneHealthData(selectedDevice.value.healthData)
 })
 
-// RegulationControl 引用
-const regulationControl = ref(null)
-
-// 当前层信息（用于特征曲线）
+// 当前设备的层信息，用于参数状态同步。
 const currentLayerInfo = ref({
   number: 0,
   isStart: false,
@@ -909,12 +844,6 @@ watch(liveParameters, (parameters) => {
   }
 }, { deep: true })
 
-// 层变化时的处理
-const onLayerChanged = (layerInfo) => {
-  currentLayerInfo.value = layerInfo
-  console.log('[Dashboard] 层变化:', layerInfo)
-}
-
 // 获取状态
 const fetchStatus = async () => {
   try {
@@ -1168,37 +1097,6 @@ const handleWebSocketData = (data) => {
   
   latestData.timestamp = data.timestamp
   latestData.frame_number = data.frame_number
-}
-
-// 切换传感器
-const handleToggleSensor = async (sensor, enabled) => {
-  try {
-    await axios.post(`/api/slm/sensor/${sensor}/enable?enabled=${enabled}`)
-    sensorStatus[sensor].enabled = enabled
-    ElMessage.success(`${sensor} 已${enabled ? '启用' : '禁用'}`)
-  } catch (error) {
-    ElMessage.error('切换传感器失败')
-    // 恢复状态
-    sensorStatus[sensor].enabled = !enabled
-  }
-}
-
-// 刷新状态
-const refreshStatus = async () => {
-  fetchStatus()
-
-  if (settings.use_mock) {
-    await refreshSelectedMockCase()
-  }
-  
-  // 强制刷新视频流（更新streamKey使URL变化，防止缓存）
-  streamKey.value = Date.now()
-  applySelectedMockMedia()
-  // 刷新闭环调控组件状态
-  if (regulationControl.value && regulationControl.value.refresh) {
-    regulationControl.value.refresh()
-  }
-  ElMessage.success('状态已刷新')
 }
 
 // 处理诊断结果
@@ -1479,6 +1377,8 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
+.step-number { margin-right: 8px; font-variant-numeric: tabular-nums; opacity: 0.7; }
+
 .subpage-tabs {
   display: flex;
   align-items: center;
@@ -1646,7 +1546,9 @@ onUnmounted(() => {
     flex-direction: column;
   }
 
-  .subpage-tabs {
+  .step-number { margin-right: 8px; font-variant-numeric: tabular-nums; opacity: 0.7; }
+
+.subpage-tabs {
     width: 100%;
   }
 

@@ -15,6 +15,7 @@ import time
 from core.slm import get_slm_acquisition, reset_slm_acquisition, SLMAcquisition
 from core.slm_device_data import get_slm_device_data_store
 from core.slm_realtime import get_slm_realtime_store
+from replay.service import case_for_device, replay_devices, device_descriptor
 
 router = APIRouter(prefix="/slm", tags=["SLM"])
 
@@ -282,7 +283,7 @@ async def list_device_group_devices():
             "diagnosisPolicy": manifest.get("diagnosisPolicy"),
             "statusCodeMap": manifest.get("statusCodeMap", {}),
             "parameterSchema": manifest.get("parameterSchema", []),
-            "devices": store.list_devices()
+            "devices": replay_devices() + [d for d in store.list_devices() if not case_for_device(d['id'])]
         }
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -292,6 +293,8 @@ async def list_device_group_devices():
 async def get_device_group_device(device_id: str):
     """获取单台设备的诊断、参数和真实数据路径。"""
     try:
+        if case_for_device(device_id):
+            return {"success": True, "device": device_descriptor(device_id)}
         device = get_device_data_store().get_device(device_id)
         return {"success": True, "device": device}
     except FileNotFoundError as exc:
@@ -303,6 +306,8 @@ async def get_device_group_device(device_id: str):
 @router.post("/device-group/devices")
 async def create_device_group_device(device: dict = Body(...)):
     """新增设备并写入文件级模拟数据库。"""
+    if case_for_device(device.get('id')):
+        raise HTTPException(409, '历史案例设备由案例清单管理')
     try:
         saved_device = get_device_data_store().upsert_device(device)
         return {"success": True, "device": saved_device}
@@ -313,6 +318,8 @@ async def create_device_group_device(device: dict = Body(...)):
 @router.patch("/device-group/devices/{device_id}")
 async def update_device_group_device(device_id: str, patch: dict = Body(...)):
     """更新设备卡片信息，并同步到manifest和单设备JSON。"""
+    if case_for_device(device_id):
+        raise HTTPException(409, '历史案例设备由案例清单管理')
     try:
         saved_device = get_device_data_store().patch_device(device_id, patch)
         return {"success": True, "device": saved_device}
@@ -331,7 +338,7 @@ async def sync_device_group_database(payload: dict = Body(...)):
     if not isinstance(devices, list):
         raise HTTPException(status_code=400, detail="devices必须是数组")
     try:
-        manifest = get_device_data_store().sync_devices(devices)
+        manifest = get_device_data_store().sync_devices([d for d in devices if d.get('id') != REPLAY_DEVICE_ID])
         return {
             "success": True,
             "deviceCount": manifest.get("deviceCount", 0),

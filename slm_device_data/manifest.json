@@ -1889,7 +1889,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B8/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -2177,7 +2177,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B10/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -2465,7 +2465,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B14/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -2753,7 +2753,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B15/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -3038,7 +3038,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B16/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -3326,7 +3326,7 @@
       "online": true,
       "health": "fault",
       "statusText": "落粉轴故障",
-      "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-site.jpg",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -3622,7 +3622,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B19/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -3910,7 +3910,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B20/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -4198,7 +4198,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B26/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -4490,7 +4490,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B27/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -4775,7 +4775,7 @@
       "online": true,
       "health": "fault",
       "statusText": "多系统复合故障",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B28/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -5095,7 +5095,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B29/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -5380,7 +5380,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B30/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -5668,7 +5668,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B33/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -5954,7 +5954,7 @@
       "online": true,
       "health": "fault",
       "statusText": "刮刀扭矩/位置故障",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B34/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -6248,7 +6248,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B35/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -6536,7 +6536,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B38/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -6824,7 +6824,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B39/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -7113,7 +7113,7 @@
       "online": true,
       "health": "fault",
       "statusText": "刮刀扭矩/位置故障",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B40/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-site.jpg",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -7410,7 +7410,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B43/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -7702,7 +7702,7 @@
       "online": true,
       "health": "healthy",
       "statusText": "健康",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B44/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-site.jpg",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -7987,7 +7987,7 @@
       "online": true,
       "health": "fault",
       "statusText": "灰桶/收粉/卸灰故障",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B45/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-s310.png",
       "parameterSchema": [
         {
           "id": "current_layer",
@@ -8288,7 +8288,7 @@
       "online": true,
       "health": "fault",
       "statusText": "铺粉检测缺粉/重铺异常",
-      "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B46/thumbnail.jpg",
+      "thumbnail": "/device-images/blt-site.jpg",
       "parameterSchema": [
         {
           "id": "current_layer",

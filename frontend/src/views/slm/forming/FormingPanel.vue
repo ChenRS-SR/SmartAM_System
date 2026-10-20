@@ -54,7 +54,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.forming-panel { position: relative; height: max(724px, calc(100vh - 300px)); min-width: 1100px; background: transparent; }
+.forming-panel { position: relative; min-height: 724px; min-width: 0; width: 100%; background: transparent; }
 .unlinked { height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   background: var(--card-bg); border: 1px dashed var(--border); border-radius: 8px; }
 .u-title { font-size: 20px; font-weight: 700; color: var(--text); }

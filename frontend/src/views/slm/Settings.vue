@@ -1,6 +1,7 @@
 <template>
   <div class="slm-settings">
-    <h2 class="page-title">SLM 设置</h2>
+    <h2 class="page-title">系统设置</h2>
+    <ReplaySettings :key="contextDeviceId" :device-id="contextDeviceId" />
 
     <!-- 华科实验台连接设置 -->
     <el-card class="settings-card" shadow="never">
@@ -229,6 +230,12 @@ import ROIConfigPanel from '../../components/slm/ROIConfigPanel.vue'
 import { readSlmBenchSettings, writeSlmBenchSettings } from '../../utils/slmBenchSettings'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
 import { getDeviceMockCase } from '../../utils/slmMockCases'
+import { useRoute } from 'vue-router'
+import ReplaySettings from '../../components/slm/ReplaySettings.vue'
+import { replayCaseForDevice } from '../../stores/replay'
+const route = useRoute()
+const contextDeviceId = computed(() => typeof route.query.device === 'string'
+  ? route.query.device : localStorage.getItem('slmSelectedDeviceId') || '')
 
 // API 基础地址
 const API_BASE = '/api/slm'
@@ -408,7 +415,8 @@ async function reloadCalibration() {
 
 // 初始化
 onMounted(() => {
-  fetchCameras()
+  // 历史设备的设置页不触发实体摄像头探测。
+  if (!replayCaseForDevice(contextDeviceId.value)) fetchCameras()
   loadCorrectionInfo()
   slmDeviceStore.loadDevicesFromBackend().catch((error) => {
     ElMessage.error(error.message || '加载设备模拟用例绑定失败')

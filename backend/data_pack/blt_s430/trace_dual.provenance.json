@@ -1,0 +1,9 @@
+{
+  "device": "BLT-S430",
+  "build": "20240827-09-33",
+  "task": "T20240828",
+  "sourceFile": "/home/gjw/博士论文工作/phd_thesis_Markdown/章节代码/ch06_新实验/展示界面/backend/data_pack/blt_s430/trace_dual.json",
+  "sha256": "d0ca93ec2bceef2d19af87e8f44e80e385aa44956b686e53253ec5aca2266b85",
+  "exportScript": "ch06_新实验/展示界面/离线数据导出/compute_site_trace_dual.py",
+  "note": "同一现场任务的双输出离线溯源结果；数值沿用原导出精度，识别页仍使用已封存的跨设备适配识别结果。"
+}

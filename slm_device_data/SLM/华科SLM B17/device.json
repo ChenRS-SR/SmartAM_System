@@ -11,7 +11,7 @@
   "online": true,
   "health": "fault",
   "statusText": "落粉轴故障",
-  "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91SLM%20B17/thumbnail.jpg",
+  "thumbnail": "/device-images/blt-site.jpg",
   "parameterSchema": [
     {
       "id": "current_layer",

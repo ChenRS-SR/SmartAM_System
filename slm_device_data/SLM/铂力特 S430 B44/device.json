@@ -11,7 +11,7 @@
   "online": true,
   "health": "healthy",
   "statusText": "健康",
-  "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S430%20B44/thumbnail.jpg",
+  "thumbnail": "/device-images/blt-site.jpg",
   "parameterSchema": [
     {
       "id": "current_layer",

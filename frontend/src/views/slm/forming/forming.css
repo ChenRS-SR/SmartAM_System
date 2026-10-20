@@ -152,3 +152,102 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
   border: 1px solid var(--danger-border); border-radius: 6px; padding: 4px 14px; font-size: 16px; white-space: nowrap; }
 .forming-root .loading { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-2); font-size: 18px; }
 .forming-root .empty { display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 16px; flex: 1; }
+
+/* 按模块实际宽度响应，侧栏展开或浏览器缩放时同样生效；保留宽屏原有配色和内容层次。 */
+.forming-root { container-name: forming; container-type: inline-size; }
+.forming-root .analysis-page { height: auto; min-height: 724px; min-width: 0; }
+.forming-root .analysis-page .row-top {
+  display: grid;
+  grid-template-columns: minmax(0, 470fr) minmax(0, 416fr) minmax(240px, 280fr);
+  height: auto;
+  min-height: 116px;
+}
+.forming-root .recognition-page .row-top { grid-template-columns: minmax(0, 520fr) minmax(0, 396fr) minmax(240px, 250fr); }
+.forming-root .trace-page .row-top { grid-template-columns: minmax(0, 600fr) minmax(0, 326fr) minmax(250px, 290fr); }
+.forming-root .analysis-page .region, .forming-root .analysis-page .region-body { min-width: 0; }
+.forming-root .analysis-page .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; }
+.forming-root .analysis-page .fields.one { grid-template-columns: minmax(0, 1fr); }
+.forming-root .analysis-page .field { min-width: 0; flex-wrap: wrap; }
+.forming-root .analysis-page .field.wide { grid-column: 1 / -1; }
+.forming-root .analysis-page .sel { min-width: 0; max-width: 100%; flex: 1; text-overflow: ellipsis; }
+.forming-root .analysis-page .chs { grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); justify-content: stretch; }
+.forming-root .analysis-page .ch { margin-right: 0; }
+.forming-root .analysis-page .ops { flex-wrap: wrap; align-content: center; }
+/* 让卡片随内容增高，避免固定行高裁掉记录或结论；图像和图表保持可读尺寸。 */
+.forming-root .analysis-page .r-vis { flex: none; }
+.forming-root .analysis-page .grid, .forming-root .analysis-page .vis-grid {
+  height: auto;
+  grid-template-rows: minmax(300px, auto) minmax(280px, auto);
+  grid-auto-rows: auto;
+}
+.forming-root .analysis-page .card-title { flex-wrap: wrap; gap: 4px 10px; }
+.forming-root .analysis-page .img, .forming-root .analysis-page .overlay {
+  height: clamp(220px, 20cqi, 300px);
+  max-height: clamp(220px, 20cqi, 300px);
+}
+.forming-root .analysis-page .chart { height: 240px; min-height: 240px; }
+.forming-root .analysis-page .pg-row { flex-wrap: wrap; gap: 4px 10px; }
+.forming-root .analysis-page .env { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); }
+.forming-root .analysis-page .env-item { min-width: 0; }
+.forming-root .analysis-page .eu { flex: 0 0 40px; }
+.forming-root .analysis-page .alarm { white-space: normal; overflow-wrap: anywhere; }
+.forming-root .analysis-page .w-legend, .forming-root .analysis-page .img-legend { flex-wrap: wrap; gap: 4px 14px; }
+.forming-root .analysis-page .single { grid-template-columns: minmax(80px, 1.3fr) minmax(40px, 1fr) 60px 48px; gap: 6px; }
+.forming-root .analysis-page .s-name { white-space: normal; }
+.forming-root .analysis-page .g-head, .forming-root .analysis-page .kv { flex-wrap: wrap; gap: 4px 8px; }
+.forming-root .analysis-page .act-box { flex-wrap: wrap; }
+.forming-root .analysis-page .act-t { white-space: normal; }
+.forming-root .analysis-page .table-scroll { width: 100%; min-width: 0; overflow-x: auto; }
+.forming-root .analysis-page .table-scroll:focus-visible { outline: 2px solid var(--dev); outline-offset: 2px; }
+.forming-root .access-page .tbl { min-width: 560px; }
+.forming-root .recognition-page .tbl { min-width: 280px; }
+.forming-root .trace-page .tbl { min-width: 400px; }
+@container forming (max-width: 1279px) {
+  .forming-root .analysis-page .row-top { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .forming-root .analysis-page .r-op { grid-column: 1 / -1; }
+  .forming-root .analysis-page .grid, .forming-root .analysis-page .vis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+  .forming-root .analysis-page .c-state, .forming-root .analysis-page .c-mod,
+  .forming-root .analysis-page .c-rec, .forming-root .analysis-page .c-torque,
+  .forming-root .analysis-page .c-curve, .forming-root .trace-page .c-res { grid-column: 1 / -1; }
+}
+@container forming (max-width: 760px) {
+  .forming-root .analysis-page .row-top,
+  .forming-root .analysis-page .grid, .forming-root .analysis-page .vis-grid { grid-template-columns: minmax(0, 1fr); }
+  .forming-root .analysis-page .r-op, .forming-root .analysis-page .card { grid-column: 1 / -1; }
+  .forming-root .analysis-page .region { padding: 10px; }
+  .forming-root .analysis-page .field, .forming-root .analysis-page .sel { font-size: 15px; }
+}
+@container forming (max-width: 420px) {
+  .forming-root .analysis-page .fields { grid-template-columns: minmax(0, 1fr); }
+  .forming-root .analysis-page .chs { grid-template-columns: repeat(2, minmax(0, 1fr)); font-size: 13px; }
+  .forming-root .analysis-page .ch { white-space: normal; }
+  .forming-root .analysis-page .single { grid-template-columns: minmax(0, 1fr) 60px 48px; }
+  .forming-root .analysis-page .s-name { grid-column: 1 / -1; }
+  .forming-root .analysis-page .zrow { grid-template-columns: 48px minmax(24px, 1fr) 46px 56px; gap: 4px; font-size: 14px; }
+  .forming-root .analysis-page .z-tag { padding: 0 4px; }
+}
+
+/* 历史回放沿用原页面布局，仅补充数据尚未到达和统一控制的状态说明。 */
+.forming-root .replay-ops { flex-wrap: wrap; color: var(--text-2); font-size: 14px; }
+.forming-root .image-pending { min-height: 220px; flex: 1; display: grid; place-items: center; background: var(--img-bg); color: var(--text-2); }
+.forming-root .replay-note { font-size: 13px; color: var(--text-2); margin: 10px 0; }
+.forming-replay .loading { min-height: 260px; padding: 24px; text-align: center; }
+.forming-root .chart-window-note { font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
+/* 通道隐藏后自动补位；全部显示时沿用论文展示布局。 */
+.forming-root .access-page .grid.grid--filtered {
+  grid-template-columns: repeat(var(--access-columns), minmax(0, 1fr));
+  grid-template-rows: auto;
+}
+.forming-root .access-page .grid--filtered > .card { grid-column: auto; }
+.forming-root .access-page .grid--filtered > .c-torque,
+.forming-root .access-page .grid--filtered > .c-rec,
+.forming-root .access-page .grid--filtered > .channels-empty { grid-column: 1 / -1; }
+@container forming (max-width: 1279px) {
+  .forming-root .access-page .grid.grid--filtered { grid-template-columns: repeat(var(--access-columns-narrow), minmax(0, 1fr)); }
+}
+@container forming (max-width: 760px) {
+  .forming-root .access-page .grid.grid--filtered { grid-template-columns: minmax(0, 1fr); }
+}

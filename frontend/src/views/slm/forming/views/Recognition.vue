@@ -1,28 +1,32 @@
 <template>
-  <div v-if="d" class="page">
+  <div v-if="d" class="page analysis-page recognition-page">
     <div class="row-top">
       <Region kind="input" title="识别对象" class="r-input">
         <div class="fields">
           <div class="field"><span class="k">设备</span>
-            <select class="sel" :value="state.device" :disabled="embedded || stepper.running.value" @change="switchDevice($event.target.value)">
+            <select class="sel" :value="replaySession ? d.device.id : state.device" :disabled="embedded || stepper.running.value" @change="switchDevice($event.target.value)">
               <option v-for="x in devs" :key="x.id" :value="x.id">{{ x.name }}</option></select></div>
           <div class="field"><span class="k">成形任务</span><select class="sel" disabled><option>{{ d.task.name }}</option></select></div>
           <div class="field"><span class="k">识别模型</span><select class="sel" disabled><option>{{ d.model.name }}</option></select></div>
           <div class="field"><span class="k">成形层</span>
-            <select class="sel" :value="d.layer" :disabled="stepper.running.value" @change="run(+$event.target.value)">
+            <select class="sel" :value="d.layer" :disabled="!!replaySession || stepper.running.value" @change="run(+$event.target.value)">
+              <option v-if="replaySession" :value="d.layer">第 {{ d.layer }} 层</option>
               <option v-for="L in layers" :key="L" :value="L">第 {{ L }} 层</option></select></div>
         </div>
       </Region>
       <Region kind="param" title="识别参数" class="r-param">
         <div class="fields">
           <div class="field wide"><span class="k">判定阈值</span>
-            <input class="inp" type="number" min="1" max="99" step="1" v-model.number="state.recog.threshold" @change="run(d.layer)" /><span class="k">%</span></div>
+            <input v-if="replaySession" class="inp" type="number" :value="d.params.threshold * 100" disabled /><input v-else class="inp" type="number" min="1" max="99" step="1" v-model.number="state.recog.threshold" @change="run(d.layer)" /><span class="k">%</span></div>
           <div class="field wide"><span class="k">输入模态</span>
-            <span v-for="m in MODS" :key="m.key" class="ch" @click="toggle(m.key)"><i class="ck" :class="{ off: !state.recog.modalities.includes(m.key) }">✓</i>{{ m.label }}</span></div>
+            <span v-for="m in MODS" :key="m.key" class="ch" @click="!replaySession && toggle(m.key)"><i class="ck" :class="{ off: !(replaySession ? d.params.modalities : state.recog.modalities).includes(m.key) }">✓</i>{{ m.label }}</span></div>
         </div>
       </Region>
       <Region kind="op" title="操作" class="r-op">
-        <div class="ops">
+        <div v-if="replaySession" class="ops replay-ops">
+          <span>{{ replaySession.playing ? '采集中' : '采集暂停' }}</span><span>随采集数据更新</span>
+        </div>
+        <div v-else class="ops">
           <button class="btn primary" :disabled="busy || stepper.running.value" @click="run(d.layer)">单层识别</button>
           <button class="btn" @click="toggleStep">{{ stepper.running.value ? '停止识别' : '逐层识别' }}</button>
         </div>
@@ -71,12 +75,15 @@
         </div>
 
         <div class="card c-torque">
-          <div class="card-title">当前层铺粉段扭矩</div>
+          <div class="card-title">{{ replaySession ? `实时采样扭矩 · 第 ${replaySession.snapshot.layer} 层` : '当前层铺粉段扭矩' }}</div>
+          <div class="chart-window-note">{{ replaySession ? '最近 50 个采样点 · 时间轴随采样滚动；识别结果使用完整铺粉段输入' : '最近 50 个采样点' }}</div>
           <EChart :option="torqueOption" class="chart" />
         </div>
 
         <div class="card c-rec">
           <div class="card-title">逐层识别记录</div>
+          <!-- 窄屏下仅记录表局部滚动，保留所有字段。 -->
+          <div class="table-scroll" tabindex="0" role="region" aria-label="逐层识别记录表格">
           <table class="tbl">
             <thead><tr><th>层号</th><th>异常概率</th><th>识别结果</th></tr></thead>
             <tbody>
@@ -86,29 +93,34 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </Region>
   </div>
-  <div v-else class="loading">正在识别…</div>
+  <div v-else class="loading">{{ replaySession ? '当前时刻尚无可用识别结果，等待图像和扭矩数据到齐。' : '正在识别…' }}</div>
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref, watch } from 'vue'
 import Region from '../components/Region.vue'
 import EChart from '../components/EChart.vue'
 import { api, mediaUrl } from '../api.js'
 import { devicesFor, selectDevice, state } from '../state.js'
 import { fmtPct, useCall, useStepper } from '../composables.js'
 import { pal } from '../theme.js'
+import { torqueWindow, replayTimeLabel } from '../rollingWindow.js'
 
 const MODS = [{ key: 'vis', label: '铺粉后图像' }, { key: 'tq', label: '扭矩' }]
 const embedded = inject('formingEmbedded', false)
+const replaySession = inject('formingReplay', null)
 const { busy, call, report } = useCall()
 const stepper = useStepper(1200)
 const d = ref(null)
+// 回放设备从工作区共享快照读取，跳转时清空旧结果，不再启动页面各自的计时器。
+if (replaySession) watch(() => replaySession.snapshot?.recognition, value => { d.value = value || null }, { immediate: true })
 const layers = ref([])
-const devs = computed(() => devicesFor('recognition'))
+const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : devicesFor('recognition'))
 const imgUrl = computed(() => mediaUrl(d.value.image.url, 1200))
 
 async function run(layer) {
@@ -133,18 +145,20 @@ function toggleStep() {
   else stepper.start(layers.value, d.value.layer, (L) => run(L))
 }
 function switchDevice(id) { selectDevice(id); d.value = null; layers.value = []; run() }
-onMounted(() => run())
+onMounted(() => { if (!replaySession) run() })
 
 const torqueOption = computed(() => {
   const P = pal.value
   const axisFont = { fontSize: 16, color: P.axis }
-  const t = d.value.torque
+  const live = replaySession?.snapshot?.liveTorque
+  const t = torqueWindow(live || d.value.torque)
   return {
-    animation: false,
+    animation: !!live && replaySession.playing, animationDuration: 0, animationDurationUpdate: 200, animationEasingUpdate: 'linear',
     grid: { left: 50, right: 14, top: 34, bottom: 44 },
     legend: { top: 0, right: 0, itemWidth: 24, itemHeight: 4, icon: 'rect', textStyle: { fontSize: 15, color: P.text } },
-    xAxis: { type: 'value', name: '铺粉段时间/s', nameLocation: 'middle', nameGap: 26, nameTextStyle: axisFont, axisLabel: axisFont,
-      min: 0, max: Math.ceil(t.t[t.t.length - 1]), splitLine: { show: false } },
+    xAxis: { type: 'value', name: live ? '采样时间' : '铺粉段时间/s', nameLocation: 'middle', nameGap: 26, nameTextStyle: axisFont,
+      axisLabel: { ...axisFont, ...(live ? { formatter: replayTimeLabel } : {}) },
+      min: t.min, max: t.max, splitLine: { show: false } },
     yAxis: { type: 'value', name: '扭矩/%', nameTextStyle: axisFont, axisLabel: axisFont, splitLine: { lineStyle: { color: P.split } } },
     series: [
       { name: '刮刀扭矩', type: 'line', showSymbol: false, lineStyle: { width: 1.8, color: P.scraper }, itemStyle: { color: P.scraper },

@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from typing import Optional
+import json
+from . import config
 
 from fastapi import APIRouter, Query
 from fastapi.responses import FileResponse, JSONResponse
@@ -28,7 +30,11 @@ def status():
 
 @router.get('/devices', summary='设备清单')
 def devices():
-    return [d.public() for d in get_service().devices.values()]
+    # 设备清单只读配置，浏览设备群不应初始化模型或访问训练数据目录。
+    configured = json.loads((config.PACK_DIR / 'devices.json').read_text(encoding='utf-8'))['devices']
+    return [{**{k: d[k] for k in ('id', 'name', 'kind', 'laser', 'modalGroups', 'modules')},
+             'aliases': d.get('aliases', []),
+             'photo': f"devices/{d['id']}/photo" if d.get('photo') else None} for d in configured]
 
 
 @router.get('/devices/{device_id}/overview', summary='设备总览：当前层、最新结果、最近事件')

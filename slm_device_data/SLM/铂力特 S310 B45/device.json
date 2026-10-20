@@ -11,7 +11,7 @@
   "online": true,
   "health": "fault",
   "statusText": "灰桶/收粉/卸灰故障",
-  "thumbnail": "/slm_device_data/SLM/%E9%93%82%E5%8A%9B%E7%89%B9%20S310%20B45/thumbnail.jpg",
+  "thumbnail": "/device-images/blt-s310.png",
   "parameterSchema": [
     {
       "id": "current_layer",

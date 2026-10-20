@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 // SLM 页面
 import SLMDeviceGroup from '../views/slm/DeviceGroup.vue'
-import SLMDashboard from '../views/slm/Dashboard.vue'
+import SLMDashboard from '../views/slm/DeviceWorkspace.vue'
 import SLMSettings from '../views/slm/Settings.vue'
 
 // SLS 页面
@@ -20,7 +20,7 @@ const routes = [
     path: '/',
     name: 'DeviceSelect',
     component: DeviceSelect,
-    meta: { title: '选择设备', public: true }
+    meta: { title: '设备工作区', public: true }
   },
   
   // SLM 路由
@@ -34,7 +34,7 @@ const routes = [
     path: '/slm/device/:deviceId?',
     name: 'SLMDeviceDashboard',
     component: SLMDashboard,
-    meta: { title: '设备状态监测', device: 'slm' }
+    meta: { title: '设备监测', device: 'slm' }
   },
   {
     path: '/slm/settings',
@@ -112,7 +112,13 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  document.title = to.meta.title ? `${to.meta.title} - 增材制造异常识别系统` : '增材制造异常识别系统'
+  // 原设备健康书签统一进入设备监测，保留设备编号和其他查询参数。
+  if (to.name === 'SLMDeviceDashboard' && to.query.tab === 'health') {
+    next({ path: to.path, query: { ...to.query, tab: 'status' }, hash: to.hash, replace: true })
+    return
+  }
+  const platformTitle = '增材制造自适应调控与智能运维平台 v1.0'
+  document.title = to.meta.title ? `${to.meta.title} - ${platformTitle}` : platformTitle
 
   const savedDeviceType = localStorage.getItem('deviceType')
   const targetDevice = to.meta.device

@@ -123,6 +123,10 @@ if os.path.exists(frontend_public_path):
     for f in os.listdir(frontend_public_path):
         print(f"[Main]   发现文件: {f}")
     app.mount("/public", StaticFiles(directory=frontend_public_path), name="public")
+    # 与 Vite 的 public 根路径一致，设备展示图在开发和发布环境使用同一 URL。
+    device_images_path = os.path.join(frontend_public_path, "device-images")
+    if os.path.isdir(device_images_path):
+        app.mount("/device-images", StaticFiles(directory=device_images_path), name="device-images")
     print(f"[Main] Public目录服务已挂载: {frontend_public_path}")
 else:
     print(f"[Main] 警告: Public目录不存在: {frontend_public_path}")
