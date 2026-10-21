@@ -1,0 +1,2 @@
+# Windows 批处理检出时使用 CRLF，避免受目标电脑的 Git 换行配置影响。
+deploy_windows.bat text eol=crlf

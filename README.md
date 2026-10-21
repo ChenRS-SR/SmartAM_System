@@ -1,6 +1,8 @@
 # SmartAM SLM System
 
-推荐独立部署入口为 `python start_platform.py`，支持 Windows 和 Linux，不需要安装 Codex、VS Code，也不需要配置 IP 或固定名称的 Conda 环境。首次准备环境见下文“新电脑独立部署”。
+Windows 目标电脑推荐双击根目录 **`deploy_windows.bat`**，自动检查并补齐环境、安装依赖、构建页面、配置局域网访问并启动。已有环境和未变化的构建会跳过，不依赖 Codex、VS Code 或固定名称的 Conda 环境。
+
+跨平台手动入口为 `python start_platform.py`，首次准备环境见下文“新电脑独立部署”。
 
 已有 `pytorch_env` 环境的电脑也可以继续使用 `start_slm_complete.bat`（Windows）或 `./start_slm_complete.sh`（Linux）。这两个旧脚本会：
 
@@ -9,6 +11,32 @@
 - 构建前端静态页面
 - 启动 FastAPI 后端并统一提供页面/API
 - 打开 SLM 仪表盘页面（`8000` 端口）
+
+## Windows 一键部署（推荐）
+
+适用 Windows 10/11 x64。将本分支完整下载或拉取到目标电脑，在解压后的项目根目录双击 `deploy_windows.bat`，不要在压缩包内直接运行。首次补齐环境和依赖需要联网；已有依赖且未更新时会跳过下载。
+
+| 检查项 | 已满足时 | 缺失或变化时 |
+| --- | --- | --- |
+| Python | 复用 Python 3.10–3.13 x64 | 通过 WinGet 安装 Python 3.13 |
+| 项目环境 | 验证并复用 `.venv` | 创建独立 `.venv`，不向系统 Python 安装项目依赖 |
+| VC++ x64 运行库 | 根据安装记录跳过 | 通过 WinGet 安装 |
+| Node.js / npm | 复用 20.19+、22.12+ 或 24+ 的兼容版本 | 通过 WinGet 安装 Node.js LTS |
+| 后端依赖 | 核对 requirements 的版本约束及 `pip check` | 用 pip 补齐，再验证实际导入 |
+| 前端依赖 | 核对锁文件、运行时和完整依赖树 | 使用仓库的 `package-lock.json` 执行 `npm ci` |
+| 页面构建 | 输入和产物的 SHA-256 一致则跳过 | 重新构建，同源访问且不启用模拟接口 |
+| 防火墙 | 本应用规则符合要求则跳过 | 请求 Windows 管理员确认，只放行专用/域网络、本地子网的 TCP 8000 |
+| 服务 | 本项目已运行则直接打开页面 | 启动并等待健康检查成功后打开浏览器 |
+
+缺少 WinGet 时，安装 Windows“应用安装程序”，或先手动安装上述运行环境再重运行；不从非官方镜像下载未知安装器。安装命令使用 [Microsoft WinGet 的精确包 ID](https://learn.microsoft.com/windows/package-manager/winget/install)。首次系统组件安装可能出现 Windows 权限确认，请允许后继续。脚本仅为本次 PowerShell 进程设置执行策略，不修改全局执行策略。
+
+服务启动后控制台列出网卡地址，同一局域网访问 `http://<部署电脑IP>:8000/slm/dashboard`。保持窗口开启，Ctrl+C 停止。工厂可信局域网若被 Windows 标为“公用网络”，需要在 Windows 中改为“专用网络”；脚本不会自动更改网络类别。访问电脑的代理仍需让该 IP 直连。
+
+重复双击时，安装阶段有互斥锁防止同时修改环境；本项目已运行时只打开原页面。8000 被其他服务占用则报错，不杀进程、不更换端口。更新仓库后先停止原服务，再双击脚本即可按变化补齐依赖和重建。环境损坏会明确报错，不自动删除 `.venv` 或个人文件。
+
+部署成功状态保存在 `.deployment/`，日志在 `logs/deployment/`（保留最近 5 次）；两者不提交 Git。不要将另一台电脑的 `.venv`、`node_modules` 或 `.deployment` 一起复制过来。安装/构建失败不会写入该步骤的成功状态，解决错误后重复运行即可。
+
+本脚本完成平台软件和仓库随附设备案例的部署。实体相机 SDK、PLC 地址和特定 GPU 驱动仍按目标硬件配置。当前已通过自动化逻辑检查和 PowerShell 解析/分支检查，目标 Windows 的安装与 UAC 流程需实机验收。
 
 ## 已有 Conda 环境的启动方式
 
