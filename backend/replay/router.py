@@ -38,7 +38,7 @@ def photo(case_id: str):
 @router.get('/cases/{case_id}/media/{layer}/{kind}')
 def media(case_id: str, layer: int, kind: str):
     c = case(case_id)
-    if kind not in ('before', 'after', 'model_view') or layer not in {r['layer'] for r in c.layers}:
+    if kind not in ('before', 'after', 'model_view', 'ir_before', 'ir_after') or layer not in {r['layer'] for r in c.layers}:
         raise HTTPException(404, '无此案例图像')
     path = c.root / 'assets' / f'{layer}_{kind}.jpg'
     if not path.is_file():

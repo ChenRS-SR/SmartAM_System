@@ -57,9 +57,7 @@ class AnalysisPackage:
         return self.live[layer]
 
     def apply(self, frame, rows, real=False):
-        if not real and self.meta.get('preserveOriginalArchive'):
-            frame['processing']={'real':False}
-            return frame
+        original_recognition=frame['recognition']
         effective=real
         selected=self.archived
         if real:
@@ -72,11 +70,11 @@ class AnalysisPackage:
                 # UI 不说明切回原因；完整异常进入后端日志，离线输出来源保持可审计。
                 logger.exception('设备 %s 真实处理不可用，切回封存结果',self.meta['device']['id'])
                 effective=False
-                if self.meta.get('preserveOriginalArchive'):
-                    frame['processing']={'real':False}
-                    return frame
                 selected=self.archived
         attach(frame,selected,rows)
+        # B17 原识别展示保留；溯源必须使用修正分区后重新计算的完整结果，不能仅换轮廓。
+        if not effective and self.meta.get('preserveOriginalRecognition'):
+            frame['recognition']=original_recognition
         frame['processing']={'real':effective}
         frame['analysisOrigin']='model-runtime' if effective else 'sealed-model-results'
         return frame

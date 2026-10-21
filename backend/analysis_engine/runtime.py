@@ -14,12 +14,12 @@ MEAN = np.array([.485, .456, .406], np.float32)[:, None, None]
 STD = np.array([.229, .224, .225], np.float32)[:, None, None]
 
 class VisionDual(nn.Module):
-    def __init__(self):
+    def __init__(self, outputs=2):
         super().__init__()
         encoder = resnet18(weights=None)
         encoder.fc = nn.Identity()
         self.encoders = nn.ModuleList([encoder])
-        self.classifier = nn.Linear(512, 2)
+        self.classifier = nn.Linear(512, outputs)
     def forward(self, x):
         return self.classifier(self.encoders[0](x))
 
@@ -41,6 +41,7 @@ class Runtime:
         self.model.load_state_dict(torch.load(path, map_location='cpu', weights_only=True))
         self.model.eval()
         self.lock = threading.Lock()
+        self.infrared = None
 
     def forward(self, image, torque=None):
         x = torch.from_numpy((image.transpose(0, 3, 1, 2).astype(np.float32) / 255 - MEAN) / STD)
@@ -68,9 +69,17 @@ class Runtime:
         z, p, singles = self.forward(rgb[None], torque)
         out = {'p_proc': float(p[0, 0]), 'p_dev': float(p[0, 1]),
                'singles': {k: float(v[0].max()) for k, v in singles.items()}}
+        if 'infrared' in current:
+            if self.infrared is None:
+                from .infrared import InfraredRuntime
+                self.infrared = InfraredRuntime()
+            out['infrared'] = self.infrared.predict(current['infrared'])
         if reference is not None:
             mask = current['band'].astype(bool)
-            coalition = np.stack([np.where(((mask & bool(c & 1)) | (~mask & bool(c & 2)))[..., None], rgb, reference['rgb']) for c in range(4)])
+            valid = current['valid'].astype(bool) if self.meta['architecture'] == 'vis_torque' else np.ones_like(mask)
+            # 平台/刮刀和灰边固定为当前图像，不将其变化错误转移到粉床贡献。
+            baseline = np.where(valid[..., None], reference['rgb'], rgb)
+            coalition = np.stack([np.where(((mask & bool(c & 1)) | (valid & ~mask & bool(c & 2)))[..., None], rgb, baseline) for c in range(4)])
             values, _, _ = self.forward(coalition, torque)
             for column, key in enumerate(('proc', 'dev')):
                 a, b, c, d = values[:, column]

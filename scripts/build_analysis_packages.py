@@ -1,5 +1,6 @@
 """维护者用原始数据实跑模型并封存输入/输出；运行端无需访问论文目录。"""
 import argparse, csv, hashlib, io, json, re, sqlite3, sys, zipfile
+import os
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import cv2
@@ -23,11 +24,12 @@ def timestamp(epoch): return datetime.fromtimestamp(epoch,TZ).strftime('%Y-%m-%d
 
 class Writer:
     def __init__(self, case_id, device, task, model_id, upper, note, preserve=False):
-        self.root=ROOT/'backend/analysis_packages'/case_id;self.root.mkdir(parents=True,exist_ok=True)
+        self.root=Path(os.environ.get('SMARTAM_ANALYSIS_OUTPUT', ROOT/'backend/analysis_packages'))/case_id;self.root.mkdir(parents=True,exist_ok=True)
         self.runtime=Runtime(model_id)
         self.meta={'caseId':case_id,'device':device,'task':task,'modelId':model_id,'modelName':self.runtime.meta['name'],
-            'modelSha256':self.runtime.meta['sha256'],'upper':upper,'bandPx':12,'calibrationNote':note,
-            'weights':self.runtime.meta.get('weights',{'vis':1.,'tq':0.}), 'preserveOriginalArchive':preserve,'layers':[]}
+            'modelSha256':self.runtime.meta['sha256'],'resultRuleVersion':'recognition-attribution-status-v2','upper':upper,'bandPx':12,'calibrationNote':note,
+            'weights':self.runtime.meta.get('weights',{'vis':1.,'tq':0.}), 'preserveOriginalRecognition':preserve,'layers':[]}
+        if model_id == 'blt-dual': self.meta['maskVersion'] = P.MASK_VERSION
         self.results={};self.previous=None;self.previousLayer=None
     def append(self,layer,sample,meta):
         number=len(self.meta['layers'])//200
@@ -72,11 +74,11 @@ def blt(case_id, raw):
             if len(samples)<2:raise ValueError(f'{code}/{layer}铺粉段扭矩不足')
             times=[datetime.fromtimestamp(v[0],TZ).replace(tzinfo=None) for v in samples]
             torque,grid=P.resample_torque(times,[v[1] for v in samples],[v[2] for v in samples])
-            part,band=P.part_mask(after,before,crop,12)
+            part,band,valid=P.part_regions(after,before,crop,12)
             rgb=P.crop_letterbox(before,crop)
             height,width=before.shape[:2];scale=min(1200/height,1200/width,1)
             x0,y0,x1,y1=crop;sc=min(224/(x1-x0),224/(y1-y0));nw,nh=round((x1-x0)*sc),round((y1-y0)*sc)
-            writer.append(layer,{'rgb':rgb,'torque':torque,'part':part,'band':band},{
+            writer.append(layer,{'rgb':rgb,'torque':torque,'part':part,'band':band,'valid':valid},{
                 'time':timestamp(row['recognitionAt']),
                 'image':{'url':f'/api/slm/replay/cases/{case_id}/media/{layer}/before','w':round(width*scale),'h':round(height*scale),'box':[round(v*scale) for v in crop]},
                 'modelView':f'/api/slm/replay/cases/{case_id}/analysis-image/{layer}',
@@ -101,7 +103,10 @@ def m130(chapters, photo):
     writer=Writer(case_id,device,task,'m130-dual',upper,'第五章正常验证层阈值，模型输出顺序已适配为工艺侧与设备侧。')
     import tempfile
     sys.path.insert(0,str(ROOT/'scripts'))
-    from build_portable_replays import publish
+    import build_portable_replays as portable
+    portable.DEST=Path(os.environ.get('SMARTAM_REPLAY_OUTPUT',ROOT/'backend/replay_cases'))
+    portable.DEST.mkdir(parents=True,exist_ok=True)
+    publish=portable.publish
     with tempfile.TemporaryDirectory() as tmp:
         stage=Path(tmp);(stage/'assets').mkdir();(stage/'layers').mkdir()
         Image.open(photo).convert('RGB').save(stage/'assets/photo.jpg',quality=92)
@@ -116,7 +121,7 @@ def m130(chapters, photo):
             part=cv2.resize(mask.astype(np.uint8),(224,224),interpolation=cv2.INTER_NEAREST)>0
             band=cv2.dilate(part.astype(np.uint8),cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(25,25)))>0
             times={};images={}
-            for kind,field in [('before','铺粉后可见光'),('after','熔化后可见光')]:
+            for kind,field in [('before','铺粉后可见光'),('after','熔化后可见光'),('ir_before','铺粉后红外'),('ir_after','熔化后红外')]:
                 path=data/r[field]
                 match=re.search(r'_(\d{8})_(\d{6})_(\d{3})',path.name)
                 t=datetime.strptime(''.join(match.groups()[:2]),'%Y%m%d%H%M%S').replace(tzinfo=TZ).timestamp()+int(match.group(3))/1000
@@ -124,18 +129,18 @@ def m130(chapters, photo):
                 im=Image.open(path).convert('RGB');im.save(stage/'assets'/f'{layer}_{kind}.jpg',quality=95)
                 images[kind]={'url':None,'w':im.width,'h':im.height,'time':timestamp(t)}
                 provenance['images'][f'assets/{layer}_{kind}.jpg']={'sourceName':path.name,'sourceSha256':sha(path),'originalSize':list(im.size)}
-            start,end=times['before'],times['after']
+            start,end=min(times['before'],times['ir_before']),max(times['after'],times['ir_after'])
             if end<start:raise ValueError('M130图像时序错误')
             duration=end-start
-            layers.append({'layer':layer,'start':start,'recoat':start,'melt':start,'end':end,'offset':offset,'recognitionAt':start})
+            layers.append({'layer':layer,'start':start,'recoat':start,'melt':start,'end':end,'offset':offset,'recognitionAt':max(times['before'],times['ir_before']),'imageTimes':times})
             segments.append({'firstLayer':layer,'lastLayer':layer,'start':start,'end':end,'offset':offset,'duration':duration});offset+=duration
-            channels=[{'name':n,'spec':'可见光图像','rate':'逐层'} for n in ['铺粉后图像','熔化后图像']]
+            channels=[{'name':n,'spec':'红外图像' if '红外' in n else '可见光图像','rate':'逐层'} for n in ['铺粉后图像','熔化后图像','铺粉后红外图像','熔化后红外图像']]
             access={'device':device,'task':task,'layer':layer,'progress':{'layer':layer,'total':task['layers']},'images':images,
                 'torque':{'t':[],'scraper':[],'platform':[],'events':[],'recoatDur':None},'env':{},'channels':channels,
-                'records':[{'layer':layer,'start':timestamp(start),'recoat':None,'dur':None,'torqueN':None,'images':2,'complete':True}], 'alarms':[]}
+                'records':[{'layer':layer,'start':timestamp(start),'recoat':None,'dur':None,'torqueN':None,'images':4,'imageTotal':4,'complete':True}], 'alarms':[]}
             dump(stage/'layers'/f'{layer}.json',{'access':access,'recognition':None,'trace':None,'traceReason':'等待正常参照层'})
             h,w=before.shape[:2]
-            writer.append(layer,{'rgb':rgb,'part':part,'band':band},{'time':timestamp(start),'image':{'url':f'/api/slm/replay/cases/{case_id}/media/{layer}/before','w':w,'h':h,'box':[0,0,w,h]},
+            writer.append(layer,{'rgb':rgb,'part':part,'band':band,'infrared':np.frombuffer((data/r['铺粉后红外']).read_bytes(),dtype=np.uint8)},{'infraredImage':{'url':f'/api/slm/replay/cases/{case_id}/media/{layer}/ir_before','time':timestamp(times['ir_before'])},'time':timestamp(start),'image':{'url':f'/api/slm/replay/cases/{case_id}/media/{layer}/before','w':w,'h':h,'box':[0,0,w,h]},
                 'modelView':f'/api/slm/replay/cases/{case_id}/analysis-image/{layer}','partContours':P.contours(part),'bandContours':P.contours(band),
                 'torque':{'t':[],'scraper':[],'platform':[]}})
         with sqlite3.connect(stage/'samples.sqlite') as db:
@@ -144,10 +149,10 @@ def m130(chapters, photo):
         manifest={'schemaVersion':1,'id':case_id,'deviceId':device['id'],'name':device['name'],'model':'CRPBFM130','task':task,'imageOnly':True,'timezone':'Asia/Shanghai','sourceDevice':'M130',
             'segments':segments,'layers':layers,'duration':offset,'defaultOffset':0,'photo':'assets/photo.jpg',
             'analysis':{'origin':'model-output','controlHistoryAvailable':False},'capabilities':{'access':True,'recognition':True,'trace':True},
-            'timeNotes':'真实铺粉后/熔化后图像时间；每段为两帧之间的采集窗口，不作为完整层工艺时长。没有扭矩和设备环境采样，不填充其他设备数据。'}
+            'timeNotes':'真实铺粉后/熔化后可见光与红外图像时间；每段为两帧之间的采集窗口，不作为完整层工艺时长。没有扭矩和设备环境采样，不填充其他设备数据。'}
         dump(stage/'manifest.json',manifest);dump(stage/'alarms.json',[])
         item=publish(stage,{'id':case_id,'deviceId':device['id'],'name':device['name'],'model':'CRPBFM130','owner':'华科','location':'华科设备群','thumbnail':'/device-images/crpbfm130.jpg','layerCount':len(layers)},provenance)
-        catalog=ROOT/'backend/replay_cases/catalog.json';d=json.loads(catalog.read_text());d['cases']=[c for c in d['cases'] if c['id']!=case_id]+[item];dump(catalog,d)
+        catalog=ROOT/'backend/replay_cases/catalog.json';d=json.loads(catalog.read_text());d['cases']=[c for c in d['cases'] if c['id']!=case_id]+[item];dump(portable.DEST/'catalog.json',d)
     writer.finish()
 
 if __name__=='__main__':

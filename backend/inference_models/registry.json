@@ -56,5 +56,34 @@
         17.872699318452288
       ]
     }
+  },
+  "m130-ir-before": {
+    "file": "m130-ir-before.pt",
+    "sha256": "476d90d3b0c36a3904d9e3e08ba8b650e9256b923be177a88588b1599d8460ca",
+    "source": "ch05_大论文定稿实验/02_实验工作区/results_ch5/training/ir_before_seed0/best.pt",
+    "sourceSha256": "afbee37a0981ba06aba1e545876b4b114e70eb4d539d47747cd884f916030f89",
+    "architecture": "infrared_classification",
+    "classes": [
+      "正常",
+      "刮刀条纹型缺粉",
+      "铺粉不足型缺粉",
+      "翘曲",
+      "未熔合"
+    ],
+    "normalization": {
+      "mean": [
+        140.3677520751953,
+        146.95899963378906,
+        93.78047943115234
+      ],
+      "std": [
+        78.47816467285156,
+        82.69499206542969,
+        82.58316802978516
+      ],
+      "region": "whole_infrared_frame_no_visible_mask"
+    },
+    "configSha256": "ec871458e9dbecee7c7b54eb9bbb3961cfe7fe7725f68c196931a829b7ff0337",
+    "name": "M130铺粉后红外五分类识别"
   }
 }

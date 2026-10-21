@@ -40,13 +40,9 @@
 
     <Region kind="vis" class="r-vis">
       <div class="grid" :class="{ 'grid--filtered': filtered }" :style="{ '--access-columns': topColumns, '--access-columns-narrow': Math.min(2, topColumns) }">
-        <div v-if="visible('铺粉后图像')" class="card c-img">
-          <div class="card-title">铺粉后图像<span class="tm"><template v-if="d.images.before.layer">第 {{ d.images.before.layer }} 层 · </template>{{ d.images.before.time }}</span></div>
-          <img v-if="d.images.before.url" :src="img('before')" class="img" /><div v-else class="image-pending">图像尚未到达</div>
-        </div>
-        <div v-if="visible('熔化后图像')" class="card c-img">
-          <div class="card-title">熔化后图像<span class="tm"><template v-if="d.images.after.layer">第 {{ d.images.after.layer }} 层 · </template>{{ d.images.after.time }}</span></div>
-          <img v-if="d.images.after.url" :src="img('after')" class="img" /><div v-else class="image-pending">图像尚未到达</div>
+        <div v-for="channel in activeImageChannels" :key="channel.key" class="card c-img" :data-channel="channel.key">
+          <div class="card-title">{{ channel.name }}<span class="tm"><template v-if="d.images[channel.key].layer">第 {{ d.images[channel.key].layer }} 层 · </template>{{ d.images[channel.key].time }}</span></div>
+          <img v-if="d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">图像尚未到达</div>
         </div>
         <div v-if="visible('设备状态参数')" class="card c-state">
           <div class="card-title">设备状态<span class="tm">{{ d.device.name }}</span></div>
@@ -74,7 +70,7 @@
             <tbody>
               <tr v-for="r in d.records.slice(0, 6)" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!replaySession && !acq.running && load(r.layer)">
                 <td>{{ r.layer }}</td><td>{{ r.start }}</td><td>{{ r.recoat == null ? '—' : r.recoat.toFixed(1) }}</td><td>{{ r.dur == null ? '—' : r.dur.toFixed(1) }}</td>
-                <td>{{ r.torqueN ?? '—' }}</td><td>{{ r.images }}/2</td><td :class="r.complete ? 'ok' : r.state === '接入中' ? 'pending' : 'bad'">{{ r.state || (r.complete ? '完整' : '缺失') }}</td>
+                <td>{{ r.torqueN ?? '—' }}</td><td>{{ r.images }}/{{ r.imageTotal || 2 }}</td><td :class="r.complete ? 'ok' : r.state === '接入中' ? 'pending' : 'bad'">{{ r.state || (r.complete ? '完整' : '缺失') }}</td>
               </tr>
             </tbody>
           </table>
@@ -107,7 +103,9 @@ const visible = name => d.value?.channels.some(c => c.name === name) && channelS
 const setChannels = (names, shown) => channelStore.setVisible(channelKey.value, names, shown)
 const filtered = computed(() => d.value.channels.length < 5 || d.value.channels.some(c => !visible(c.name)))
 const allHidden = computed(() => d.value.channels.every(c => !visible(c.name)))
-const topColumns = computed(() => Math.max(1, ['铺粉后图像', '熔化后图像', '设备状态参数'].filter(visible).length))
+const imageChannels = [{ key:'before', name:'铺粉后图像' }, { key:'after', name:'熔化后图像' }, { key:'ir_before', name:'铺粉后红外图像' }, { key:'ir_after', name:'熔化后红外图像' }]
+const activeImageChannels = computed(() => imageChannels.filter(c => visible(c.name)))
+const topColumns = computed(() => activeImageChannels.value.length > 2 ? 2 : Math.max(1, activeImageChannels.value.length + Number(!!visible('设备状态参数'))))
 const torqueTitle = computed(() => ['刮刀扭矩', '加工平台扭矩'].filter(visible).join('与'))
 // 回放设备从工作区共享快照读取，跳转时清空旧结果，不再启动页面各自的计时器。
 if (replaySession) watch(() => replaySession.snapshot?.access, value => { d.value = value || null }, { immediate: true })

@@ -51,7 +51,7 @@ for entry in catalog():
                         self.assertLessEqual(len(frame['trace']['curve']['layers']), 50)
                     if frame['recognition']:
                         self.assertLessEqual(frame['recognition']['layer'], frame['layer'])
-                        expected_id = case.manifest['sourceDevice'] if p.meta.get('preserveOriginalArchive') else entry['deviceId']
+                        expected_id = case.manifest['sourceDevice'] if p.meta.get('preserveOriginalRecognition') else entry['deviceId']
                         self.assertEqual(frame['recognition']['device']['id'], expected_id)
             self.assertIsNone(p.runtime)
 
@@ -66,6 +66,46 @@ for entry in catalog():
                 self.assertAlmostEqual(actual['row'][field], expected['row'][field], places=5)
             self.assertEqual(actual['trace']['refLayer'], expected['trace']['refLayer'])
             self.assertEqual(set(p.live), {int(key)})
+
+    def test_infrared_archive_matches_actual_model_and_arrival_times(self):
+        p = AnalysisPackage('m130-20251120')
+        case = get_case('m130-20251120')
+        layer = p.meta['layers'][3]['layer']
+        actual = p.compute(layer)['recognition']['infrared']
+        expected = p.archived[str(layer)]['recognition']['infrared']
+        self.assertEqual(actual['label'], expected['label'])
+        self.assertAlmostEqual(actual['anomalyProbability'], expected['anomalyProbability'], places=6)
+        self.assertEqual(len(actual['classes']), 5)
+        for offset in (0, case.layers[3]['offset'], case.manifest['duration']):
+            frame = case.snapshot(offset)
+            for kind, image in frame['access']['images'].items():
+                if image['available']:
+                    arrived = [r for r in case.layers if r['imageTimes'][kind] <= frame['timestamp']]
+                    self.assertEqual(image['layer'], arrived[-1]['layer'])
+                    self.assertTrue((case.root/'assets'/f"{image['layer']}_{kind}.jpg").is_file())
+        self.assertEqual(set(frame['access']['images']), {'before','after','ir_before','ir_after'})
+
+    def test_intake_accepts_real_infrared_and_serves_its_own_image(self):
+        from analysis_engine.intake import LayerInfo, process_layer, input_image
+        from starlette.datastructures import UploadFile
+        from PIL import Image
+        p = AnalysisPackage('m130-20251120')
+        raw = p.inputs(p.meta['layers'][0]['layer'])
+        def file(pixels):
+            b = io.BytesIO(); Image.fromarray(pixels).save(b,format='PNG'); b.seek(0)
+            return UploadFile(file=b,filename='sample.png')
+        info = LayerInfo(task_id='infrared-test',task_name='红外接入',layer=1,total_layers=10,time='2026-10-21T12:00:00+08:00')
+        with tempfile.TemporaryDirectory() as directory, patch('analysis_engine.intake.ROOT', Path(directory)):
+            result = process_layer('huake-crpbfm130',info.model_dump_json(),file(raw['rgb']),None,
+                file(raw['part'].astype(np.uint8)*255), UploadFile(file=io.BytesIO(raw['infrared'].tobytes()),filename='ir.jpg'))
+            ir = result['recognition']['infrared']
+            self.assertIn('?kind=infrared',ir['image']['url'])
+            expected = p.archived[str(p.meta['layers'][0]['layer'])]['recognition']['infrared']
+            self.assertAlmostEqual(ir['anomalyProbability'],expected['anomalyProbability'],places=6)
+            response = input_image('huake-crpbfm130','infrared-test',1,'infrared')
+            actual_image = np.array(Image.open(io.BytesIO(response.body)))
+            expected_image = np.array(Image.open(io.BytesIO(raw['infrared'].tobytes())).convert('RGB'))
+            np.testing.assert_array_equal(actual_image, expected_image)
 
     def test_unavailable_inference_returns_own_archive_and_logs_only(self):
         case_id = 'b44-20250321-09-20'
@@ -87,7 +127,7 @@ for entry in catalog():
         self.assertEqual(len(frame['parameters']), 1)
         self.assertEqual(frame['access']['images']['after']['layer'], case.layers[2]['layer'])
         self.assertTrue(all(v is None for v in frame['access']['env'].values()))
-        self.assertEqual(len(frame['access']['channels']), 2)
+        self.assertEqual(len(frame['access']['channels']), 4)
 
     def test_intake_rejects_incomplete_input_and_processes_new_task(self):
         from analysis_engine.intake import LayerInfo, prepare, process_layer
@@ -104,7 +144,7 @@ for entry in catalog():
             b = io.BytesIO(); Image.fromarray(pixels).save(b,format='PNG'); b.seek(0)
             return UploadFile(file=b,filename='sample.png')
         def submit(metadata):
-            return process_layer('huake-crpbfm130', metadata, file(raw['rgb']), None, file(raw['part'].astype(np.uint8)*255))
+            return process_layer('huake-crpbfm130', metadata, file(raw['rgb']), None, file(raw['part'].astype(np.uint8)*255), None)
         with tempfile.TemporaryDirectory() as directory, patch('analysis_engine.intake.ROOT', Path(directory)):
             metadata = info.model_dump_json()
             result = submit(metadata)

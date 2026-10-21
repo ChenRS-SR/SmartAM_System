@@ -69,7 +69,7 @@
             </div>
           </div>
           <div v-if="replaySession && d.mode !== 'dual'" class="replay-note">工艺侧分析暂无数据，当前显示设备侧分析。</div>
-          <div class="hint">任一区的贡献超过上限水平，判定该类诱发异常得到体现，超过的区为支撑区域；总改变量为两区贡献之和</div>
+          <div class="hint">各侧分别与对应上限比较；贡献超限为支撑证据，同侧异常概率达到 50% 时确认归因。证据不一致时保留待复核状态。总改变量为两区贡献之和。</div>
         </div>
 
         <div class="card c-res" :class="{ dense: d.mode === 'dual' }">
@@ -108,14 +108,14 @@
             <tbody v-if="d.mode === 'dual'">
               <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }">
                 <td>{{ r.layer }}</td><td>{{ mx(r.proc_part, r.proc_powder).toFixed(2) }}</td><td>{{ mx(r.dev_part, r.dev_powder).toFixed(2) }}</td>
-                <td><span class="tag" :class="tagCls(r.conclusion)">{{ tagTxt(r.conclusion) }}</span></td>
+                <td><span class="tag" :class="tagCls(r.conclusion)" :title="r.conclusion">{{ tagTxt(r.conclusion) }}</span></td>
               </tr>
             </tbody>
             <tbody v-else>
               <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!replaySession && !stepper.running.value && run(r.layer)">
                 <td>{{ r.layer }}</td><td :class="{ over: r.part >= upDev }">{{ r.part.toFixed(2) }}</td>
                 <td :class="{ over: r.powder >= upDev }">{{ r.powder.toFixed(2) }}</td><td class="muted">{{ r.total.toFixed(2) }}</td>
-                <td><span class="tag" :class="tagCls(r.conclusion)">{{ tagTxt(r.conclusion) }}</span></td>
+                <td><span class="tag" :class="tagCls(r.conclusion)" :title="r.conclusion">{{ tagTxt(r.conclusion) }}</span></td>
               </tr>
             </tbody>
           </table>
@@ -206,9 +206,9 @@ const probs = computed(() => [
   ...(d.value.factors.proc ? [{ name: '工艺诱发异常概率', v: d.value.factors.proc.prob, color: 'var(--proc)' }] : []),
   { name: '设备诱发异常概率', v: d.value.factors.dev.prob, color: 'var(--dev)' },
 ])
-const verdictCls = computed(() => ({ '由二者共同诱发': 'v-both', '由工艺因素诱发': 'v-proc', '由设备因素诱发': 'v-dev' }[d.value.conclusion] || 'v-nor'))
-const tagCls = (r) => ({ '由二者共同诱发': 't-both', '由工艺因素诱发': 't-proc', '由设备因素诱发': 't-dev' }[r] || 't-nor')
-const tagTxt = (r) => ({ '由二者共同诱发': '二者共同', '由工艺因素诱发': '工艺因素', '由设备因素诱发': '设备因素' }[r] || '未见异常')
+const verdictCls = computed(() => ({ '由二者共同诱发': 'v-both', '由工艺因素诱发': 'v-proc', '由设备因素诱发': 'v-dev', '已识别异常，归因待确认': 'v-pending', '贡献超限，待复核': 'v-pending' }[d.value.conclusion] || 'v-nor'))
+const tagCls = (r) => ({ '由二者共同诱发': 't-both', '由工艺因素诱发': 't-proc', '由设备因素诱发': 't-dev', '已识别异常，归因待确认': 't-pending', '贡献超限，待复核': 't-pending' }[r] || 't-nor')
+const tagTxt = (r) => ({ '由二者共同诱发': '二者共同', '由工艺因素诱发': '工艺因素', '由设备因素诱发': '设备因素', '已识别异常，归因待确认': '异常·待归因', '贡献超限，待复核': '超限·待复核' }[r] || r)
 const visibleFactors = computed(() => layerWindow(factorCurveRows(d.value), d.value.layer))
 const curveStart = computed(() => Math.max(1, d.value.layer - TRACE_WINDOW_SIZE + 1))
 const hasProcessCurve = computed(() => visibleFactors.value.some(r => r.proc !== null))
@@ -247,6 +247,7 @@ const curveOption = computed(() => {
 </script>
 
 <style scoped>
+.verdict.v-pending, .t-pending { color: #9a5900; background: rgba(185, 112, 8, .12); }
 .r-input { flex: 600 0 600px; }
 .r-param { flex: 276 1 276px; min-width: 0; }
 .r-op { flex: 290 0 290px; }

@@ -103,19 +103,21 @@ class ReplayCase:
         }
         # 同一时刻两种图像可能属于不同层：保留各通道最后到达的帧并显式返回帧层号。
         # 否则层结束恰等于下一层开始时，熔化后图像会被立即清空，永远无法观看。
-        for kind, event in [('before', 'melt'), ('after', 'end')]:
-            arrived = [r for r in rows if r[event] <= at]
+        def image_time(r, kind):
+            return r['imageTimes'][kind] if self.manifest.get('imageOnly') else r[{'before':'melt','after':'end'}[kind]]
+        for kind in access['images']:
+            arrived = [r for r in rows if image_time(r,kind) <= at]
             image_row = arrived[-1] if arrived else None
             access['images'][kind].update(
                 url=self.media_url(image_row['layer'], kind) if image_row else None,
                 layer=image_row['layer'] if image_row else None,
-                time=display_time(image_row[event]) if image_row else '',
+                time=display_time(image_time(image_row,kind)) if image_row else '',
                 available=bool(image_row))
         access['records'] = []
         for r in [r for r in rows if r['start'] <= at][-6:][::-1]:
             record = copy.deepcopy(self.layer_data(r['layer'])['access']['records'][0])
             complete = at >= r['end']
-            record.update(complete=complete, images=int(at >= r['melt']) + int(complete),
+            record.update(complete=complete, images=sum(at >= image_time(r,kind) for kind in access['images']),
                           state='完整' if complete else '接入中')
             if not complete:
                 record.update(dur=None, recoat=None, torqueN=None)

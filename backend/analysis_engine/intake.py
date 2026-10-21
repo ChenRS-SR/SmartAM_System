@@ -62,7 +62,7 @@ def prepare(before, after, mask, info, model):
             raise ValueError('扭矩数值必须有限，采样时间必须严格递增')
         grid = np.linspace(t[0], t[-1], 224)
         torque = np.stack([np.interp(grid, t, s), np.interp(grid, t, p)]).astype(np.float32)
-        part, band = P.part_mask(after, before, roi, 12)
+        part, band, valid = P.part_regions(after, before, roi, 12)
         rgb = P.crop_letterbox(before, roi)
         box = roi
     else:
@@ -77,8 +77,9 @@ def prepare(before, after, mask, info, model):
         rgb = np.round(cv2.resize(normalized, (224, 224), interpolation=cv2.INTER_AREA)).astype(np.uint8)
         part = cv2.resize(mask.astype(np.uint8), (224, 224), interpolation=cv2.INTER_NEAREST) > 0
         band = cv2.dilate(part.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))) > 0
+        valid = np.ones_like(part)
         box = [0, 0, w, h]
-    sample = dict(rgb=rgb, part=part, band=band)
+    sample = dict(rgb=rgb, part=part, band=band, valid=valid)
     if torque is not None: sample['torque'] = torque
     item = {'layer': info.layer, 'time': info.time.isoformat(), 'image': {'w': w, 'h': h, 'box': box},
             'partContours': P.contours(part), 'bandContours': P.contours(band),
@@ -111,7 +112,7 @@ def saved_result(device_id: str, task_id: str, layer: int):
 
 @router.post('/devices/{device_id}/layers')
 def process_layer(device_id: str, metadata: str = Form(...), before: UploadFile = File(...),
-                  after: UploadFile = File(None), mask: UploadFile = File(None)):
+                  after: UploadFile = File(None), mask: UploadFile = File(None), infrared_before: UploadFile = File(None)):
     config = case_for_device(device_id)
     if config is None: raise HTTPException(404, '设备未绑定模型')
     try:
@@ -119,6 +120,12 @@ def process_layer(device_id: str, metadata: str = Form(...), before: UploadFile 
         bound = package(config['id'])
         model = json.loads((Path(__file__).resolve().parents[1]/'inference_models/registry.json').read_text(encoding='utf-8'))[bound.meta['modelId']]
         sample, item = prepare(read_image(before), read_image(after), read_image(mask, True), info, model)
+        if infrared_before is not None:
+            if bound.meta['modelId'] != 'm130-dual':
+                raise ValueError('当前设备未绑定红外模型')
+            buffer = io.BytesIO()
+            Image.fromarray(read_image(infrared_before)).save(buffer,format='PNG')
+            sample['infrared'] = np.frombuffer(buffer.getvalue(),dtype=np.uint8)
         identity = hashlib.sha256(metadata.encode()+b''.join(sample[k].tobytes() for k in sorted(sample))).hexdigest()
     except (ValueError, OSError) as e:
         raise HTTPException(422, str(e)) from e
@@ -156,6 +163,8 @@ def process_layer(device_id: str, metadata: str = Form(...), before: UploadFile 
         base = f'/api/slm/analysis/devices/{device_id}/tasks/{info.task_id}/layers/{info.layer}'
         item['image']['url'] = base+'/image'
         item['modelView'] = base+'/image'
+        if 'infrared' in sample:
+            item['infraredImage'] = {'url':base+'/image?kind=infrared','time':info.time.isoformat()}
         item['image'].update(w=224, h=224, box=[0, 0, 224, 224])
         meta = {**bound.meta, 'task': {'id':info.task_id, 'name':info.task_name, 'layers':info.total_layers}}
         result = {**format_result(meta, item, output), 'layer':info.layer, 'time':info.time.isoformat(),
@@ -169,7 +178,7 @@ def process_layer(device_id: str, metadata: str = Form(...), before: UploadFile 
 
 
 @router.get('/devices/{device_id}/tasks/{task_id}/layers/{layer}/image')
-def input_image(device_id: str, task_id: str, layer: int):
+def input_image(device_id: str, task_id: str, layer: int, kind: str = 'rgb'):
     import re
     from fastapi.responses import Response
     if case_for_device(device_id) is None or not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', task_id):
@@ -177,6 +186,11 @@ def input_image(device_id: str, task_id: str, layer: int):
     path = ROOT/device_id/task_id/f'{layer}.npz'
     if not path.is_file(): raise HTTPException(404, '无此采集层')
     with np.load(path, allow_pickle=False) as data:
+        if kind not in ('rgb', 'infrared') or kind not in data.files:
+            raise HTTPException(404, '该层没有此模态图像')
         buffer = io.BytesIO()
-        Image.fromarray(data['rgb']).save(buffer, format='PNG')
+        if kind == 'infrared':
+            with Image.open(io.BytesIO(data['infrared'].tobytes())) as image:
+                image.save(buffer,format='PNG')
+        else: Image.fromarray(data['rgb']).save(buffer, format='PNG')
     return Response(buffer.getvalue(), media_type='image/png')

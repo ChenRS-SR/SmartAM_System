@@ -51,10 +51,12 @@ class Recognizer:
             _, p, pv, pt = self._forward(vis[None], tq[None])
         return {'fused': float(p[0]), 'vis': float(pv[0]), 'tq': float(pt[0])}
 
-    def shapley(self, cur: torch.Tensor, ref: torch.Tensor, region: np.ndarray, tq: torch.Tensor) -> dict:
-        """两区精确 Shapley。region 为零件区（含边缘邻域）布尔掩膜，其余为粉床区。"""
+    def shapley(self, cur: torch.Tensor, ref: torch.Tensor, region: np.ndarray, tq: torch.Tensor, valid: np.ndarray) -> dict:
+        """两区精确 Shapley；有效域外固定当前像素，设备结构不归入粉床。"""
         m = torch.from_numpy(region)
-        xs = torch.stack([torch.where(((m & bool(c & 1)) | (~m & bool(c & 2)))[None], cur, ref) for c in range(4)])
+        domain = torch.from_numpy(valid)
+        baseline = torch.where(domain[None], ref, cur)
+        xs = torch.stack([torch.where(((m & bool(c & 1)) | (domain & ~m & bool(c & 2)))[None], cur, baseline) for c in range(4)])
         with self._lock:
             v, p, _, _ = self._forward(xs, tq[None].expand(4, -1, -1))
         return {'part': float(0.5 * (v[1] - v[0]) + 0.5 * (v[3] - v[2])),

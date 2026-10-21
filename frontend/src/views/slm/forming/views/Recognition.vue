@@ -19,7 +19,7 @@
           <div class="field wide"><span class="k">判定阈值</span>
             <input v-if="replaySession" class="inp" type="number" :value="d.params.threshold * 100" disabled /><input v-else class="inp" type="number" min="1" max="99" step="1" v-model.number="state.recog.threshold" @change="run(d.layer)" /><span class="k">%</span></div>
           <div class="field wide"><span class="k">输入模态</span>
-            <span v-for="m in MODS" :key="m.key" class="ch" @click="!replaySession && toggle(m.key)"><i class="ck" :class="{ off: !(replaySession ? d.params.modalities : state.recog.modalities).includes(m.key) }">✓</i>{{ m.label }}</span></div>
+            <span v-for="m in (d.infrared ? MODS.filter(m => m.key === 'vis') : MODS)" :key="m.key" class="ch" @click="!replaySession && toggle(m.key)"><i class="ck" :class="{ off: !(replaySession ? d.params.modalities : state.recog.modalities).includes(m.key) }">✓</i>{{ m.label }}</span><span v-if="d.infrared" class="ch"><i class="ck">✓</i>红外（独立识别）</span></div>
         </div>
       </Region>
       <Region kind="op" title="操作" class="r-op">
@@ -45,7 +45,7 @@
         </div>
 
         <div class="card c-res">
-          <div class="card-title">识别结果<span class="tm">第 {{ d.layer }} 层</span></div>
+          <div class="card-title">{{ d.infrared ? '可见光识别结果' : '识别结果' }}<span class="tm">第 {{ d.layer }} 层</span></div>
           <div class="vc">
             <div class="verdict" :class="{ nor: d.label !== '异常' }">{{ d.label }}</div>
             <div class="prob-row"><span>异常概率</span><b>{{ fmtPct(d.prob.def) }}</b></div>
@@ -57,6 +57,7 @@
         <div class="card c-mod">
           <div class="card-title">各模态的作用</div>
           <div class="vc">
+            <template v-if="!d.infrared">
             <div class="m-sub">模态权重<span class="m-hint">融合时各模态所占比重</span></div>
             <div class="wbar">
               <div class="wseg w-vis" :style="{ width: d.weights.vis * 100 + '%' }"><span v-if="d.weights.vis > 0.3">铺粉后图像 {{ (d.weights.vis * 100).toFixed(1) }}%</span></div>
@@ -64,8 +65,9 @@
             </div>
             <div class="w-legend"><span><i class="sw w-vis"></i>铺粉后图像 {{ (d.weights.vis * 100).toFixed(1) }}%</span>
               <span v-if="d.params.modalities.includes('tq')"><i class="sw w-tq"></i>刮刀与平台扭矩 {{ (d.weights.tq * 100).toFixed(1) }}%</span></div>
+            </template>
             <div class="m-sub second">单模态判断<span class="m-hint">只用该模态时的异常概率</span></div>
-            <div class="single" v-for="m in d.singles" :key="m.key" :class="{ unused: !m.used }">
+            <div class="single" v-for="m in modalityResults" :key="m.key" :class="{ unused: !m.used }">
               <span class="s-name">{{ m.name }}</span>
               <div class="s-track"><div class="s-fill" :style="{ width: m.p * 100 + '%' }"></div><i class="s-th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
               <span class="s-p">{{ (m.p * 100).toFixed(1) }}%</span>
@@ -80,12 +82,21 @@
           <EChart :option="torqueOption" class="chart" />
         </div>
 
+        <div v-if="d.infrared" class="card c-torque c-infrared">
+          <div class="card-title">铺粉后红外识别<span class="tm">第 {{ d.layer }} 层 · {{ d.infrared.image.time }}</span></div>
+          <div class="infrared-content"><img class="img" :src="mediaUrl(d.infrared.image.url)" alt="铺粉后红外图像" />
+            <div><div class="prob-row"><span>识别类别</span><b>{{ d.infrared.label }}</b></div>
+              <div class="prob-row"><span>类别置信度</span><b>{{ fmtPct(d.infrared.confidence) }}</b></div>
+              <div class="prob-row"><span>异常概率</span><b>{{ fmtPct(d.infrared.anomalyProbability) }}</b></div></div>
+          </div>
+        </div>
+
         <div class="card c-rec">
           <div class="card-title">逐层识别记录</div>
           <!-- 窄屏下仅记录表局部滚动，保留所有字段。 -->
           <div class="table-scroll" tabindex="0" role="region" aria-label="逐层识别记录表格">
           <table class="tbl">
-            <thead><tr><th>层号</th><th>异常概率</th><th>识别结果</th></tr></thead>
+            <thead><tr><th>层号</th><th>{{ d.infrared ? '可见光异常概率' : '异常概率' }}</th><th>识别结果</th></tr></thead>
             <tbody>
               <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!replaySession && !stepper.running.value && run(r.layer)">
                 <td>{{ r.layer }}</td><td>{{ fmtPct(r.p) }}</td>
@@ -121,6 +132,7 @@ const d = ref(null)
 if (replaySession) watch(() => replaySession.snapshot?.recognition, value => { d.value = value || null }, { immediate: true })
 const layers = ref([])
 const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : devicesFor('recognition'))
+const modalityResults = computed(() => d.value?.infrared ? [...d.value.singles, { key:'ir', name:'铺粉后红外', p:d.value.infrared.anomalyProbability, label:d.value.infrared.anomalyProbability >= .5 ? '异常' : '正常', used:true }] : d.value?.singles || [])
 const imgUrl = computed(() => mediaUrl(d.value.image.url, 1200))
 
 async function run(layer) {
@@ -172,6 +184,8 @@ const torqueOption = computed(() => {
 </script>
 
 <style scoped>
+.infrared-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media(max-width:600px) { .infrared-content { grid-template-columns: minmax(0, 1fr); } }
 .r-input { flex: 520 0 520px; }
 .r-param { flex: 396 1 396px; min-width: 0; }
 .r-op { flex: 250 0 250px; }

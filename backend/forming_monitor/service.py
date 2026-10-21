@@ -236,14 +236,17 @@ class Device:
         return out
 
     # ------------------------------------------------------------------ 溯源
-    def _masks(self, layer: int, band_px: int):
+    def _regions(self, layer: int, band_px: int):
         key = (layer, band_px)
         if key not in self._mask_cache:
             x = self.source.inputs(self.task_cfg['id'], layer)
-            self._mask_cache[key] = P.part_mask(P.read_rgb(x.after), P.read_rgb(x.before), self.rec.crop, band_px)
+            self._mask_cache[key] = P.part_regions(P.read_rgb(x.after), P.read_rgb(x.before), self.rec.crop, band_px)
             if len(self._mask_cache) > 256:
                 self._mask_cache.pop(next(iter(self._mask_cache)))
         return self._mask_cache[key]
+
+    def _masks(self, layer: int, band_px: int):
+        return self._regions(layer, band_px)[:2]
 
     def ref_layer(self, layer: int) -> int | None:
         """前序最近正常层：当前层之前最近的、被同一识别模型判为正常（融合异常概率 < 0.5）的层，不使用标签。"""
@@ -254,14 +257,14 @@ class Device:
         return None
 
     def shapley(self, layer: int, band_px: int, ref: int) -> dict:
-        key = f'{layer}|{band_px}|{ref}'
+        key = f'{P.MASK_VERSION}|{layer}|{band_px}|{ref}'
         hit = self.c_shap.get(key)
         if hit:
             return hit
         _, _, cur, tq, _, _ = self._tensors(layer)
         _, _, rv, _, _, _ = self._tensors(ref)
-        _, band = self._masks(layer, band_px)
-        s = self.rec.shapley(cur, rv, band, tq)
+        _, band, valid = self._regions(layer, band_px)
+        s = self.rec.shapley(cur, rv, band, tq, valid)
         self.c_shap.set(key, s)
         return s
 
@@ -328,27 +331,20 @@ class Device:
         return out
 
     def _trace_dual(self, layer: int, n_curve: int, n_records: int) -> dict:
-        """接入同设备同任务双输出结果，避免将旧单输出模型当作两侧输出。"""
-        if not hasattr(self, '_dual'):
-            self._dual = DualTraceResults(config.PACK_DIR / self.cfg['trace']['dual_pack'])
-        row = self._dual.rows[layer]
-        if 'ref' not in row:
+        """采用同一份修正分区及重算贡献，避免旧数值配新轮廓。"""
+        import copy
+        from analysis_engine.service import package
+        sealed = package('blt-s430-20240828')
+        row = sealed.archived[str(layer)]
+        if row['trace'] is None:
             raise ApiError(409, '当前层之前没有被判为正常的层，无法选取参照层')
-        part, band = self._masks(layer, self._dual.pack['bandPx'])
-        x0, y0, x1, y1 = self.rec.crop
-        scale = min(224 / (y1 - y0), 224 / (x1 - x0))
-        nh, nw = round((y1 - y0) * scale), round((x1 - x0) * scale)
-        history = [r for r in self._dual.pack['layers'] if 'ref' in r and layer - n_curve < r['layer'] <= layer]
-        result = self._dual.apply({
-            'device': {'id': self.id, 'name': self.cfg['name']}, 'task': self.task_public(),
-            'layer': layer, 'time': self.layer_time(layer),
-            'image': {'url': f'media/{self.id}/{self.task_cfg["id"]}/{layer}/model_view', 'width': 896, 'height': 896,
-                      'content': [(224 - nw) // 2 / 224, (224 - nh) // 2 / 224, nw / 224, nh / 224]},
-            'partContours': P.contours(part), 'bandContours': P.contours(band),
-            'curve': {'from': layer - n_curve + 1, 'to': layer, 'layers': history},
-            'records': history[::-1][:n_records],
-        }, layer)
-        self.log('异常溯源', layer, f'第{layer}层 {result["conclusion"]}')
+        result = copy.deepcopy(row['trace'])
+        history = [dict(r['row'], layer=int(k), conclusion=r['trace']['conclusion'])
+                   for k, r in sealed.archived.items()
+                   if layer-n_curve < int(k) <= layer and r['trace'] is not None]
+        result.update(device={'id':self.id,'name':self.cfg['name']}, task=self.task_public())
+        result['curve'].update(layers=history, **{'from':history[0]['layer'],'to':layer})
+        result['records'] = history[-n_records:][::-1]
         return result
 
     def trace_curve(self, layer: int, band_px: int, n: int = 41) -> dict:

@@ -4,6 +4,19 @@ from pathlib import Path
 import torch
 
 ROOT = Path(__file__).resolve().parents[1]
+def export_infrared(chapters, target, registry):
+    source = chapters/'ch05_大论文定稿实验/02_实验工作区/results_ch5'
+    path = source/'training/ir_before_seed0/best.pt'
+    config_path = source/'training_config_ir_before.json'
+    cfg = json.loads(config_path.read_text(encoding='utf-8'))
+    file = target/'m130-ir-before.pt'
+    torch.save(torch.load(path,map_location='cpu',weights_only=False)['model'],file)
+    registry['m130-ir-before'] = {'file':file.name,'sha256':hashlib.sha256(file.read_bytes()).hexdigest(),
+        'source':str(path.relative_to(chapters)),'sourceSha256':hashlib.sha256(path.read_bytes()).hexdigest(),
+        'architecture':'infrared_classification','classes':cfg['classes'],
+        'normalization':cfg['normalization']['2'],'configSha256':hashlib.sha256(config_path.read_bytes()).hexdigest(),
+        'name':'M130铺粉后红外五分类识别'}
+
 def export(chapters):
     target = ROOT/'backend/inference_models'
     target.mkdir(exist_ok=True)
@@ -22,6 +35,7 @@ def export(chapters):
         if architecture=='vis_torque': registry[key].update(weights=metadata['source_modality_weights'],torque_norm=metadata['torque_norm'])
     norm=json.loads((chapters/'ch05_大论文定稿实验/02_实验工作区/results_ch5/normalization_draft.json').read_text())
     registry['m130-dual']['background_norm']={k:norm[k] for k in ('rgb_mean_255','rgb_std_255')}
+    export_infrared(chapters,target,registry)
     (target/'registry.json').write_text(json.dumps(registry,ensure_ascii=False,indent=2),encoding='utf-8')
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--chapters',type=Path,required=True)

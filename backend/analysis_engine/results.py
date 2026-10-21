@@ -5,7 +5,14 @@ import copy
 def conclusion(row, factors):
     # 双输出概率与分区贡献共同支持时才给出处置方向。
     proc, dev = [row['p_'+k] >= .5 and factors[k]['present'] for k in ('proc','dev')]
-    return '由二者共同诱发' if proc and dev else '由工艺因素诱发' if proc else '由设备因素诱发' if dev else '未见异常'
+    if proc or dev:
+        return '由二者共同诱发' if proc and dev else '由工艺因素诱发' if proc else '由设备因素诱发'
+    # 归因未确认不能反推“正常”；概率与贡献衡量的量不同，需保留待确认状态。
+    if max(row['p_proc'], row['p_dev']) >= .5:
+        return '已识别异常，归因待确认'
+    if any(factors[k]['present'] for k in ('proc', 'dev')):
+        return '贡献超限，待复核'
+    return '未见异常'
 
 
 def format_result(meta, item, row):
@@ -20,6 +27,8 @@ def format_result(meta, item, row):
         'label': label, 'weights': meta['weights'],
         'singles': [{'key': k, 'name': '铺粉后图像' if k=='vis' else '刮刀与平台扭矩', 'p': value, 'label': '异常' if value>=.5 else '正常', 'used': True} for k,value in singles.items()],
         'torque': item['torque'], 'records': [], 'modelVersion': meta['modelSha256']}
+    if 'infrared' in row:
+        recognition['infrared'] = {**row['infrared'], 'image':item['infraredImage']}
     trace = None
     if 'ref' in row:
         factors={}
@@ -28,12 +37,15 @@ def format_result(meta, item, row):
             support=[z['name'] for z in zones if z['over']]
             factors[key]={'name':name,'zones':zones,'total':sum(z['v'] for z in zones),'upper':meta['upper'][key], 'present':bool(support),'support':support,'prob':row['p_'+key],'illustrative':False}
         verdict=conclusion(row,factors)
+        actions=[text for k,text in [('proc','调整工艺参数'),('dev','检修刮刀与供粉机构')] if row['p_'+k]>=.5 and factors[k]['present']]
+        if verdict == '已识别异常，归因待确认': actions = ['复核异常层与归因证据']
+        elif verdict == '贡献超限，待复核': actions = ['复核超限区域与识别结果']
         trace={**base,'mode':'dual','refLayer':row['ref'],'refMode':'prev_normal','params':{'bandPx':meta['bandPx']},
             'image':{'url':item['modelView'],'width':224,'height':224,'content':item.get('content',[0,0,1,1])},
             'partContours':item['partContours'],'bandContours':item['bandContours'],'factors':factors,
             'synergy':{k:row[k+'_synergy'] for k in ('proc','dev')},'conclusion':verdict,
             'support':list(dict.fromkeys(factors['proc']['support']+factors['dev']['support'])),
-            'actions':[text for k,text in [('proc','调整工艺参数'),('dev','检修刮刀与供粉机构')] if row['p_'+k]>=.5 and factors[k]['present']],
+            'actions':actions,
             'curve':{'from':layer,'to':layer,'upper':meta['upper'],'layers':[]},'records':[],
             'notes':{'upper':meta['calibrationNote']},'modelVersion':meta['modelSha256']}
     return {'recognition':recognition,'trace':trace,'row':row}
