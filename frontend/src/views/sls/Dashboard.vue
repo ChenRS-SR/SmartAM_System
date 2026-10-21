@@ -170,6 +170,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import { resolveBackendWebSocketUrl } from '../../utils/backendBase'
 
 import SensorConnectionStatus from '../../components/sls/SensorConnectionStatus.vue'
 import RealTimeDisplay from '../../components/slm/RealTimeDisplay.vue'
@@ -962,7 +963,7 @@ const toggleAcquisition = async () => {
 
 // 连接WebSocket
 const connectWebSocket = () => {
-  const wsUrl = `ws://${window.location.host}/api/sls/ws/data`
+  const wsUrl = resolveBackendWebSocketUrl('/api/sls/ws/data')
   
   try {
     ws = new WebSocket(wsUrl)

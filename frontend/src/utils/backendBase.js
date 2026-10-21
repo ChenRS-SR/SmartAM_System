@@ -12,3 +12,11 @@ export function resolveBackendBaseUrl() {
 
   return ''
 }
+
+/** 与 HTTP 接口共用后端地址，保留局域网或 VS Code 转发后的端口。 */
+export function resolveBackendWebSocketUrl(path) {
+  const base = resolveBackendBaseUrl() || window.location.origin
+  const url = new URL(`${base}${path}`, window.location.origin)
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+  return url.href
+}

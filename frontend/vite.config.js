@@ -11,11 +11,13 @@ export default defineConfig({
     }
   },
   server: {
-    host: true,
+    // 开发入口也允许局域网 IP 直接访问。
+    host: '0.0.0.0',
     port: 5173,
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
+        ws: true, // SLM/SLS 实时数据与 HTTP 接口共用 /api 前缀。
         changeOrigin: true
         // 注意：后端路由以 /api 开头，不需要 rewrite
       },

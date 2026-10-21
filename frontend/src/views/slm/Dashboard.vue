@@ -156,6 +156,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import { resolveBackendWebSocketUrl } from '../../utils/backendBase'
 
 import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
 import QualityControlContext from '../../components/slm/QualityControlContext.vue'
@@ -1016,7 +1017,7 @@ const toggleAcquisition = async () => {
 
 // 连接WebSocket
 const connectWebSocket = () => {
-  const wsUrl = `ws://${window.location.host}/api/slm/ws/data`
+  const wsUrl = resolveBackendWebSocketUrl('/api/slm/ws/data')
   
   try {
     ws = new WebSocket(wsUrl)

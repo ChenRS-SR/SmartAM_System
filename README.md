@@ -26,6 +26,10 @@ start_slm_complete.bat
 - API 文档：<http://localhost:8000/docs>
 - 局域网访问：`http://<SmartAM服务器IP>:8000/slm/dashboard`
 
+后端固定监听 `0.0.0.0:8000`；同一局域网的电脑可使用服务器 IP 访问，无需修改前端配置。页面、API 和 WebSocket 默认共用地址栏中的主机与端口，兼容 VS Code 内置浏览器和端口转发；HTTPS 页面会使用 WSS。使用开发服务时访问 `http://<SmartAM服务器IP>:5173`，Vite 在服务器端代理 API 和实时连接到后端。不要把 `0.0.0.0` 当作浏览器访问地址。
+
+默认保持 `VITE_API_BASE_URL` 未设置。仅在明确需要独立后端时设置此构建变量；该变量同时作用于 HTTP 和 WebSocket。页面入口禁用缓存，刷新会加载当前构建。
+
 停止服务：
 
 ```bat

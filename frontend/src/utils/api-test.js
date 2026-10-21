@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios'
-import { resolveBackendBaseUrl } from './backendBase'
+import { resolveBackendBaseUrl, resolveBackendWebSocketUrl } from './backendBase'
 
 const API_BASE_URL = resolveBackendBaseUrl()
 
@@ -186,7 +186,7 @@ export class APITester {
   // 测试 WebSocket
   testWebSocket() {
     return new Promise((resolve) => {
-      const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws/sensor_data'
+      const wsUrl = resolveBackendWebSocketUrl('/ws')
       
       try {
         const ws = new WebSocket(wsUrl)

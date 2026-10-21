@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { ElNotification } from 'element-plus'
 import { generateMockWebSocketData } from '../utils/mockData'
 import { FORCE_MOCK } from '../utils/api'
+import { resolveBackendWebSocketUrl } from '../utils/backendBase'
 
 // 通知辅助函数
 const notify = (options) => {
@@ -138,9 +139,7 @@ export const useDataStore = defineStore('data', () => {
       return
     }
     
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsHost = window.location.hostname || '127.0.0.1'
-    const wsUrl = `${protocol}//${wsHost}:8000/ws`
+    const wsUrl = resolveBackendWebSocketUrl('/ws')
     
     ws.value = new WebSocket(wsUrl)
     

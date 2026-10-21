@@ -182,7 +182,8 @@ async def root():
     """返回前端页面"""
     frontend_index = get_frontend_index_path()
     if os.path.exists(frontend_index):
-        return FileResponse(frontend_index)
+        # HTML 不缓存，避免更新构建后仍引用旧版本的哈希脚本。
+        return FileResponse(frontend_index, headers={"Cache-Control": "no-store"})
     else:
         return {
             "status": "running",
@@ -483,7 +484,8 @@ async def frontend_history_fallback(full_path: str):
 
     frontend_index = get_frontend_index_path()
     if os.path.exists(frontend_index):
-        return FileResponse(frontend_index)
+        # HTML 不缓存，避免更新构建后仍引用旧版本的哈希脚本。
+        return FileResponse(frontend_index, headers={"Cache-Control": "no-store"})
 
     raise HTTPException(status_code=404, detail="Frontend not built")
 
