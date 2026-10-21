@@ -7,9 +7,9 @@ from replay.service import catalog, get_case, case_for_device, device_descriptor
 class PortableReplayTests(unittest.TestCase):
     def test_catalog_has_distinct_devices_and_bundles(self):
         items = catalog()
-        self.assertEqual(len(items), 4)
-        self.assertEqual(len({i['deviceId'] for i in items}), 4)
-        for device in ['slm-b17-replay', 'slm-b44', 'slm-b10', 'slm-b15']:
+        self.assertEqual(len(items), 5)
+        self.assertEqual(len({i['deviceId'] for i in items}), 5)
+        for device in ['slm-b17-replay', 'slm-b44', 'slm-b10', 'slm-b15', 'huake-crpbfm130']:
             self.assertIsNotNone(case_for_device(device))
             self.assertEqual(device_descriptor(device)['id'], device)
         self.assertIsNone(case_for_device('not-a-device'))
@@ -38,7 +38,7 @@ class PortableReplayTests(unittest.TestCase):
             frame=case.snapshot(case.manifest['defaultOffset'])
             with closing(sqlite3.connect(case.root/'samples.sqlite')) as db:
                 row=db.execute('SELECT chamber_temperature FROM env_a WHERE time <= ? ORDER BY time DESC, sequence DESC LIMIT 1',(frame['timestamp'],)).fetchone()
-            self.assertEqual(frame['access']['env']['成形室温度'], row[0])
+            self.assertEqual(frame['access']['env']['成形室温度'], row[0] if row else None)
 
     def test_unavailable_case_is_not_substituted(self):
         with self.assertRaises(KeyError): get_case('nonexistent-case')

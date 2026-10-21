@@ -16,6 +16,8 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
   const manifest = ref(null)
   const snapshot = ref(null)
   const playing = ref(false)
+  // 默认直接播放封存结果；设置开关只作用于当前设备。
+  const realProcessing = ref(false)
   const speed = ref(10)
   const error = ref('')
   const loading = ref(false)
@@ -28,7 +30,7 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     return response.json()
   }
   function persist() {
-    localStorage.setItem(KEY, JSON.stringify({ offset: snapshot.value.offset, speed: speed.value }))
+    localStorage.setItem(KEY, JSON.stringify({ offset: snapshot.value.offset, speed: speed.value, realProcessing: realProcessing.value }))
   }
   // 只提交整份同游标快照；暂停、跳转后的旧请求不得覆盖新状态。
   async function refresh(version = revision) {
@@ -36,9 +38,10 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     const request = new AbortController()
     controller = request
     try {
-      const next = await read(`snapshot?offset=${requested}`, request.signal)
+      const next = await read(`snapshot?offset=${requested}&processing=${realProcessing.value ? 'real' : 'archive'}`, request.signal)
       if (version !== revision) return
       snapshot.value = next
+      if (next.processing && !next.processing.real) realProcessing.value = false
       error.value = ''
       if (next.offset >= manifest.value.duration) {
         playing.value = false
@@ -79,6 +82,7 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
         const previous = saved ? JSON.parse(saved) : null
         if (previous && Number.isFinite(previous.offset) && [1, 5, 10, 30, 60].includes(previous.speed)) {
           speed.value = previous.speed
+          realProcessing.value = previous.realProcessing === true
           anchorOffset = Math.min(previous.offset, manifest.value.duration)
         } else anchorOffset = manifest.value.defaultOffset
         await move(anchorOffset, true)
@@ -89,6 +93,10 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
       } finally { opening = null }
     })()
     return opening
+  }
+  async function setRealProcessing(value) {
+    realProcessing.value = value
+    return move(snapshot.value?.offset ?? anchorOffset, playing.value, true)
   }
   const pause = () => move(position(), false, false)
   const play = () => move(snapshot.value?.offset >= manifest.value.duration ? 0 : anchorOffset, true, false)
@@ -104,7 +112,7 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     const i = rows.findIndex(r => r.layer === snapshot.value?.layer)
     return seek(rows[Math.max(0, Math.min(rows.length - 1, i + direction))].offset)
   }
-  return { caseId, manifest, snapshot, playing, speed, error, loading, open, pause, play, seek, seekLayer, setSpeed, step }
+  return { caseId, realProcessing, setRealProcessing, manifest, snapshot, playing, speed, error, loading, open, pause, play, seek, seekLayer, setSpeed, step }
 }))
   return definitions.get(caseId)()
 }

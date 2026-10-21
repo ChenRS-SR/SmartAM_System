@@ -20,7 +20,7 @@ async function req(method, path, body) {
 }
 
 // 接口返回的图像地址为相对路径（media/...），拼上接口前缀后使用
-export const mediaUrl = (u, w) => (u?.startsWith('/api/slm/replay/') ? u : (u ? `${BASE}/${u}${w ? `?w=${w}` : ''}` : null))
+export const mediaUrl = (u, w) => (u?.startsWith('/api/slm/') ? u : (u ? `${BASE}/${u}${w ? `?w=${w}` : ''}` : null))
 
 async function analyze(kind, path, body) {
   const result = await req('POST', path, body)

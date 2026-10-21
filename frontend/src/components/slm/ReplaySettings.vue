@@ -2,6 +2,7 @@
   <section class="replay-settings" :class="{ unavailable: !enabled }" aria-label="历史回放设置">
     <div class="replay-heading"><h3>历史回放</h3><span>{{ enabled ? `当前设备：${caseConfig.name}` : '当前设备不支持历史回放' }}</span></div>
     <fieldset :disabled="locked" :aria-disabled="locked" aria-label="历史回放控制">
+      <label class="processing-switch"><input type="checkbox" role="switch" aria-label="真实模型处理" :checked="replay.realProcessing" @change="replay.setRealProcessing($event.target.checked)" />真实模型处理</label>
       <div class="playback-row">
         <button class="primary" @click="replay.playing ? replay.pause() : replay.play()">{{ enabled && replay.playing ? '暂停回放' : '播放回放' }}</button>
         <button :disabled="!frame" @click="replay.step(-1)">上一层</button>
@@ -12,17 +13,14 @@
         <span v-if="frame">第 {{ frame.layer }} 层 · {{ frame.phase }}</span>
       </div>
       <input class="timeline" aria-label="回放时间进度" type="range" min="0" :max="replay.manifest?.duration || 1" step="1" :value="frame?.offset ?? 0" @change="replay.seek($event.target.value)" />
-      <div class="segment-row">
+      <div v-if="(replay.manifest?.segments.length || 0) <= 20" class="segment-row">
         <button v-for="(s, i) in replay.manifest?.segments || []" :key="s.firstLayer" :class="{ selected: frame?.segment === i }" @click="replay.seek(s.offset)">{{ s.firstLayer }}–{{ s.lastLayer }} 层</button>
       </div>
     </fieldset>
     <template v-if="enabled">
-      <p class="replay-description">按历史时间播放，缺少完整数据的区段自动跳过；所有业务页面共用此处设置。</p>
-      <details v-if="replay.manifest"><summary>数据时间说明</summary>{{ replay.manifest.timeNotes }}</details>
       <p v-if="replay.error" role="alert">{{ replay.error }} <button @click="replay.manifest ? replay.play() : replay.open()">重新加载</button></p>
       <router-link class="return-link" :to="`/slm/device/${deviceId}?tab=access`">返回当前设备</router-link>
     </template>
-    <p v-else class="replay-description">仅在对应回放设备的系统设置中启用。</p>
   </section>
 </template>
 
@@ -46,9 +44,10 @@ watch([enabled, () => replay.playing], ([active]) => {
 .replay-settings { padding: 20px; margin-bottom: 20px; border: 1px solid var(--am-card-border); background: var(--am-card-bg); border-radius: 4px; min-width: 0; }
 .replay-heading { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
 h3 { margin: 0; font-size: 17px; }
-.replay-heading span,.replay-description,details { color: var(--am-text-2); font-size: 12px; line-height: 1.7; }
+.replay-heading span { color: var(--am-text-2); font-size: 12px; line-height: 1.7; }
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 fieldset:disabled { opacity: .45; }
+.processing-switch { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; }
 .playback-row,.segment-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px; }
 button,select { border: 1px solid var(--am-card-border); background: var(--am-card-bg); color: var(--am-text); padding: 7px 10px; border-radius: 3px; font: inherit; cursor: pointer; }
 button.primary { background: var(--am-accent); color: white; }

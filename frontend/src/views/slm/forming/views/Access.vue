@@ -102,10 +102,10 @@ const replaySession = inject('formingReplay', null)
 const { busy, call } = useCall()
 const d = ref(null)
 const channelStore = useAccessChannels()
-const channelKey = computed(() => replaySession ? `replay:${replaySession.snapshot.caseId}` : state.device)
-const visible = name => channelStore.forDevice(channelKey.value)[name] !== false
+const channelKey = computed(() => replaySession ? `replay:${replaySession.caseId}` : state.device)
+const visible = name => d.value?.channels.some(c => c.name === name) && channelStore.forDevice(channelKey.value)[name] !== false
 const setChannels = (names, shown) => channelStore.setVisible(channelKey.value, names, shown)
-const filtered = computed(() => d.value.channels.some(c => !visible(c.name)))
+const filtered = computed(() => d.value.channels.length < 5 || d.value.channels.some(c => !visible(c.name)))
 const allHidden = computed(() => d.value.channels.every(c => !visible(c.name)))
 const topColumns = computed(() => Math.max(1, ['铺粉后图像', '熔化后图像', '设备状态参数'].filter(visible).length))
 const torqueTitle = computed(() => ['刮刀扭矩', '加工平台扭矩'].filter(visible).join('与'))

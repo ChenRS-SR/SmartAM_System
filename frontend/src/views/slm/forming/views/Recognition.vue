@@ -63,7 +63,7 @@
               <div class="wseg w-tq" :style="{ width: d.weights.tq * 100 + '%' }"><span v-if="d.weights.tq > 0.3">刮刀与平台扭矩 {{ (d.weights.tq * 100).toFixed(1) }}%</span></div>
             </div>
             <div class="w-legend"><span><i class="sw w-vis"></i>铺粉后图像 {{ (d.weights.vis * 100).toFixed(1) }}%</span>
-              <span><i class="sw w-tq"></i>刮刀与平台扭矩 {{ (d.weights.tq * 100).toFixed(1) }}%</span></div>
+              <span v-if="d.params.modalities.includes('tq')"><i class="sw w-tq"></i>刮刀与平台扭矩 {{ (d.weights.tq * 100).toFixed(1) }}%</span></div>
             <div class="m-sub second">单模态判断<span class="m-hint">只用该模态时的异常概率</span></div>
             <div class="single" v-for="m in d.singles" :key="m.key" :class="{ unused: !m.used }">
               <span class="s-name">{{ m.name }}</span>
@@ -74,7 +74,7 @@
           </div>
         </div>
 
-        <div class="card c-torque">
+        <div v-if="d.params.modalities.includes('tq')" class="card c-torque">
           <div class="card-title">{{ replaySession ? `实时采样扭矩 · 第 ${replaySession.snapshot.layer} 层` : '当前层铺粉段扭矩' }}</div>
           <div class="chart-window-note">{{ replaySession ? '最近 50 个采样点 · 时间轴随采样滚动；识别结果使用完整铺粉段输入' : '最近 50 个采样点' }}</div>
           <EChart :option="torqueOption" class="chart" />
@@ -87,7 +87,7 @@
           <table class="tbl">
             <thead><tr><th>层号</th><th>异常概率</th><th>识别结果</th></tr></thead>
             <tbody>
-              <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!stepper.running.value && run(r.layer)">
+              <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!replaySession && !stepper.running.value && run(r.layer)">
                 <td>{{ r.layer }}</td><td>{{ fmtPct(r.p) }}</td>
                 <td><span class="tag" :class="r.label === '异常' ? 't-def' : 't-nor'">{{ r.label }}</span></td>
               </tr>
@@ -124,6 +124,7 @@ const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : 
 const imgUrl = computed(() => mediaUrl(d.value.image.url, 1200))
 
 async function run(layer) {
+  if (replaySession) return
   const th = Number(state.recog.threshold)
   if (!(th > 0 && th < 100)) { report(new Error('判定阈值应在 1～99% 之间')); return false }
   const r = await call(() => api.recognize({ device_id: state.device, layer: layer ?? state.layer[state.device] ?? null,

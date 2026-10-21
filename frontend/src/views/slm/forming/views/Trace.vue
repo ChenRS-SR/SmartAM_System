@@ -112,7 +112,7 @@
               </tr>
             </tbody>
             <tbody v-else>
-              <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!stepper.running.value && run(r.layer)">
+              <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!replaySession && !stepper.running.value && run(r.layer)">
                 <td>{{ r.layer }}</td><td :class="{ over: r.part >= upDev }">{{ r.part.toFixed(2) }}</td>
                 <td :class="{ over: r.powder >= upDev }">{{ r.powder.toFixed(2) }}</td><td class="muted">{{ r.total.toFixed(2) }}</td>
                 <td><span class="tag" :class="tagCls(r.conclusion)">{{ tagTxt(r.conclusion) }}</span></td>
@@ -150,6 +150,7 @@ const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : 
 const replay = computed(() => !!d.value.replay)
 
 async function run(layer) {
+  if (replaySession) return
   const t = state.trace
   const r = await call(() => api.trace({ device_id: state.device, layer: layer ?? state.layer[state.device] ?? null,
     band_px: t.bandPx, ref_mode: t.refMode, ref_layer: t.refMode === 'manual' ? t.refLayer : null, n_records: 5, n_curve: TRACE_WINDOW_SIZE }))

@@ -1,0 +1,60 @@
+{
+  "blt-dual": {
+    "file": "blt-dual.pt",
+    "architecture": "vis_torque",
+    "outputs": [
+      "proc",
+      "dev"
+    ],
+    "sha256": "8c9f2128289dde2ec75977ab722bd15a5795b7524c699f457362c8b8c0c11de3",
+    "source": "ch06_新实验/工程案例实验_B44/双输出模型/dual_seed0.pt",
+    "sourceSha256": "81d5d2a1c7061e7cbcbe99c00fe59ce170212dcb80a4c9ece2c22484bf2fe0f4",
+    "name": "图像与扭矩双输出识别",
+    "weights": {
+      "vis": 0.9941851555921499,
+      "tq": 0.005814844407850153
+    },
+    "torque_norm": {
+      "mean": [
+        [
+          5.658823490142822
+        ],
+        [
+          -12.292357444763184
+        ]
+      ],
+      "std": [
+        [
+          32.23582077026367
+        ],
+        [
+          10.357501983642578
+        ]
+      ]
+    }
+  },
+  "m130-dual": {
+    "file": "m130-dual.pt",
+    "architecture": "vision",
+    "outputs": [
+      "dev",
+      "proc"
+    ],
+    "sha256": "f33c692ca0e8ebcbb4dba18c8adad990c084af9dbf34277018c6c3bb8eb7294d",
+    "source": "ch05_大论文定稿实验/03_探索性诊断_20261010/修订后双机理试验/results/mechanism_v2_seed0.pt",
+    "sourceSha256": "67237d1d64a60e4b32ed5cddd5822ad0cdf8670a0f54a233b6d93c8d468287a6",
+    "name": "M130视觉双输出识别",
+    "background_norm": {
+      "rgb_mean_255": [
+        153.09491767125337,
+        171.33791537971723,
+        166.21174225970876
+      ],
+      "rgb_std_255": [
+        17.84780446141893,
+        17.847937217168024,
+        17.872699318452288
+      ]
+    }
+  }
+}

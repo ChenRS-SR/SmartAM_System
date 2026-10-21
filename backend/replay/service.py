@@ -65,6 +65,9 @@ class ReplayCase:
     def snapshot(self, offset):
         offset, at, index, segment, rows, row = self.position(offset)
         current = row['layer']
+        if self.manifest.get('imageOnly'):
+            # 图像窗口之间保留上一帧，不能因每层单独分段而一直看不到熔化后图像。
+            rows = self.layers
         access = copy.deepcopy(self.layer_data(current)['access'])
         # 每个通道取不晚于游标的最后一个原始采样，0 是真实读数，不替换为之前非零值。
         samples = {}
@@ -160,9 +163,11 @@ class ReplayCase:
                 (self.manifest.get('gasPressureLabel', '氩气压力'), self.manifest.get('gasPressureLabel', '氩气压力'), 'bar'), ('循环气体流量', '循环气体实时流量', 'm³/h'),
                 ('风机转速', '风机转速', '%'), ('储粉桶物位', '储粉桶物位计', 'mm')]],
         ]
+        if self.manifest.get('imageOnly'):
+            parameters = [parameters[0]]
         return {
             'caseId': self.manifest['id'], 'offset': offset, 'time': display_time(at), 'timestamp': at,
-            'layer': current, 'segment': index, 'phase': '层结束' if at >= row['end'] else ('熔化' if at >= row['melt'] else '铺粉'),
+            'layer': current, 'segment': index, 'phase': ('熔化图像已到达' if at >= row['end'] else '铺粉图像已到达') if self.manifest.get('imageOnly') else ('层结束' if at >= row['end'] else ('熔化' if at >= row['melt'] else '铺粉')),
             'access': access, 'recognition': recognition, 'trace': trace, 'parameters': parameters,
             'liveTorque': {
                 't': [r['time'] for r in live_torque],
@@ -228,9 +233,9 @@ def device_descriptor(device_id=DEVICE_ID):
     if item is None:
         raise KeyError(device_id)
     return {
-        'id': device_id, 'name': item['name'], 'model': item['model'], 'owner': '铂力特',
+        'id': device_id, 'name': item['name'], 'model': item['model'], 'owner': item.get('owner', '铂力特'),
         'serial': device_id.removeprefix('slm-').removesuffix('-replay').upper(),
-        'dataTag': '', 'location': '7103 现场数据设备群',
+        'dataTag': '', 'location': item.get('location', '7103 现场数据设备群'),
         'source': 'replay', 'replayCase': item['id'], 'online': False, 'health': 'unknown',
         'statusText': '等待数据', 'thumbnail': item['thumbnail'],
         'healthData': {'status': 'unknown'}, 'parameters': [],

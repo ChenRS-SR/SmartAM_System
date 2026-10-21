@@ -104,6 +104,8 @@ except ImportError as e:
 # 历史案例接口独立于硬件采集与模拟模式。
 from replay.router import router as replay_router
 router.include_router(replay_router)
+from analysis_engine.intake import router as analysis_router
+router.include_router(analysis_router)
 
 # 健康检查
 @router.get("/health")
