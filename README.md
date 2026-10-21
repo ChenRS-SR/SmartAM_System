@@ -1,12 +1,8 @@
 # SmartAM SLM System
 
-当前目录保留一个主启动脚本：
+推荐独立部署入口为 `python start_platform.py`，支持 Windows 和 Linux，不需要安装 Codex、VS Code，也不需要配置 IP 或固定名称的 Conda 环境。首次准备环境见下文“新电脑独立部署”。
 
-```bat
-start_slm_complete.bat
-```
-
-该脚本会：
+已有 `pytorch_env` 环境的电脑也可以继续使用 `start_slm_complete.bat`（Windows）或 `./start_slm_complete.sh`（Linux）。这两个旧脚本会：
 
 - 激活 Conda 环境 `pytorch_env`
 - 释放后端 `8000` 和开发前端 `5173` 端口
@@ -14,7 +10,7 @@ start_slm_complete.bat
 - 启动 FastAPI 后端并统一提供页面/API
 - 打开 SLM 仪表盘页面（`8000` 端口）
 
-## 使用方式
+## 已有 Conda 环境的启动方式
 
 1. 确认已安装 Conda、Node.js 18+。
 2. 确认 Conda 环境名为 `pytorch_env`。
@@ -30,7 +26,7 @@ start_slm_complete.bat
 
 默认保持 `VITE_API_BASE_URL` 未设置。仅在明确需要独立后端时设置此构建变量；该变量同时作用于 HTTP 和 WebSocket。页面入口禁用缓存，刷新会加载当前构建。
 
-停止服务：
+通用入口使用 Ctrl+C 停止；旧 Windows 脚本可使用：
 
 ```bat
 stop_slm.bat
@@ -55,9 +51,19 @@ B44/B10/B15 尚未封存逐层识别与溯源结果，相关页面明确显示�
 
 设备卡片照片在 `frontend/public/device-images/`。S310 使用用户提供的同型设备图，S430 使用用户提供的已打码现场图，作为展示替代图，不表示拍摄对象与每台设备编号一一对应。
 
-### 新环境启动
+### 新电脑独立部署
 
-使用 Python 3.10+、Node.js 18+。除已有一键启动脚本外，也可手动启动：
+1. 拉取本分支，安装 Python 3.10+、Node.js 18+；Linux 需要系统的 `ip` 命令（iproute2）。
+2. 在项目根目录用所选 Python 环境安装后端依赖：`python -m pip install -r backend/requirements.txt`。
+3. 运行 `python start_platform.py`。
+
+启动器使用当前 Python 环境，首次安装前端依赖，每次构建正式页面，然后在 `0.0.0.0:8000` 启动服务，并列出本机网卡访问地址。端口占用会明确报错，不终止占用端口的程序。不需要 SSH 转发或修改 `.vscode` 设置；依赖安装完成后，日常启动不需要 Codex。使用 Ctrl+C 停止。
+
+同一局域网的其他电脑打开 `http://<部署电脑IP>:8000/slm/dashboard`。更换电脑或 IP 后不需要修改源码；页面、API、图片和 WebSocket 使用同一访问地址。多网卡电脑应选访问方可达的地址，Docker/虚拟网卡地址不一定可达。
+
+网络条件：部署电脑的防火墙需允许局域网访问 TCP 8000；访问方的代理需对该 IP 直连。这些是操作系统/网络设置，应用无法替客户端代理配置绕过规则。`Privoxy` 错误应检查访问方代理，不需要修改平台页面。
+
+也可以手动构建和启动：
 
 ```bash
 python -m pip install -r backend/requirements.txt

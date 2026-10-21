@@ -102,6 +102,9 @@ if not exist "node_modules" (
         exit /b 1
     )
 )
+:: 正式部署使用同源接口，不继承开发机的地址和模拟配置。
+set "VITE_API_BASE_URL="
+set "VITE_MOCK_MODE=false"
 call npm run build
 if errorlevel 1 (
     echo   [ERROR] frontend build failed.
@@ -121,7 +124,7 @@ timeout /t 5 /nobreak >nul
 
 :: 检查后端是否启动成功。
 echo   Checking backend status...
-curl -s http://localhost:8000/ >nul 2>&1
+curl --noproxy "*" --fail --silent --show-error http://127.0.0.1:8000/ >nul 2>&1
 if %errorlevel% equ 0 (
     echo   Backend service started: http://%LOCAL_IP%:8000
 ) else (

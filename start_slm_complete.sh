@@ -68,7 +68,8 @@ cd "${ROOT_DIR}/frontend"
 if [[ ! -d node_modules ]]; then
     npm install
 fi
-npm run build
+# 正式部署使用同源接口，不继承开发机的地址和模拟配置。
+VITE_API_BASE_URL= VITE_MOCK_MODE=false npm run build
 echo
 
 echo "[5/6] Starting backend service..."
@@ -81,13 +82,13 @@ echo "  Backend PID: ${BACKEND_PID}"
 
 echo "  Waiting for backend to start..."
 for _ in {1..20}; do
-    if curl -fsS "http://127.0.0.1:8000/" >/dev/null 2>&1; then
+    if curl --noproxy '*' -fsS "http://127.0.0.1:8000/" >/dev/null 2>&1; then
         break
     fi
     sleep 1
 done
 
-if ! curl -fsS "http://127.0.0.1:8000/" >/dev/null 2>&1; then
+if ! curl --noproxy '*' -fsS "http://127.0.0.1:8000/" >/dev/null 2>&1; then
     echo "  [ERROR] Backend service did not start properly."
     exit 1
 fi
