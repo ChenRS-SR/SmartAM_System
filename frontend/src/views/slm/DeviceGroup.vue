@@ -770,7 +770,7 @@ onMounted(async () => {
   loadFormingDevices()
   try {
     await deviceStore.loadDevicesFromBackend()
-    await Promise.all(deviceStore.devices.filter(device => device.replayCase).map(device => caseSessions.get(device.replayCase).open()))
+    await Promise.all(deviceStore.devices.filter(device => device.replayCase).map(device => caseSessions.get(device.replayCase).open({ autoplay: true })))
   } catch (error) {
     ElMessage.error(error.message || '加载7103设备群数据失败')
   }

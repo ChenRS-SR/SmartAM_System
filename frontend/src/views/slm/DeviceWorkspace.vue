@@ -13,6 +13,8 @@ const route = useRoute()
 const caseConfig = computed(() => replayCaseForDevice(route.params.deviceId))
 const sessions = REPLAY_CASES.map(item => ({ deviceId: item.deviceId, store: useReplayStore(item.id) }))
 watch([() => route.params.deviceId, ...sessions.map(s => () => s.store.playing)], ([id]) => {
-  for (const session of sessions) if (id !== session.deviceId && session.store.playing) session.store.pause()
+  // 离开工作区时路由参数已清空，不能因此暂停设备群或系统设置中的播放。
+  if (route.name !== 'SLMDeviceDashboard') return
+  for (const session of sessions) if (id !== session.deviceId && session.store.playing) session.store.suspend()
 }, { immediate: true })
 </script>

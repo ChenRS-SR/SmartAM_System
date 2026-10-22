@@ -23,6 +23,7 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
   const loading = ref(false)
   let timer, controller, revision = 0, anchorOffset = 0, anchorClock = 0, opening = null
   let restartPending = false
+  let suspended = false
   const position = () => Math.min(manifest.value.duration, anchorOffset + (playing.value ? (performance.now() - anchorClock) / 1000 * speed.value : 0))
 
   async function read(path, signal) {
@@ -79,9 +80,12 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     loading.value = true
     await refresh(revision)
   }
-  async function open() {
-    if (manifest.value) return
+  async function open({ autoplay = false } = {}) {
     if (opening) return opening
+    if (manifest.value) {
+      if (!playing.value && (autoplay || suspended)) return play()
+      return
+    }
     opening = (async () => {
       loading.value = true
       try {
@@ -103,8 +107,20 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     realProcessing.value = value
     return move(snapshot.value?.offset ?? anchorOffset, playing.value, true)
   }
-  const pause = () => move(position(), false, false)
-  const play = () => move(snapshot.value?.offset >= manifest.value.duration ? 0 : anchorOffset, true, false)
+  const pause = () => {
+    suspended = false
+    return move(position(), false, false)
+  }
+  // 切换到其他设备时暂挂；再次进入自动恢复，区别于用户主动暂停。
+  const suspend = () => {
+    if (!playing.value) return
+    suspended = true
+    return move(position(), false, false)
+  }
+  const play = () => {
+    suspended = false
+    return move(snapshot.value?.offset >= manifest.value.duration ? 0 : anchorOffset, true, false)
+  }
   const seek = (offset) => move(Number(offset))
   const seekLayer = (layer) => seek(manifest.value.layers.find(r => r.layer === Number(layer)).offset)
   function setSpeed(value) {
@@ -117,7 +133,7 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     const i = rows.findIndex(r => r.layer === snapshot.value?.layer)
     return seek(rows[Math.max(0, Math.min(rows.length - 1, i + direction))].offset)
   }
-  return { caseId, realProcessing, setRealProcessing, manifest, snapshot, playing, speed, error, loading, open, pause, play, seek, seekLayer, setSpeed, step }
+  return { caseId, realProcessing, setRealProcessing, manifest, snapshot, playing, speed, error, loading, open, pause, suspend, play, seek, seekLayer, setSpeed, step }
 }))
   return definitions.get(caseId)()
 }
