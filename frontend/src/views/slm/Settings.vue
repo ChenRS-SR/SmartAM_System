@@ -58,6 +58,25 @@
             </el-select>
           </el-form-item>
 
+          <el-divider content-position="left">真实数据采集</el-divider>
+          <el-form-item label="振动传感器串口">
+            <el-input v-model="benchSettings.vibration_com" style="width: 240px" placeholder="COM3" />
+            <span class="form-hint inline-hint">WTVB02-485，9600 baud，地址 0x50</span>
+          </el-form-item>
+          <el-form-item label="振动计层阈值">
+            <el-input-number v-model="benchSettings.vibration_threshold" :min="0.01" :max="10" :step="0.01" :precision="2" />
+            <span class="form-hint inline-hint">振动下降沿完成两次动作后计为一层</span>
+          </el-form-item>
+          <el-form-item label="数据保存文件夹">
+            <div class="camera-select-row">
+              <el-input v-model="benchSettings.save_directory" style="width: 420px" placeholder="请选择真实数据保存文件夹" clearable />
+              <el-button type="primary" plain @click="chooseSaveDirectory" :loading="directoryLoading">
+                选择文件夹
+              </el-button>
+            </div>
+            <div class="form-hint">真实采集启动后，按层保存 CH1、CH2、CH3 的 before/after 图像。</div>
+          </el-form-item>
+
           <el-divider content-position="left">红外热像仪</el-divider>
           <el-form-item>
             <el-alert
@@ -245,6 +264,7 @@ const slmDeviceStore = useSlmDeviceStore()
 const benchSettings = reactive(readSlmBenchSettings())
 const availableCameras = ref([])
 const camerasLoading = ref(false)
+const directoryLoading = ref(false)
 
 // 畸变矫正信息
 const correctionInfo = reactive({
@@ -330,6 +350,25 @@ async function fetchCameras() {
 function saveBenchSettings() {
   writeSlmBenchSettings(benchSettings)
   ElMessage.success('华科实验台连接设置已保存')
+}
+
+async function chooseSaveDirectory() {
+  directoryLoading.value = true
+  try {
+    const response = await fetch(`${API_BASE}/capture/choose-directory`, { method: 'POST' })
+    const result = await response.json()
+    if (result.success && result.path) {
+      benchSettings.save_directory = result.path
+      writeSlmBenchSettings(benchSettings)
+      ElMessage.success('数据保存文件夹已选择')
+    } else if (!result.cancelled) {
+      ElMessage.error(result.message || '选择文件夹失败')
+    }
+  } catch (error) {
+    ElMessage.error('选择文件夹失败: ' + error.message)
+  } finally {
+    directoryLoading.value = false
+  }
 }
 
 // ROI配置回调

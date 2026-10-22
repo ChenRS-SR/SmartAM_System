@@ -319,7 +319,8 @@ const healthData = reactive({
 // 华科实验台连接设置在设置页维护，监测页启动采集时只读取已保存配置。
 const settings = reactive(readSlmBenchSettings())
 const selectedDeviceOnline = computed(() => selectedDevice.value?.online !== false)
-const waitingForRealtimeData = computed(() => !settings.use_mock && selectedDeviceOnline.value && !realtimeState.hasData)
+const isRealCaptureDevice = computed(() => selectedDevice.value?.source === 'real')
+const waitingForRealtimeData = computed(() => !settings.use_mock && (selectedDeviceOnline.value || isRealCaptureDevice.value) && !realtimeState.hasData)
 const selectedMockCaseAvailability = reactive({
   hasCase: false,
   ready: false,
@@ -335,7 +336,9 @@ const selectedMockCaseStatusText = computed(() => {
   if (selectedStored7103MockDevice.value) return '7103存储数据'
   return buildMockCaseStatusText(selectedMockCase.value, selectedMockCaseAvailability)
 })
-const selectedDisplayOnline = computed(() => settings.use_mock ? selectedMockSourceReady.value : selectedDeviceOnline.value)
+const selectedDisplayOnline = computed(() => settings.use_mock
+  ? selectedMockSourceReady.value
+  : (isRealCaptureDevice.value ? isRunning.value : selectedDeviceOnline.value))
 const selectedMockHealthData = computed(() => buildMockCaseHealthData(selectedMockCase.value))
 const selectedStored7103HealthData = computed(() => {
   if (!selectedStored7103MockDevice.value || !selectedDevice.value?.healthData) return null
@@ -411,7 +414,7 @@ const syncMockHealthFromSelectedDevice = () => {
   if (settings.use_mock) {
     applySelectedMockHealth()
   } else {
-    resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
+    resetHealthToWaiting((selectedDeviceOnline.value || isRealCaptureDevice.value) ? '等待实时数据' : '离线')
   }
 }
 
@@ -520,7 +523,7 @@ function resetHealthToWaiting(label = '等待实时数据') {
 }
 
 const applyRealtimeSample = (sample = {}) => {
-  if (!selectedDeviceOnline.value) return
+  if (!selectedDeviceOnline.value && !isRealCaptureDevice.value) return
   realtimeState.hasData = Boolean(sample.hasData)
   realtimeState.eventTime = sample.eventTime || ''
   realtimeState.receivedAt = sample.receivedAt || ''
@@ -544,7 +547,7 @@ const applyRealtimeSample = (sample = {}) => {
   if (realtimeState.hasData && realtimeState.health) {
     applyHealthData(realtimeState.health)
   } else if (!settings.use_mock) {
-    resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
+    resetHealthToWaiting((selectedDeviceOnline.value || isRealCaptureDevice.value) ? '等待实时数据' : '离线')
   }
 }
 
@@ -862,7 +865,7 @@ const fetchStatus = async () => {
       if (settings.use_mock) {
         applySelectedMockHealth()
   } else if (!settings.use_mock && !realtimeState.hasData) {
-        resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
+        resetHealthToWaiting((selectedDeviceOnline.value || isRealCaptureDevice.value) ? '等待实时数据' : '离线')
       }
       
       // 如果采集刚停止（wasRunning && !isRunning），立即重置健康状态为未开机
@@ -918,8 +921,8 @@ const activateRunningView = async () => {
     applySelectedMockHealth()
   } else {
     applyModeSensorDefaults()
-    resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
-    if (selectedDeviceOnline.value) {
+    resetHealthToWaiting((selectedDeviceOnline.value || isRealCaptureDevice.value) ? '等待实时数据' : '离线')
+    if (selectedDeviceOnline.value || isRealCaptureDevice.value) {
       connectWebSocket()
     }
   }
@@ -977,7 +980,7 @@ const toggleAcquisition = async () => {
     }
   } else {
     // 开始
-    if (!settings.use_mock && !selectedDeviceOnline.value) {
+    if (!settings.use_mock && !selectedDeviceOnline.value && !isRealCaptureDevice.value) {
       ElMessage.warning('当前设备在device.json中为online:false，已禁止真实数据接入')
       return
     }
@@ -989,6 +992,11 @@ const toggleAcquisition = async () => {
         params: {
           camera_ch1_index: settings.camera_ch1_index,
           camera_ch2_index: settings.camera_ch2_index,
+          vibration_com: settings.vibration_com || 'COM3',
+          save_dir: settings.save_directory || undefined,
+          capture_images: !settings.use_mock,
+          vibration_threshold: Number(settings.vibration_threshold || 0.05),
+          strict_hardware: isRealCaptureDevice.value,
           use_mock: settings.use_mock
         }
       })
@@ -1046,7 +1054,7 @@ const connectWebSocket = () => {
       wsConnected.value = false
       
       // 尝试重连
-      if (isRunning.value && selectedDeviceOnline.value) {
+      if (isRunning.value && (selectedDeviceOnline.value || isRealCaptureDevice.value)) {
         reconnectTimer = setTimeout(() => {
           connectWebSocket()
         }, 3000)
@@ -1074,7 +1082,7 @@ const handleWebSocketData = (data) => {
   if (settings.use_mock) {
     return
   }
-  if (!selectedDeviceOnline.value) {
+  if (!selectedDeviceOnline.value && !isRealCaptureDevice.value) {
     return
   }
 
@@ -1089,6 +1097,17 @@ const handleWebSocketData = (data) => {
   }
   if (data.statistics) {
     latestData.statistics = data.statistics
+  }
+  if (data.image_capture) {
+    const layerNumber = Number(data.image_capture.layer_count)
+    if (Number.isFinite(layerNumber)) {
+      currentLayerInfo.value = {
+        ...currentLayerInfo.value,
+        number: layerNumber,
+        isStart: data.image_capture.trigger_count === 1,
+        isEnd: data.image_capture.trigger_count === 0
+      }
+    }
   }
   // 更新健康状态
   if (data.health) {
@@ -1199,22 +1218,22 @@ const stopRealtimePoller = () => {
 
 const refreshRealtimePoller = () => {
   stopRealtimePoller()
-  if (settings.use_mock || !selectedDeviceId.value || !selectedDeviceOnline.value) {
+  if (settings.use_mock || !selectedDeviceId.value || (!selectedDeviceOnline.value && !isRealCaptureDevice.value)) {
     if (!settings.use_mock) resetRealtimeState()
-    if (!settings.use_mock && !selectedDeviceOnline.value) resetHealthToWaiting('离线')
+    if (!settings.use_mock && !selectedDeviceOnline.value && !isRealCaptureDevice.value) resetHealthToWaiting('离线')
     return
   }
   fetchRealtimeSample()
   realtimePollTimer = setInterval(fetchRealtimeSample, 1000)
 }
 
-watch([isRunning, () => settings.use_mock, selectedDeviceId, selectedDeviceOnline], () => {
+watch([isRunning, () => settings.use_mock, selectedDeviceId, selectedDeviceOnline, isRealCaptureDevice], () => {
   if (isRunning.value) {
     resetRuntimeBase()
     if (settings.use_mock) {
       applySelectedMockHealth()
     } else if (!settings.use_mock) {
-      resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
+      resetHealthToWaiting((selectedDeviceOnline.value || isRealCaptureDevice.value) ? '等待实时数据' : '离线')
     }
   }
   refreshMockParameterTicker()
@@ -1230,7 +1249,7 @@ watch(() => settings.use_mock, () => {
     syncMockHealthFromSelectedDevice()
   } else {
     resetRealtimeState()
-    resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
+    resetHealthToWaiting((selectedDeviceOnline.value || isRealCaptureDevice.value) ? '等待实时数据' : '离线')
   }
 })
 
@@ -1249,7 +1268,7 @@ onMounted(async () => {
 
   fetchStatus()
   
-  if (isRunning.value && !settings.use_mock && selectedDeviceOnline.value) {
+  if (isRunning.value && !settings.use_mock && (selectedDeviceOnline.value || isRealCaptureDevice.value)) {
     connectWebSocket()
   }
   

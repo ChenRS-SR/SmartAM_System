@@ -64,7 +64,16 @@ def get_acquisition_status_safe() -> dict:
                 "vibration": {"enabled": True, "connected": False, "com_port": ""}
             },
             "frame_number": 0,
-            "statistics": {"fps": 0, "total_frames": 0, "duration": 0}
+            "statistics": {"fps": 0, "total_frames": 0, "duration": 0},
+            "image_capture": {
+                "enabled": False,
+                "is_capturing": False,
+                "state": "idle",
+                "layer_count": 0,
+                "trigger_count": 0,
+                "total_captures": 0,
+                "threshold": 0.05
+            }
         }
     return acquisition.get_status()
 
@@ -78,13 +87,17 @@ async def get_slm_status():
 @router.post("/start")
 @router.get("/start")  # 也支持GET，方便浏览器测试
 async def start_acquisition(
-    camera_ch1_index: int = 2,
-    camera_ch2_index: int = 3,
-    vibration_com: str = "COM5",
-    use_mock: bool = False
+    camera_ch1_index: int = 0,
+    camera_ch2_index: int = 4,
+    vibration_com: str = "COM3",
+    use_mock: bool = False,
+    save_dir: Optional[str] = None,
+    capture_images: bool = False,
+    vibration_threshold: float = 0.05,
+    strict_hardware: bool = False
 ):
     """启动SLM数据采集"""
-    print(f"[API] 收到启动请求: CH1={camera_ch1_index}, CH2={camera_ch2_index}, COM={vibration_com}, mock={use_mock}")
+    print(f"[API] 收到启动请求: CH1={camera_ch1_index}, CH2={camera_ch2_index}, COM={vibration_com}, mock={use_mock}, save_dir={save_dir}")
     
     # 获取当前实例
     acquisition = get_acquisition(create_if_none=False)
@@ -112,7 +125,11 @@ async def start_acquisition(
         camera_ch1_index=camera_ch1_index,
         camera_ch2_index=camera_ch2_index,
         vibration_com=vibration_com,
-        use_mock=use_mock
+        use_mock=use_mock,
+        save_dir=save_dir,
+        capture_images=capture_images,
+        vibration_threshold=vibration_threshold,
+        strict_hardware=strict_hardware
     )
     
     if not success:
@@ -132,7 +149,11 @@ async def start_acquisition(
             "camera_ch1_index": camera_ch1_index,
             "camera_ch2_index": camera_ch2_index,
             "vibration_com": vibration_com,
-            "use_mock": use_mock
+            "use_mock": use_mock,
+            "save_dir": str(acquisition._image_capture.save_dir) if acquisition._image_capture else save_dir,
+            "capture_images": capture_images,
+            "vibration_threshold": vibration_threshold,
+            "strict_hardware": strict_hardware
         }
     }
 
@@ -482,6 +503,30 @@ async def set_capture_save_directory(save_dir: str):
         return result
     except Exception as e:
         return {"success": False, "message": str(e), "path": ""}
+
+
+@router.post("/capture/choose-directory")
+async def choose_capture_save_directory():
+    """打开本机文件夹选择框，返回用户选择的采集保存目录。"""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+
+        def pick_directory():
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes('-topmost', True)
+            try:
+                return filedialog.askdirectory(title='选择真实数据保存文件夹') or ''
+            finally:
+                root.destroy()
+
+        selected = await asyncio.to_thread(pick_directory)
+        if not selected:
+            return {"success": False, "cancelled": True, "message": "已取消选择", "path": ""}
+        return {"success": True, "path": selected, "message": "保存目录已选择"}
+    except Exception as e:
+        return {"success": False, "message": f"打开文件夹选择框失败: {e}", "path": ""}
 
 
 @router.get("/capture/status")

@@ -84,6 +84,8 @@ class SLMDataPacket:
     # 振动数据
     vibration: Optional[Dict] = None
     vibration_waveform: Dict = field(default_factory=dict)
+    # 振动下降沿触发的逐层图像采集状态
+    image_capture: Dict = field(default_factory=dict)
     
     # 统计数据
     statistics: Dict = field(default_factory=dict)
@@ -101,6 +103,7 @@ class SLMDataPacket:
             'thermal': self.thermal,
             'vibration': self.vibration,
             'vibration_waveform': self.vibration_waveform,
+            'image_capture': self.image_capture,
             'statistics': self.statistics,
             'health': self.health
         }
@@ -118,10 +121,15 @@ class SLMAcquisition:
         self.thermal_camera: Optional[Any] = None
         
         # 配置
-        self.camera_ch1_index = 2
-        self.camera_ch2_index = 3
-        self.vibration_com_port = "COM5"
+        # 华科 CRPBFM130 实机配置（来源：D:\SLS\sls_monitor\config）
+        self.camera_ch1_index = 0
+        self.camera_ch2_index = 4
+        self.vibration_com_port = "COM3"
         self.vibration_baudrate = 9600
+        self.vibration_address = 0x50
+        self.vibration_threshold = 0.05
+        self.capture_save_directory = ""
+        self.strict_hardware = False
         
         # 视频文件模拟配置
         self._video_file_mode = False
@@ -179,8 +187,11 @@ class SLMAcquisition:
             'frame_count': 0
         }
     
-    def initialize(self, camera_ch1_index: int = 2, camera_ch2_index: int = 3,
-                   vibration_com: str = "COM5", use_mock: bool = None) -> bool:
+    def initialize(self, camera_ch1_index: int = 0, camera_ch2_index: int = 4,
+                   vibration_com: str = "COM3", use_mock: bool = None,
+                   save_dir: str = None, capture_images: bool = False,
+                   vibration_threshold: float = 0.05,
+                   strict_hardware: bool = False) -> bool:
         """初始化所有传感器"""
         if use_mock is not None:
             self.use_mock = use_mock
@@ -188,6 +199,10 @@ class SLMAcquisition:
         self.camera_ch1_index = camera_ch1_index
         self.camera_ch2_index = camera_ch2_index
         self.vibration_com_port = vibration_com
+        self.vibration_threshold = vibration_threshold
+        self.strict_hardware = bool(strict_hardware)
+        if save_dir:
+            self.capture_save_directory = str(save_dir)
         
         print(f"[SLMAcquisition] 初始化传感器 (模拟模式: {self.use_mock})...")
         
@@ -226,8 +241,11 @@ class SLMAcquisition:
         # 连接摄像头（视频文件模式也需要连接）
         if self.camera_manager is not None:
             if not self.camera_manager.connect():
-                print("[SLMAcquisition] 摄像头连接失败，将使用模拟数据")
-                if not self.use_mock:
+                print("[SLMAcquisition] 摄像头连接失败")
+                if self.strict_hardware:
+                    success = False
+                elif not self.use_mock:
+                    print("[SLMAcquisition] 将使用模拟摄像头数据")
                     self.camera_manager = MockCameraManager(
                         ch1_index=camera_ch1_index,
                         ch2_index=camera_ch2_index
@@ -236,21 +254,36 @@ class SLMAcquisition:
         
         if self.vibration_enabled:
             if not self.vibration_sensor.connect():
-                print("[SLMAcquisition] 振动传感器连接失败，将使用模拟数据")
-                if not self.use_mock:
+                print("[SLMAcquisition] 振动传感器连接失败")
+                if self.strict_hardware:
+                    success = False
+                elif not self.use_mock:
+                    print("[SLMAcquisition] 将使用模拟振动数据")
                     self.vibration_sensor = MockVibrationSensor(com_port=vibration_com)
                     self.vibration_sensor.connect()
         
         if self.thermal_enabled:
             if not self.thermal_camera.connect():
-                print("[SLMAcquisition] 红外热像仪连接失败，将使用模拟数据")
-                if not self.use_mock:
+                print("[SLMAcquisition] 红外热像仪连接失败")
+                if self.strict_hardware:
+                    success = False
+                elif not self.use_mock:
+                    print("[SLMAcquisition] 将使用模拟红外数据")
                     self.thermal_camera = MockThermalCamera()
                     self.thermal_camera.connect()
+
+        if self.strict_hardware and not success:
+            print("[SLMAcquisition] 实机严格模式初始化失败：至少一个真实传感器未连接")
+            return False
         
         # 初始化图像采集器（如果尚未初始化）
         if self._image_capture is None:
-            self.setup_image_capture()
+            self.setup_image_capture(save_dir=self.capture_save_directory or None)
+        elif self.capture_save_directory:
+            self.set_capture_save_directory(self.capture_save_directory)
+        if self._image_capture is not None:
+            self._image_capture.set_threshold(self.vibration_threshold)
+            self._image_capture_enabled = bool(capture_images)
         
         print("[SLMAcquisition] 初始化完成")
         return True
@@ -408,6 +441,9 @@ class SLMAcquisition:
             timestamp=time.time(),
             frame_number=self.frame_number
         )
+
+        if self._image_capture is not None:
+            packet.image_capture = self.get_image_capture_status()
         
         # 1. 传感器状态
         packet.sensor_status = self._获取传感器状态()
@@ -561,13 +597,15 @@ class SLMAcquisition:
     
     def get_status(self) -> Dict:
         """获取采集状态"""
-        return {
+        status = {
             'is_running': self.is_running,
             'frame_number': self.frame_number,
             'fps': self._statistics['fps'],
             'duration': time.time() - self._statistics['start_time'] if self._statistics['start_time'] else 0,
             'sensor_status': self._获取传感器状态()
         }
+        status['image_capture'] = self.get_image_capture_status()
+        return status
     
     def set_sensor_enabled(self, sensor: str, enabled: bool):
         """设置传感器启用状态"""
@@ -731,8 +769,8 @@ class SLMAcquisition:
             'enabled': False,
             'is_capturing': False,
             'state': 'idle',
-            'save_directory': 'F:/SmartAM_recordings',
-            'threshold': 0.1,
+            'save_directory': str(Path(__file__).resolve().parents[3] / 'data' / 'CRPBFM130'),
+            'threshold': 0.05,
             'layer_count': 0,
             'total_captures': 0
         }
