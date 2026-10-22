@@ -15,7 +15,6 @@ import cv2
 import numpy as np
 
 from . import config
-from .engine import Recognizer
 from .engine import preprocess as P
 from .sources.site_replay import SiteReplaySource
 from trace_results import DualTraceResults
@@ -79,6 +78,7 @@ class Device:
             self.pack = json.loads((config.PACK_DIR / src['pack']).read_text(encoding='utf-8'))
         self.rec = None
         if cfg.get('recognizer'):
+            from .engine.recognizer import Recognizer
             b = cfg['recognizer']['bundle']
             if b not in recognizers:
                 dev = config.TORCH_DEVICE
@@ -463,35 +463,26 @@ class Device:
 class FormingService:
     def __init__(self):
         cfg = json.loads((config.PACK_DIR / 'devices.json').read_text(encoding='utf-8'))
-        recognizers = {}
-        self.devices = {c['id']: Device(c, recognizers) for c in cfg['devices']}
+        # 清单与状态查询只读配置；用户实际请求某设备时才创建其运行时。
+        self.configs = cfg['devices']
+        self.recognizers = {}
+        self.devices = {}
+        self.device_lock = threading.Lock()
         self.started = datetime.now().isoformat(timespec='seconds')
 
     def get(self, device_id: str) -> Device:
         """device_id 可以是本模块的设备编号，也可以是 SmartAM 中的设备编号（devices.json 的 aliases）。"""
-        if device_id in self.devices:
-            return self.devices[device_id]
-        for d in self.devices.values():
-            if device_id in d.cfg.get('aliases', []):
-                return d
+        for cfg in self.configs:
+            if device_id == cfg['id'] or device_id in cfg.get('aliases', []):
+                with self.device_lock:
+                    if cfg['id'] not in self.devices:
+                        self.devices[cfg['id']] = Device(cfg, self.recognizers)
+                    return self.devices[cfg['id']]
         raise ApiError(404, f'设备 {device_id} 未接入成形监测')
 
     def status(self) -> dict:
         return {'name': '增材制造异常识别系统', 'version': '1.0', 'mode': 'replay', 'modeLabel': config.MODE_LABEL, 'started': self.started,
-                'devices': len(self.devices)}
-
-    def warmup(self):
-        """后台预算各设备当前层附近的识别与溯源结果，使首次打开页面不必等待。"""
-        for d in self.devices.values():
-            try:
-                if 'trace' in d.cfg['modules'] and d.source is not None:
-                    d.trace_curve(d.cfg['default_layer'], d.cfg['trace']['band_px'])
-                if 'recognition' in d.cfg['modules']:
-                    L = d.layers()
-                    for v in [q for q in L if q <= d.cfg['default_layer']][-8:]:
-                        d.probs(v)
-            except Exception as e:  # 预热失败不影响服务，首次请求时再计算
-                print(f'[forming] 预热 {d.id} 失败: {e}')
+                'devices': len(self.configs)}
 
 
 _service = None
@@ -503,5 +494,4 @@ def get_service() -> FormingService:
     with _lock:
         if _service is None:
             _service = FormingService()
-            threading.Thread(target=_service.warmup, daemon=True).start()
         return _service

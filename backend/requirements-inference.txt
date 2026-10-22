@@ -1,0 +1,5 @@
+# 可选真实模型处理：先安装基础依赖，再按需安装本文件。
+# 使用 CPU 版本，无需 CUDA 或 GPU 驱动。
+--index-url https://download.pytorch.org/whl/cpu
+torch>=2.6.0
+torchvision>=0.21.0

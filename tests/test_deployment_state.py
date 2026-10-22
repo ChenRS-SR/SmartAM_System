@@ -67,6 +67,16 @@ class DeploymentStateTests(unittest.TestCase):
         with patch.object(deployment.metadata, "version", side_effect=deployment.metadata.PackageNotFoundError):
             self.assertFalse(deployment.backend_ready())
 
+    def test_base_install_does_not_require_inference(self):
+        root = Path(__file__).resolve().parents[1]
+        requirements = (root / 'backend/requirements.txt').read_text()
+        active = [line.strip().lower() for line in requirements.splitlines() if line.strip() and not line.startswith('#')]
+        self.assertFalse(any(line.startswith(('torch', 'torchvision', '-r')) for line in active))
+        script = (root / 'scripts/deploy_windows.ps1').read_text(encoding='utf-8-sig')
+        self.assertNotIn('import fastapi, uvicorn, cv2, torch', script)
+        self.assertIn("'requirements.txt'", script)
+        self.assertNotIn('requirements-inference.txt', script)
+
     def test_build_clears_old_host_and_mock_mode(self):
         with patch.dict(deployment.os.environ, {"VITE_API_BASE_URL": "http://old-pc", "VITE_MOCK_MODE": "true"}), patch.object(deployment.shutil, "which", return_value="npm.cmd"), patch.object(deployment.subprocess, "run") as run:
             deployment.build_frontend()
