@@ -18,10 +18,11 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
   const playing = ref(false)
   // 默认直接播放封存结果；设置开关只作用于当前设备。
   const realProcessing = ref(false)
-  const speed = ref(10)
+  const speed = ref(1)
   const error = ref('')
   const loading = ref(false)
   let timer, controller, revision = 0, anchorOffset = 0, anchorClock = 0, opening = null
+  let restartPending = false
   const position = () => Math.min(manifest.value.duration, anchorOffset + (playing.value ? (performance.now() - anchorClock) / 1000 * speed.value : 0))
 
   async function read(path, signal) {
@@ -30,11 +31,17 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     return response.json()
   }
   function persist() {
-    localStorage.setItem(KEY, JSON.stringify({ offset: snapshot.value.offset, speed: speed.value, realProcessing: realProcessing.value }))
+    localStorage.setItem(KEY, JSON.stringify({ realProcessing: realProcessing.value }))
   }
   // 只提交整份同游标快照；暂停、跳转后的旧请求不得覆盖新状态。
   async function refresh(version = revision) {
-    const requested = position()
+    const restarting = restartPending && playing.value
+    if (restarting) {
+      anchorOffset = 0
+      anchorClock = performance.now()
+      restartPending = false
+    }
+    const requested = restarting ? 0 : position()
     const request = new AbortController()
     controller = request
     try {
@@ -43,9 +50,9 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
       snapshot.value = next
       if (next.processing && !next.processing.real) realProcessing.value = false
       error.value = ''
-      if (next.offset >= manifest.value.duration) {
-        playing.value = false
-        anchorOffset = next.offset
+      if (playing.value && next.offset >= manifest.value.duration) {
+        // 末帧保留一个刷新周期，下一次请求从头开始；暂停在末帧时不循环。
+        restartPending = true
       }
       persist()
     } catch (e) {
@@ -64,6 +71,7 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     revision += 1
     clearTimeout(timer)
     controller?.abort()
+    restartPending = false
     anchorOffset = Math.max(0, Math.min(offset, manifest.value.duration))
     anchorClock = performance.now()
     playing.value = run
@@ -80,12 +88,9 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
         manifest.value = await read('manifest')
         const saved = localStorage.getItem(KEY)
         const previous = saved ? JSON.parse(saved) : null
-        if (previous && Number.isFinite(previous.offset) && [1, 5, 10, 30, 60].includes(previous.speed)) {
-          speed.value = previous.speed
-          realProcessing.value = previous.realProcessing === true
-          anchorOffset = Math.min(previous.offset, manifest.value.duration)
-        } else anchorOffset = manifest.value.defaultOffset
-        await move(anchorOffset, true)
+        realProcessing.value = previous?.realProcessing === true
+        // 新页面会话从头以 1 倍速播放；页面内导航复用此 store，不重置进度。
+        await move(0, true)
       } catch (e) {
         error.value = e.message
         manifest.value = null

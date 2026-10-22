@@ -111,31 +111,33 @@
       </div>
     </el-card>
     
-    <!-- 设备目录模拟视频扫描 -->
+    <!-- 数据源列表与设备群和工作区保持一致。 -->
     <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
       <template #header>
         <div class="card-header">
           <el-icon size="20"><VideoCamera /></el-icon>
-          <span>设备模拟视频扫描</span>
-          <el-tag type="info" size="small">由设备文件数据库决定</el-tag>
+          <span>设备数据源</span>
+          <el-button size="small" :loading="slmDeviceStore.loading" @click="refreshDeviceSources">刷新列表</el-button>
         </div>
       </template>
       
       <div class="settings-content">
-        <el-alert
-          title="模拟视频按设备目录自动扫描"
-          description="在单台设备数据库目录下放入 mock_video/CH1、mock_video/CH2、mock_video/CH3 文件夹；每个通道文件夹内放一个支持格式的视频即可自动接入。"
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 20px;"
-        />
-
-        <el-table :data="mockCaseRows" border size="small">
-          <el-table-column prop="name" label="设备" min-width="180" />
-          <el-table-column prop="caseLabel" label="扫描结果" min-width="160" />
-          <el-table-column prop="folder" label="目录结构" min-width="260" />
-          <el-table-column prop="status" label="状态" width="120" />
+        <el-table :data="deviceSourceRows" row-key="id" border size="small" v-loading="slmDeviceStore.loading">
+          <el-table-column prop="name" label="设备" min-width="180">
+            <template #default="{ row }">
+              <div>{{ row.name }} <span v-if="row.id === contextDeviceId" class="current-device">当前设备</span></div>
+              <small>{{ row.serial }}</small>
+            </template>
+          </el-table-column>
+          <el-table-column prop="type" label="数据源" min-width="100" />
+          <el-table-column prop="content" label="数据内容" min-width="200" />
+          <el-table-column prop="location" label="资源位置 / 配置入口" min-width="220" show-overflow-tooltip />
+          <el-table-column prop="status" label="资源状态" min-width="160" />
+          <el-table-column label="操作" width="110" fixed="right">
+            <template #default="{ row }">
+              <router-link class="device-source-link" :to="{ name: 'SLMDeviceDashboard', params: { deviceId: row.id }, query: { tab: 'access' } }">进入设备</router-link>
+            </template>
+          </el-table-column>
         </el-table>
       </div>
     </el-card>
@@ -248,7 +250,7 @@ import { VideoCamera, Check, Refresh, Crop } from '@element-plus/icons-vue'
 import ROIConfigPanel from '../../components/slm/ROIConfigPanel.vue'
 import { readSlmBenchSettings, writeSlmBenchSettings } from '../../utils/slmBenchSettings'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
-import { getDeviceMockCase } from '../../utils/slmMockCases'
+import { deviceSourceRow } from '../../utils/slmDeviceSources'
 import { useRoute } from 'vue-router'
 import ReplaySettings from '../../components/slm/ReplaySettings.vue'
 import { replayCaseForDevice } from '../../stores/replay'
@@ -297,17 +299,15 @@ const channelDetails = computed(() => {
   }))
 })
 
-const mockCaseRows = computed(() => slmDeviceStore.devices.map((device) => {
-  const mockCase = getDeviceMockCase(device)
-  return {
-    id: device.id,
-    name: device.name,
-    hasCase: Boolean(mockCase),
-    caseLabel: mockCase?.label || '暂不支持接入',
-    folder: mockCase ? `${device.dataDirectory}/mock_video/CH1..CH3` : '--',
-    status: mockCase?.supported ? '已接入' : '未接入'
+const deviceSourceRows = computed(() => slmDeviceStore.devices.map(deviceSourceRow))
+
+async function refreshDeviceSources() {
+  try {
+    await slmDeviceStore.loadDevicesFromBackend()
+  } catch (error) {
+    ElMessage.error(error.message)
   }
-}))
+}
 
 function formatCameraLabel(camera) {
   const resolution = camera.resolution?.length === 2
@@ -457,13 +457,14 @@ onMounted(() => {
   // 历史设备的设置页不触发实体摄像头探测。
   if (!replayCaseForDevice(contextDeviceId.value)) fetchCameras()
   loadCorrectionInfo()
-  slmDeviceStore.loadDevicesFromBackend().catch((error) => {
-    ElMessage.error(error.message || '加载设备模拟用例绑定失败')
-  })
+  refreshDeviceSources()
 })
 </script>
 
 <style scoped>
+.current-device { margin-left: 6px; color: var(--am-accent); font-size: 12px; }
+.device-source-link { color: var(--am-accent); text-decoration: none; }
+.device-source-link:hover { text-decoration: underline; }
 .slm-settings {
   padding: 0;
 }
