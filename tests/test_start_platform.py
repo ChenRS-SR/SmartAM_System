@@ -57,7 +57,10 @@ class DeploymentTests(unittest.TestCase):
 
     def test_root_has_only_two_batch_entrypoints(self):
         root=Path(__file__).resolve().parents[1]
-        self.assertEqual({p.name for p in root.glob('*.bat')},{'deploy_windows.bat','start_platform.bat'})
+        self.assertEqual(
+            {p.name for p in root.glob('*.bat')},
+            {'deploy_windows.bat', 'start_platform.bat', 'start_smartam.bat', 'enable_autostart.bat'},
+        )
         self.assertIn('-StartOnly',(root/'start_platform.bat').read_text())
 
 if __name__ == '__main__': unittest.main()

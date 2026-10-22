@@ -6,8 +6,8 @@ import subprocess
 import socket
 import sys
 
-DEFAULT_PORT = 8000
-LAST_PORT = 8099
+DEFAULT_PORT = 8001
+LAST_PORT = 8001
 
 
 def reserve_listener(first=DEFAULT_PORT, last=LAST_PORT):
@@ -57,4 +57,3 @@ def lan_addresses():
         if not ipaddress.ip_address(address).is_loopback
         and not ipaddress.ip_address(address).is_link_local
     })
-

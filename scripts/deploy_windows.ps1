@@ -1,4 +1,4 @@
-﻿param([switch]$ConfigureFirewall, [switch]$StartOnly, [ValidateRange(8000,8099)][int]$Port = 8000)
+﻿param([switch]$ConfigureFirewall, [switch]$StartOnly, [switch]$NoBrowser, [ValidateRange(8000,8099)][int]$Port = 8001)
 
 # 批处理只负责入口；检测、退出码和含中文/空格的路径由 PowerShell 处理。
 $ErrorActionPreference = 'Stop'
@@ -131,6 +131,34 @@ function Find-ProjectListener {
     return $null
 }
 
+function Clear-PlatformPort {
+    $listeners = @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty OwningProcess -Unique)
+    foreach ($processId in $listeners) {
+        if ($processId -eq $PID) { continue }
+        $owner = Get-CimInstance Win32_Process -Filter "ProcessId=$processId" -ErrorAction SilentlyContinue
+        $description = if ($null -ne $owner) { "$($owner.Name) [$processId]" } else { "PID $processId" }
+        Write-Host "端口 $Port 已被 $description 占用，正在停止该进程。" -ForegroundColor Yellow
+        try {
+            Stop-Process -Id $processId -Force -ErrorAction Stop
+        } catch {
+            $elevatedCommand = "Stop-Process -Id $processId -Force -ErrorAction Stop"
+            $elevated = Start-Process powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList @(
+                '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $elevatedCommand
+            )
+            if ($elevated.ExitCode -ne 0) {
+                throw "无法停止占用端口 $Port 的进程 $processId，请允许管理员权限后重试。"
+            }
+        }
+    }
+    Start-Sleep -Milliseconds 300
+    $remaining = @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue)
+    if ($remaining.Count -gt 0) {
+        $ids = ($remaining | Select-Object -ExpandProperty OwningProcess -Unique) -join ', '
+        throw "端口 $Port 清理失败，仍被进程 $ids 占用。"
+    }
+}
+
 function Test-InstalledPlatform {
     if (-not (Test-Path $Python)) { throw '尚未部署，请先运行 deploy_windows.bat。' }
     Invoke-Checked $Python @($StateTool, 'check-backend')
@@ -147,7 +175,7 @@ function Invoke-Deployment {
         Set-PlatformPort $existing.LocalPort
         if (-not (Platform-Ready)) { throw '本项目进程已监听但尚未就绪，请检查原服务窗口。' }
         Write-Host "本项目已运行，打开现有页面：$Url。更新代码后请先关闭原服务窗口再部署。" -ForegroundColor Green
-        Start-Process $Url
+        if (-not $NoBrowser) { Start-Process $Url }
         return
     }
     if ($StartOnly) {
@@ -218,10 +246,12 @@ function Invoke-Deployment {
         } finally { Pop-Location }
 
     }
-    Write-Host '启动平台，自动选择 8000–8099 中的可用端口'
+    Clear-PlatformPort
+    Write-Host "启动平台，固定使用端口 $Port"
     $env:SMARTAM_RELOAD = '0'
     $env:SMARTAM_ACCESS_LOG = '0'
-    $env:SMARTAM_PORT_START = '8000'
+    $env:SMARTAM_PORT_START = '8001'
+    $env:SMARTAM_PORT_END = '8001'
     $process = Start-Process -FilePath $Python -ArgumentList ('"' + (Join-Path $Backend 'main.py') + '"') -WorkingDirectory $Backend -NoNewWindow -PassThru
     try {
         $ready = $false
@@ -264,7 +294,7 @@ function Invoke-Deployment {
         Where-Object { $_.IPAddress -ne '127.0.0.1' -and $_.IPAddress -notlike '169.254.*' } |
         ForEach-Object { Write-Host "网卡地址：http://$($_.IPAddress):${Port}/slm/dashboard" }
     Write-Host '请选择访问电脑可达的网卡地址。保持此窗口打开，Ctrl+C 停止服务。' -ForegroundColor Green
-    Start-Process $Url
+    if (-not $NoBrowser) { Start-Process $Url }
     # 完成部署后释放锁，重复双击可识别已有进程并直接打开页面。
     $script:lock.Dispose()
     $script:lock = $null

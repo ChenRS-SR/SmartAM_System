@@ -15,7 +15,7 @@ services:
     container_name: smartam-backend
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       # 数据持久化
       - ./data:/app/data

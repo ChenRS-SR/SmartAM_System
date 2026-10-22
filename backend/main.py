@@ -500,8 +500,9 @@ if __name__ == "__main__":
 
     from utils.platform_port import reserve_listener, lan_addresses, DEFAULT_PORT, LAST_PORT
     first_port = int(os.getenv("SMARTAM_PORT_START", str(DEFAULT_PORT)))
+    last_port = int(os.getenv("SMARTAM_PORT_END", str(LAST_PORT)))
     # 默认启动保留绑定的 socket 交给服务器，选端口与监听之间没有释放窗口。
-    with reserve_listener(first_port, LAST_PORT) as listener:
+    with reserve_listener(first_port, last_port) as listener:
         actual_port = listener.getsockname()[1]
         print(f"[Main] 实际监听端口：{actual_port}；本机 http://127.0.0.1:{actual_port}/slm/dashboard", flush=True)
         for address in lan_addresses():
