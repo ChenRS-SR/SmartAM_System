@@ -11,7 +11,6 @@ from __future__ import annotations
 import cv2
 import numpy as np
 import pandas as pd
-import torch
 from scipy import ndimage
 
 MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
@@ -42,7 +41,8 @@ def crop_letterbox(rgb: np.ndarray, crop) -> np.ndarray:
     return letterbox(rgb[y0:y1, x0:x1])
 
 
-def to_tensor(lb: np.ndarray) -> torch.Tensor:
+def to_tensor(lb: np.ndarray):
+    import torch
     f = (lb.astype(np.float32) / 255.0 - MEAN) / STD
     return torch.from_numpy(f.transpose(2, 0, 1).copy()).float()
 

@@ -2,6 +2,8 @@
 
 Windows 目标电脑推荐双击根目录 **`deploy_windows.bat`**，自动检查并补齐环境、安装依赖、构建页面、配置局域网访问并启动。已有环境和未变化的构建会跳过，不依赖 Codex、VS Code 或固定名称的 Conda 环境。
 
+默认部署仅安装基础运行依赖，不需要 PyTorch、CUDA、显卡或推理环境。五台随附设备直接播放处理好的识别、溯源和红外结果；“真实模型处理”仍可按需启用。
+
 跨平台手动入口为 `python start_platform.py`，首次准备环境见下文“新电脑独立部署”。
 
 已有 `pytorch_env` 环境的电脑也可以继续使用 `start_slm_complete.bat`（Windows）或 `./start_slm_complete.sh`（Linux）。这两个旧脚本会：
@@ -128,7 +130,7 @@ python scripts/build_portable_replays.py \
 
 直接跳转到后段时只重新处理当前显示窗口，正常参照使用该层封存的前序参照编号，并由当前模型复核其正常性；不会从第一层重跑整个任务。两区 Shapley 采用四种区域组合，BLT 扭矩保持该层实际输入。每个输出的贡献单位为 logit 改变量，双输出概率分别保留；识别总分取两侧概率较大值。新封存结果的归因方向由该侧概率达到 0.5 且至少一区贡献超过校准上限共同决定。概率达到异常阈值但归因未确认时显示“已识别异常，归因待确认”；概率未达到异常阈值但贡献超限时显示“贡献超限，待复核”。二者都未触发才显示“未见异常”，待确认状态不直接生成参数调整指令。工艺侧与设备侧贡献分别对照本侧上限，不能交叉比较两条阈值线。
 
-如果真实处理的依赖、权重或输入不满足条件，当前设备直接切回自己的封存结果，开关同步关闭。原因及异常堆栈仅记录在后端日志，设置页不显示原因或技术说明；README 保留这一约定。封存包损坏会明确报读取错误，不用其他案例替代。默认播放不要求实际推理可用，但平台其余原有功能仍有 PyTorch 等安装依赖，不能据此省略 `requirements.txt`。
+如果真实处理的依赖、权重或输入不满足条件，当前设备直接切回自己的封存结果，开关同步关闭。原因及异常堆栈仅记录在后端日志，设置页不显示原因或技术说明；README 保留这一约定。封存包损坏会明确报读取错误，不用其他案例替代。基础依赖 `backend/requirements.txt` 不包含 PyTorch/torchvision，Windows 一键脚本也不检查或安装这两项。平台启动、设备清单及默认案例页面不加载模型；缺少推理依赖时，误打开真实处理开关会按上述约定切回该设备的封存结果。首次部署仍需基础 Python、Node.js 和 Web/图像处理依赖，由部署脚本检查补齐；“无需推理环境”不等于没有任何运行依赖。
 
 数据与模型边界：
 
@@ -167,3 +169,15 @@ python scripts/build_analysis_packages.py --case m130 --chapters /path/to/章节
 ```
 
 BLT 另三个 case ID 为 `blt-s430-20240828`、`b10-20250509-07-47`、`b15-20250107-20-02`。重建输入会真实执行模型；各输入分卷低于 GitHub 单文件上限。
+
+## 按需启用真实推理
+
+默认播放无需执行本节。Windows 完成基础部署后，在项目根目录运行：
+
+```bat
+.venv\Scripts\python.exe -m pip install -r backend/requirements-inference.txt
+```
+
+该清单使用 PyTorch 官方 CPU 软件源，不安装 CUDA。安装成功后重启平台，再从对应设备的系统设置启用“真实模型处理”。Linux 使用所选 Python 环境运行同一条 `python -m pip install -r backend/requirements-inference.txt` 命令。已有推理环境可继续使用，基础部署不会卸载其推理依赖。新采集任务必须具备相应模型输入和可用推理依赖；没有自己的封存结果时返回明确的处理失败，不使用旧案例替代。
+
+基础部署验收：在只安装 `backend/requirements.txt` 的环境中，额外安装测试工具 `httpx`，运行 `python -m unittest discover -s backend/tests -p test_playback_deployment.py`。该检查覆盖完整应用路由、五台设备的封存快照与图像、红外结果、调控配置，以及禁用推理依赖时误开真实处理的行为。

@@ -137,7 +137,7 @@ function Invoke-Deployment {
         }
         Invoke-Checked $basePython @('-m', 'venv', $Venv)
     }
-    # torch / OpenCV 的 Windows 二进制依赖 VC++ x64 运行库，已有安装则不重复安装。
+    # OpenCV 的 Windows 二进制依赖 VC++ x64 运行库，已有安装则不重复安装。
     $vcRuntime = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64' -ErrorAction SilentlyContinue
     if ($null -eq $vcRuntime -or $vcRuntime.Installed -ne 1 -or [version]($vcRuntime.Version -replace '^v', '') -lt [version]'14.29') {
         Install-Runtime 'Microsoft.VCRedist.2015+.x64'
@@ -161,7 +161,7 @@ function Invoke-Deployment {
         Invoke-Checked $Python @('-m', 'pip', 'install', '-r', (Join-Path $Backend 'requirements.txt'))
         Invoke-Checked $Python @($StateTool, 'check-backend')
     } else { Write-Host '后端依赖及版本检查通过，跳过安装。' }
-    Invoke-Checked $Python @('-c', 'import fastapi, uvicorn, cv2, torch, torchvision, pandas, sklearn')
+    Invoke-Checked $Python @('-c', 'import fastapi, uvicorn, cv2, numpy, pandas, sklearn')
 
     Write-Host '[4/6] 检查前端依赖和构建'
     Push-Location $Frontend

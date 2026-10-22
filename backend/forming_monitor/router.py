@@ -19,6 +19,10 @@ def _run(fn, *a, **kw):
         return fn(*a, **kw)
     except ApiError as e:
         return JSONResponse(status_code=e.status, content={'detail': e.msg})
+    except ModuleNotFoundError as e:
+        if e.name not in ('torch', 'torchvision'):
+            raise
+        return JSONResponse(status_code=503, content={'detail': '当前环境未安装真实处理依赖'})
     except KeyError as e:
         return JSONResponse(status_code=404, content={'detail': str(e).strip("'")})
 
