@@ -46,7 +46,8 @@ class ThermalCamera:
                  temperature_range: Tuple[float, float] = (-20, 100),
                  temperature_offset: float = 0.0):
         # 默认SDK路径
-        self.sdk_path = sdk_path or r"D:\SLM\OPT-PIX-Connect-Rel.-3.24.3127.0\OPT PIX Connect Rel. 3.24.3127.0\SDK\Connect SDK\Lib\v120"
+        # 华科 PI450i LT 的实际 SDK 路径（来源：D:\SLS\sls_monitor\config\infrared_config.py）
+        self.sdk_path = sdk_path or r"D:\optics\PIX Connect\SDK\Connect SDK\Lib\v120"
         self.device_index = device_index
         self.temperature_range = temperature_range
         self.temperature_offset = temperature_offset
@@ -110,8 +111,11 @@ class ThermalCamera:
             self.dll.InitImagerIPC.argtypes = [ctypes.c_ushort]
             self.dll.InitImagerIPC.restype = ctypes.c_long
             
-            self.dll.StartImagerIPC.argtypes = [ctypes.c_ushort]
-            self.dll.StartImagerIPC.restype = ctypes.c_long
+            # 新版 SDK 使用 RunImagerIPC，旧版仍可能叫 StartImagerIPC。
+            start_fn = getattr(self.dll, "RunImagerIPC", None) or getattr(self.dll, "StartImagerIPC")
+            start_fn.argtypes = [ctypes.c_ushort]
+            start_fn.restype = ctypes.c_long
+            self._start_ipc = start_fn
             
             self.dll.ReleaseImagerIPC.argtypes = [ctypes.c_ushort]
             self.dll.ReleaseImagerIPC.restype = ctypes.c_long
@@ -124,14 +128,19 @@ class ThermalCamera:
             ]
             self.dll.GetFrameConfig.restype = ctypes.c_long
             
-            self.dll.GetFrame.argtypes = [
-                ctypes.c_ushort, 
-                ctypes.c_ushort, 
-                ctypes.c_void_p, 
-                ctypes.c_uint, 
-                ctypes.c_void_p
-            ]
-            self.dll.GetFrame.restype = ctypes.c_long
+            self._uses_frame2 = hasattr(self.dll, "GetFrame2")
+            if self._uses_frame2:
+                self.dll.GetFrame2.argtypes = [
+                    ctypes.c_ushort, ctypes.c_ushort, ctypes.c_void_p,
+                    ctypes.c_uint, ctypes.c_void_p, ctypes.c_uint
+                ]
+                self.dll.GetFrame2.restype = ctypes.c_long
+            else:
+                self.dll.GetFrame.argtypes = [
+                    ctypes.c_ushort, ctypes.c_ushort, ctypes.c_void_p,
+                    ctypes.c_uint, ctypes.c_void_p
+                ]
+                self.dll.GetFrame.restype = ctypes.c_long
             
             # 初始化IPC
             result = self.dll.InitImagerIPC(self.device_index)
@@ -141,7 +150,7 @@ class ThermalCamera:
                 return False
             
             # 启动IPC
-            start_result = self.dll.StartImagerIPC(self.device_index)
+            start_result = self._start_ipc(self.device_index)
             if start_result != 0:
                 self.last_error = f"启动IPC失败，错误代码: 0x{start_result:08X}"
                 print(f"[ThermalCamera] {self.last_error}")
@@ -207,13 +216,20 @@ class ThermalCamera:
             
             # 获取帧数据
             timeout_ms = 100
-            result = self.dll.GetFrame(
-                self.device_index,
-                timeout_ms,
-                ctypes.cast(image_buffer, ctypes.c_void_p),
-                buffer_size,
-                ctypes.cast(metadata_buffer, ctypes.c_void_p)
-            )
+            if getattr(self, "_uses_frame2", False):
+                result = self.dll.GetFrame2(
+                    self.device_index, 0,
+                    ctypes.cast(image_buffer, ctypes.c_void_p),
+                    buffer_size,
+                    ctypes.cast(metadata_buffer, ctypes.c_void_p),
+                    len(metadata_buffer),
+                )
+            else:
+                result = self.dll.GetFrame(
+                    self.device_index, timeout_ms,
+                    ctypes.cast(image_buffer, ctypes.c_void_p), buffer_size,
+                    ctypes.cast(metadata_buffer, ctypes.c_void_p)
+                )
             
             if result != 0:
                 # 减少错误日志频率
@@ -225,15 +241,23 @@ class ThermalCamera:
                 return None
             
             # 转换为numpy数组
-            temp_array = np.frombuffer(image_buffer, dtype=np.uint16)
+            # Temps 模式返回有符号 int16；旧 SDK 的 GetFrame 可能返回 uint16。
+            dtype = np.int16 if getattr(self, "_uses_frame2", False) else np.uint16
+            temp_array = np.frombuffer(image_buffer, dtype=dtype)
             
             if len(temp_array) < self.frame_size:
                 return None
             
             temp_array = temp_array[:self.frame_size].reshape((self.height, self.width))
             
-            # 转换为摄氏度 (0.01°C单位)
+            # PI450i LT 默认 -20..100°C 档为 0.01°C 分辨率。
             temp_celsius = temp_array.astype(np.float32) / 100.0
+            if getattr(self, "_uses_frame2", False):
+                valid = temp_array != -32768
+                if not valid.any():
+                    return None
+                median = float(np.median(temp_celsius[valid]))
+                temp_celsius[~valid] = median
             
             # 应用温度偏移
             if self.temperature_offset != 0.0:

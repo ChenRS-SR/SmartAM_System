@@ -74,14 +74,15 @@ class VibrationTriggeredCapture:
     """
     
     # 默认保存目录
-    DEFAULT_SAVE_DIR = "F:/SmartAM_recordings"
+    DEFAULT_SAVE_DIR = str(Path(__file__).resolve().parents[3] / "data" / "CRPBFM130")
     
     def __init__(self, save_dir: str = None):
         self.save_dir = Path(save_dir or self.DEFAULT_SAVE_DIR)
         self.save_dir.mkdir(parents=True, exist_ok=True)
         
         # 采集配置
-        self.threshold = 0.1  # 振动阈值（默认0.1 mm/s）
+        # WTVB02-485 实机配置：D:\SLS\sls_monitor\config\vibration_config.py
+        self.threshold = 0.05  # 振动阈值（mm/s）
         self.debounce_time = 0.5  # 防抖时间（秒）
         self.min_quiet_duration = 1.0  # 最小静止持续时间（秒）
         self.max_layer_wait_time = 30.0  # 最大层等待时间（秒）
@@ -305,7 +306,7 @@ class VibrationTriggeredCapture:
                     if self.trigger_count == 0:
                         # 第一次下降沿：before
                         self.state = CaptureTriggerState.WAIT_BEFORE
-                        self._capture_images('before')
+                        self._capture_images('before', self.layer_count)
                         self.trigger_count = 1
                         self.state = CaptureTriggerState.WAIT_SECOND_RISE
                         self.state_enter_time = current_time
@@ -313,7 +314,9 @@ class VibrationTriggeredCapture:
                         return {'triggered': True, 'layer': self.layer_count, 'type': 'before'}
                     else:
                         # 第二次下降沿：after
-                        self._capture_images('after')
+                        # 在层数递增前固定本层编号，确保 before/after 文件属于同一层。
+                        completed_layer = self.layer_count
+                        self._capture_images('after', completed_layer)
                         self.trigger_count = 0
                         self.layer_count += 1
                         self.state = CaptureTriggerState.IDLE
@@ -332,7 +335,7 @@ class VibrationTriggeredCapture:
         
         return None
     
-    def _capture_images(self, trigger_type: str):
+    def _capture_images(self, trigger_type: str, layer_number: int):
         """采集所有通道的图像（异步执行，不阻塞主循环）"""
         if not self.current_session_dir:
             return
@@ -341,12 +344,12 @@ class VibrationTriggeredCapture:
         import threading
         save_thread = threading.Thread(
             target=self._save_images_async,
-            args=(trigger_type,),
+            args=(trigger_type, layer_number),
             daemon=True
         )
         save_thread.start()
     
-    def _save_images_async(self, trigger_type: str):
+    def _save_images_async(self, trigger_type: str, layer_number: int):
         """异步保存图像（在后台线程中执行）"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
         
@@ -371,7 +374,7 @@ class VibrationTriggeredCapture:
                         h, w = frame.shape[:2]
                 
                 # 构建文件名：Layer{层数}_{before|after}_时间戳.jpg
-                filename = f"Layer{self.layer_count}_{trigger_type}_{timestamp}.jpg"
+                filename = f"Layer{layer_number}_{trigger_type}_{timestamp}.jpg"
                 filepath = self.current_session_dir / channel / filename
                 
                 # 保存图像（OpenCV需要BGR格式）
@@ -388,7 +391,7 @@ class VibrationTriggeredCapture:
                     
                     # 通知采集完成
                     if self._capture_complete_callback:
-                        self._capture_complete_callback(channel, self.layer_count, trigger_type)
+                        self._capture_complete_callback(channel, layer_number, trigger_type)
                 
             except Exception as e:
                 print(f"[ImageCapture] {channel} 采集失败: {e}")

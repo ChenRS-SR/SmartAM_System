@@ -128,7 +128,7 @@
       "unit": "mA"
     }
   ],
-  "deviceCount": 29,
+  "deviceCount": 30,
   "devices": [
     {
       "id": "huake-slm-01",
@@ -8568,7 +8568,303 @@
       "dataDirectory": "slm_device_data/SLM/铂力特 S430 B46",
       "source": "7103",
       "databaseUpdatedAt": "2026-06-27 10:12:20"
+    },
+    {
+      "id": "huake-crpbfm130-real",
+      "tag": "HUST-CRPBFM130-REAL",
+      "dataTag": "HUST-CRPBFM130-REAL",
+      "databaseTag": "华科-CRPBFM130",
+      "owner": "华科",
+      "name": "华科 CRPBFM130",
+      "model": "CRPBFM130",
+      "serial": "HUST-CRPBFM130",
+      "location": "华科设备群",
+      "online": true,
+      "health": "healthy",
+      "statusText": "离线",
+      "thumbnail": "/slm_device_data/SLM/%E5%8D%8E%E7%A7%91%20CRPBFM130/thumbnail.jpg",
+      "parameterSchema": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "unit": "层"
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "unit": ""
+        },
+        {
+          "id": "record_status",
+          "name": "状态参数",
+          "unit": ""
+        },
+        {
+          "id": "data_time",
+          "name": "采集时间",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "unit": "%"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "unit": "%"
+        },
+        {
+          "id": "chamber_temperature",
+          "name": "成形室温度",
+          "unit": "℃"
+        },
+        {
+          "id": "gas_flow",
+          "name": "循环气体流量",
+          "unit": "m3/h"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "unit": "%"
+        },
+        {
+          "id": "medium_filter_resistance",
+          "name": "中效滤芯阻力",
+          "unit": "mBar"
+        },
+        {
+          "id": "high_filter_resistance",
+          "name": "高效滤芯阻力",
+          "unit": "mBar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "unit": "Bar"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "unit": "Bar"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "unit": "mA"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "current_layer",
+          "name": "当前层",
+          "value": "--",
+          "unit": "层"
+        },
+        {
+          "id": "sequence",
+          "name": "数据序号",
+          "value": "--",
+          "unit": ""
+        },
+        {
+          "id": "record_status",
+          "name": "状态参数",
+          "value": "等待真实设备连接",
+          "unit": ""
+        },
+        {
+          "id": "data_time",
+          "name": "采集时间",
+          "value": "--",
+          "unit": ""
+        },
+        {
+          "id": "scraper_torque",
+          "name": "刮刀扭矩",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "oxygen",
+          "name": "成形室氧含量",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "ambient_oxygen",
+          "name": "环境氧含量",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "chamber_temperature",
+          "name": "成形室温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "gas_flow",
+          "name": "循环气体流量",
+          "value": "--",
+          "unit": "m3/h"
+        },
+        {
+          "id": "fan_speed",
+          "name": "风机转速",
+          "value": "--",
+          "unit": "%"
+        },
+        {
+          "id": "medium_filter_resistance",
+          "name": "中效滤芯阻力",
+          "value": "--",
+          "unit": "mBar"
+        },
+        {
+          "id": "high_filter_resistance",
+          "name": "高效滤芯阻力",
+          "value": "--",
+          "unit": "mBar"
+        },
+        {
+          "id": "gas_pressure",
+          "name": "气源压力",
+          "value": "--",
+          "unit": "Bar"
+        },
+        {
+          "id": "compressed_air_pressure",
+          "name": "压缩空气压力",
+          "value": "--",
+          "unit": "Bar"
+        },
+        {
+          "id": "servo_temperature_x",
+          "name": "X轴伺服温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "servo_temperature_y",
+          "name": "Y轴伺服温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_x",
+          "name": "X轴振镜温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "galvo_temperature_y",
+          "name": "Y轴振镜温度",
+          "value": "--",
+          "unit": "℃"
+        },
+        {
+          "id": "output_current_x",
+          "name": "X轴输出电流",
+          "value": "--",
+          "unit": "mA"
+        },
+        {
+          "id": "output_current_y",
+          "name": "Y轴输出电流",
+          "value": "--",
+          "unit": "mA"
+        }
+      ],
+      "healthData": {
+        "status": "healthy",
+        "status_code": 0,
+        "status_labels": [
+          "离线"
+        ],
+        "laser_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "powder_system": {
+          "status": "healthy",
+          "message": "健康"
+        },
+        "gas_system": {
+          "status": "healthy",
+          "message": "健康"
+        }
+      },
+      "diagnosis": {
+        "source": "真实采集",
+        "rawStatusCode": -1,
+        "rawStatusLabel": "等待真实设备连接",
+        "rawStatusLabels": [
+          "等待真实设备连接"
+        ],
+        "frontendStatusCode": -1,
+        "frontendStatusLabel": "等待真实设备连接",
+        "categories": [],
+        "confidence": null,
+        "evidence": []
+      },
+      "realData": {
+        "source_case_dir": "D:/SLS",
+        "source_files": [],
+        "representative_csv": "",
+        "parameter_csvs": [],
+        "preview_csv": "SLM/华科 CRPBFM130/real_data/preview.csv"
+      },
+      "updatedAt": "2026-10-22T00:00:00",
+      "source": "real",
+      "acquisitionProfile": {
+        "camera_ch1_index": 0,
+        "camera_ch2_index": 4,
+        "thermal_camera": "Optris PI450i LT",
+        "thermal_sdk_path": "D:/optics/PIX Connect/SDK/Connect SDK/Lib/v120",
+        "vibration_sensor": "WTVB02-485",
+        "vibration_com": "COM3",
+        "vibration_baudrate": 9600,
+        "vibration_address": 80,
+        "vibration_threshold": 0.05,
+        "layer_source": "vibration_sensor"
+      },
+      "mockCase": null,
+      "dataDirectory": "slm_device_data/SLM/华科 CRPBFM130",
+      "replayCase": null,
+      "databaseUpdatedAt": "2026-10-22 12:33:01"
     }
   ],
-  "databaseUpdatedAt": "2026-06-27 12:50:00"
+  "databaseUpdatedAt": "2026-10-22 12:33:01"
 }
