@@ -498,13 +498,23 @@ if __name__ == "__main__":
     log_dir = get_log_dir(Path(project_root))
     app_target = "main:app" if reload_enabled else app
 
-    # 默认关闭reload和访问日志，减少重复进程与高频请求日志写入。
-    uvicorn.run(
-        app_target,
-        host="0.0.0.0",
-        port=8000,
-        reload=reload_enabled,
-        log_level=os.getenv("SMARTAM_LOG_LEVEL", "info").lower(),
-        log_config=build_uvicorn_log_config(log_dir),
-        access_log=access_log_enabled,
-    )
+    from utils.platform_port import reserve_listener, lan_addresses, DEFAULT_PORT, LAST_PORT
+    first_port = int(os.getenv("SMARTAM_PORT_START", str(DEFAULT_PORT)))
+    # 默认启动保留绑定的 socket 交给服务器，选端口与监听之间没有释放窗口。
+    with reserve_listener(first_port, LAST_PORT) as listener:
+        actual_port = listener.getsockname()[1]
+        print(f"[Main] 实际监听端口：{actual_port}；本机 http://127.0.0.1:{actual_port}/slm/dashboard", flush=True)
+        for address in lan_addresses():
+            print(f"[Main] 局域网：http://{address}:{actual_port}/slm/dashboard", flush=True)
+        if reload_enabled:
+            # 开发重载由 Uvicorn 管理子进程；部署入口始终关闭重载。
+            listener.close()
+            uvicorn.run(app_target, host="0.0.0.0", port=actual_port, reload=True,
+                        log_config=build_uvicorn_log_config(log_dir), access_log=access_log_enabled)
+        else:
+            server = uvicorn.Server(uvicorn.Config(
+                app_target, host="0.0.0.0", port=actual_port,
+                log_level=os.getenv("SMARTAM_LOG_LEVEL", "info").lower(),
+                log_config=build_uvicorn_log_config(log_dir), access_log=access_log_enabled,
+            ))
+            server.run(sockets=[listener])

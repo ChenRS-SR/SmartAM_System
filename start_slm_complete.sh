@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Linux/SSH环境启动脚本；Windows环境继续使用 start_slm_complete.bat。
+# Linux/SSH环境启动脚本；Windows 使用 deploy_windows.bat 或 start_platform.bat。
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONDA_ENV="pytorch_env"
 
@@ -30,11 +30,6 @@ if ! command -v npm >/dev/null 2>&1; then
     echo "  [ERROR] npm not found. Please reinstall Node.js."
     exit 1
 fi
-if ! command -v lsof >/dev/null 2>&1; then
-    echo "  [ERROR] lsof not found. Please install lsof for port cleanup."
-    exit 1
-fi
-
 # 激活conda环境，避免误用系统Python。
 CONDA_BASE="$(conda info --base)"
 source "${CONDA_BASE}/etc/profile.d/conda.sh"
@@ -48,67 +43,5 @@ echo "[2/6] Cleaning managed logs..."
 python "${ROOT_DIR}/scripts/manage_logs.py" --clean --status
 echo
 
-echo "[3/6] Checking port usage..."
-for port in 8000 5173; do
-    pids="$(lsof -ti "tcp:${port}" || true)"
-    if [[ -n "${pids}" ]]; then
-        echo "  Terminating processes using port ${port}: ${pids//$'\n'/ }"
-        kill ${pids}
-        sleep 1
-        remain_pids="$(lsof -ti "tcp:${port}" || true)"
-        if [[ -n "${remain_pids}" ]]; then
-            kill -9 ${remain_pids}
-        fi
-    fi
-done
-echo
-
-echo "[4/6] Building frontend static assets..."
-cd "${ROOT_DIR}/frontend"
-if [[ ! -d node_modules ]]; then
-    npm install
-fi
-# 正式部署使用同源接口，不继承开发机的地址和模拟配置。
-VITE_API_BASE_URL= VITE_MOCK_MODE=false npm run build
-echo
-
-echo "[5/6] Starting backend service..."
-cd "${ROOT_DIR}/backend"
-# 不把stdout/stderr重定向到项目日志文件，避免外部重定向绕开后端日志轮转。
-nohup python main.py >/dev/null 2>&1 &
-BACKEND_PID=$!
-echo "${BACKEND_PID}" > "${ROOT_DIR}/.smartam_backend.pid"
-echo "  Backend PID: ${BACKEND_PID}"
-
-echo "  Waiting for backend to start..."
-for _ in {1..20}; do
-    if curl --noproxy '*' -fsS "http://127.0.0.1:8000/" >/dev/null 2>&1; then
-        break
-    fi
-    sleep 1
-done
-
-if ! curl --noproxy '*' -fsS "http://127.0.0.1:8000/" >/dev/null 2>&1; then
-    echo "  [ERROR] Backend service did not start properly."
-    exit 1
-fi
-
-LOCAL_IP="$(hostname -I | awk '{print $1}')"
-if [[ -z "${LOCAL_IP}" ]]; then
-    LOCAL_IP="127.0.0.1"
-fi
-
-URL="http://${LOCAL_IP}:8000/slm/dashboard"
-echo
-echo "[6/6] Services startup complete!"
-echo "========================================="
-echo " Full Interface: ${URL}"
-echo " API Docs: http://${LOCAL_IP}:8000/docs"
-echo " Managed Logs: ${ROOT_DIR}/logs"
-echo " PID File: ${ROOT_DIR}/.smartam_backend.pid"
-echo "========================================="
-
-# 有桌面会话时尝试打开浏览器；纯SSH环境下直接使用上面的URL访问。
-if [[ -n "${DISPLAY:-}" ]] && command -v xdg-open >/dev/null 2>&1; then
-    xdg-open "${URL}" >/dev/null 2>&1 &
-fi
+# 与独立部署共用端口选择，保留占用端口的其他服务。
+exec python "${ROOT_DIR}/start_platform.py"
