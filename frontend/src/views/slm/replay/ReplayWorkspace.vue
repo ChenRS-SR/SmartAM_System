@@ -34,17 +34,15 @@
         <div v-if="frame?.access.alarms.length" class="alarm-list"><div v-for="a in frame.access.alarms" :key="a.time + a.text"><time>{{ a.time }}</time><span>{{ a.text }}</span></div></div>
         <p v-else>当前暂无报警记录。</p>
       </section>
-      <!-- B44 接回 maintenance 分支的维护面板及系统级详情，沿用现有组件。 -->
-      <template v-if="deviceId === 'slm-b44'">
+      <!-- 每台设备均提供维护面板，详情按当前设备与所属单位展示。 -->
         <MaintenanceDecisionPanel @system-click="openMaintenanceDetail" />
         <MaintenanceDetailDialog
           v-model="maintenanceVisible"
           :system-key="maintenanceSystem.key"
           :system-name="maintenanceSystem.name"
           :device-name="caseConfig.name"
-          organization-label="7103（铂力特）"
+          :organization-label="caseConfig.owner === '华科' ? '华科' : '7103（铂力特）'"
         />
-      </template>
     </template>
     <template v-else-if="tab === 'control'">
       <section class="replay-card">
@@ -54,7 +52,11 @@
         <p>溯源：{{ frame?.trace ? `第 ${frame.trace.layer} 层 · ${frame.trace.conclusion}` : '等待图像与参照层数据' }}</p>
         <p>处置建议：{{ frame?.trace?.actions.join('；') || '暂无' }}</p>
       </section>
-      <SlmControlPanel v-if="frame" historical :replay-context="frame" />
+      <RegionControlPanel v-if="currentSlice" :frame="frame" :slice="currentSlice" />
+      <template v-else-if="frame">
+        <section class="replay-card"><h2>当前切片区域</h2><p>当前设备任务尚未接入第 {{ frame.layer }} 层的切片区域图。</p></section>
+        <SlmControlPanel historical :replay-context="frame" />
+      </template>
     </template>
     <template v-else>
       <div v-if="frame" class="analysis-time">
@@ -75,6 +77,8 @@ import Access from '../forming/views/Access.vue'
 import Recognition from '../forming/views/Recognition.vue'
 import Trace from '../forming/views/Trace.vue'
 import SlmControlPanel from '../../../components/slm/SlmControlPanel.vue'
+import RegionControlPanel from '../../../components/slm/RegionControlPanel.vue'
+import { regionSlice } from '../../../components/slm/regionControl'
 import MaintenanceDecisionPanel from '../../../components/common/MaintenanceDecisionPanel.vue'
 import MaintenanceDetailDialog from '../../../components/common/MaintenanceDetailDialog.vue'
 import '../forming/forming.css'
@@ -93,6 +97,7 @@ const tabs = [{ key: 'status', label: '状态监测' }, { key: 'access', label: 
 const tab = computed(() => tabs.some(t => t.key === route.query.tab) ? route.query.tab : 'access')
 const views = { access: Access, recognition: Recognition, trace: Trace }
 const frame = computed(() => replay.snapshot)
+const currentSlice = computed(() => regionSlice(frame.value))
 const channelNames = { torque: '扭矩', env_a: '温度与压力', env_b: '氧含量与物位', env_c: '气体流量与风机' }
 const format = value => value == null ? '—' : Number.isInteger(value) ? value : Number(value.toFixed(3))
 provide('formingEmbedded', true)

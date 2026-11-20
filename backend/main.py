@@ -127,6 +127,8 @@ if os.path.exists(frontend_public_path):
     device_images_path = os.path.join(frontend_public_path, "device-images")
     if os.path.isdir(device_images_path):
         app.mount("/device-images", StaticFiles(directory=device_images_path), name="device-images")
+    # 与 Vite 保持同一路径，发布版直接加载随仓库封存的原图和引线标注图。
+    app.mount("/control-regions", StaticFiles(directory=os.path.join(frontend_public_path, "control-regions")), name="control-regions")
     print(f"[Main] Public目录服务已挂载: {frontend_public_path}")
 else:
     print(f"[Main] 警告: Public目录不存在: {frontend_public_path}")
@@ -470,6 +472,7 @@ async def frontend_history_fallback(full_path: str):
         "assets/",
         "public/",
         "state_picture/",
+        "control-regions/",
         "simulation_record/",
         "slm_device_data/",
         "sls_device_data/",

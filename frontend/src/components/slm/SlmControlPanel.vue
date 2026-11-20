@@ -82,16 +82,16 @@
             </div>
             <p class="form-source">来源：{{ paramsSource }}</p>
           </section>
-          <section class="parameter-form adjusted-form" aria-label="调控后参数（待执行）">
-            <h3>调控后参数（待执行）</h3>
+          <section class="parameter-form adjusted-form" aria-label="调控参数">
+            <h3>调控参数</h3>
             <p class="form-description">根据当前参数与能量偏移计算，仅改变选定的回调参数。</p>
             <div v-for="key in paramKeys" :key="key" class="parameter-field">
               <label :for="`adjusted-${key}`">{{ safeRanges[key]?.description || key }} <span>{{ safeRanges[key]?.unit || '' }}</span></label>
-              <el-input :id="`adjusted-${key}`" :model-value="executionParams ? executionParams[key].toFixed(paramDefs[key].precision) : ''"
+              <el-input :id="`adjusted-${key}`" :model-value="(executionParams || inputValues)[key]?.toFixed(paramDefs[key].precision) ?? ''"
                 readonly placeholder="待设置调控目标" :aria-label="`调控后${safeRanges[key]?.description || key}`" />
               <small :class="{ changed: executionParams && executionParams[key] !== inputValues[key] }">{{ adjustmentDelta(key) }}</small>
             </div>
-            <p class="form-source">随当前参数与调控目标更新；保存或发送后才形成调控记录。</p>
+            <p class="form-source">未设定回调目标时保持基准值，设定后自动更新调控参数。</p>
           </section>
         </div>
 
@@ -181,23 +181,16 @@
       </div>
       </template>
     </div>
-    <!-- 后续策略先保留独立框和按钮；尚未接入执行逻辑，不下发设备指令。 -->
-    <section v-for="strategy in additionalStrategies" :key="strategy.number" class="control-panel strategy-placeholder" :aria-label="`层间调控策略${strategy.number}`">
-      <div class="panel-header">
-        <span class="panel-title">层间调控策略{{ strategy.number }}</span>
-      </div>
-      <div class="strategy-body">
-        <el-button type="primary" @click="ElMessage.info(`${strategy.name}策略待配置`)">{{ strategy.name }}</el-button>
-      </div>
-    </section>
+    <LayerStrategyPlaceholders />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, h } from 'vue'
 import axios from 'axios'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import EnergyCorrectionControls from './EnergyCorrectionControls.vue'
+import LayerStrategyPlaceholders from './LayerStrategyPlaceholders.vue'
 import { energyDensity } from './energyCorrection'
 
 const props = defineProps({
@@ -205,11 +198,7 @@ const props = defineProps({
   replayContext: { type: Object, default: null },
 })
 const energyPlan = ref(null)
-const additionalStrategies = [
-  { number: 2, name: '重熔' },
-  { number: 3, name: '重铺粉' },
-  { number: 4, name: '统计调整' },
-]
+
 // 调控结果直接随当前参数和目标更新，无推荐采纳状态；无效结果不可下发。
 const executionParams = computed(() => energyPlan.value && !energyPlan.value.error ? energyPlan.value.parameters : null)
 const savedPlans = ref([])
@@ -604,7 +593,7 @@ function resetDefaults() {
 }
 
 function adjustmentDelta(key) {
-  if (!executionParams.value) return '设置有效的目标与层厚后生成'
+  if (!executionParams.value) return '当前按基准值显示'
   const delta = executionParams.value[key] - inputValues[key]
   if (delta === 0) return '保持当前值'
   return `较当前 ${delta > 0 ? '+' : ''}${delta.toFixed(paramDefs[key].precision)} ${safeRanges.value[key].unit}`
@@ -672,8 +661,6 @@ onUnmounted(stopPolling)
 .saved-plans article { padding: 12px 0; border-top: 1px solid var(--am-card-border); }
 .saved-plans b { font-size: 13px; }
 .control-panel { background: var(--am-card-bg); border: 1px solid var(--am-card-border); border-radius: 8px; overflow: hidden; }
-.strategy-placeholder { margin-top: 16px; border-radius: 4px; }
-.strategy-body { min-height: 150px; padding: 20px; display: flex; align-items: flex-end; justify-content: flex-end; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--am-card-bg-2); border-bottom: 1px solid var(--am-card-border-2); }
 .panel-title { font-size: 14px; font-weight: 600; color: var(--am-text); }
 .header-actions { display: flex; align-items: center; gap: 8px; }
