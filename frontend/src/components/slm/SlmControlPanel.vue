@@ -2,7 +2,7 @@
   <div class="slm-control">
     <div class="control-panel">
       <div class="panel-header">
-        <span class="panel-title">输入能量调控与工艺参数</span>
+        <span class="panel-title">层间调控策略1</span>
         <div class="header-actions">
           <el-tag v-if="partsOffline" type="warning" effect="dark" size="small">试验台离线</el-tag>
           <el-tag v-if="partsFallback" type="info" effect="dark" size="small">样例零件</el-tag>
@@ -181,13 +181,22 @@
       </div>
       </template>
     </div>
+    <!-- 后续策略先保留独立框和按钮；尚未接入执行逻辑，不下发设备指令。 -->
+    <section v-for="strategy in additionalStrategies" :key="strategy.number" class="control-panel strategy-placeholder" :aria-label="`层间调控策略${strategy.number}`">
+      <div class="panel-header">
+        <span class="panel-title">层间调控策略{{ strategy.number }}</span>
+      </div>
+      <div class="strategy-body">
+        <el-button type="primary" @click="ElMessage.info(`${strategy.name}策略待配置`)">{{ strategy.name }}</el-button>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, h } from 'vue'
 import axios from 'axios'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import EnergyCorrectionControls from './EnergyCorrectionControls.vue'
 import { energyDensity } from './energyCorrection'
 
@@ -196,6 +205,11 @@ const props = defineProps({
   replayContext: { type: Object, default: null },
 })
 const energyPlan = ref(null)
+const additionalStrategies = [
+  { number: 2, name: '重熔' },
+  { number: 3, name: '重铺粉' },
+  { number: 4, name: '统计调整' },
+]
 // 调控结果直接随当前参数和目标更新，无推荐采纳状态；无效结果不可下发。
 const executionParams = computed(() => energyPlan.value && !energyPlan.value.error ? energyPlan.value.parameters : null)
 const savedPlans = ref([])
@@ -658,6 +672,8 @@ onUnmounted(stopPolling)
 .saved-plans article { padding: 12px 0; border-top: 1px solid var(--am-card-border); }
 .saved-plans b { font-size: 13px; }
 .control-panel { background: var(--am-card-bg); border: 1px solid var(--am-card-border); border-radius: 8px; overflow: hidden; }
+.strategy-placeholder { margin-top: 16px; border-radius: 4px; }
+.strategy-body { min-height: 150px; padding: 20px; display: flex; align-items: flex-end; justify-content: flex-end; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--am-card-bg-2); border-bottom: 1px solid var(--am-card-border-2); }
 .panel-title { font-size: 14px; font-weight: 600; color: var(--am-text); }
 .header-actions { display: flex; align-items: center; gap: 8px; }
