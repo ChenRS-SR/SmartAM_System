@@ -62,6 +62,12 @@ class DeploymentTests(unittest.TestCase):
             {p.name for p in root.glob('*.bat')},
             {'deploy_windows.bat', 'start_platform.bat', 'start_smartam.bat', 'enable_autostart.bat'},
         )
-        self.assertIn('-StartOnly',(root/'start_platform.bat').read_text())
+        self.assertIn('-StartOnly',(root/'start_platform.bat').read_text(encoding='utf-8-sig'))
+        smartam = (root/'start_smartam.bat').read_text(encoding='utf-8-sig')
+        self.assertIn(':restart', smartam)
+        self.assertIn('goto restart', smartam)
+        self.assertIn('timeout /t 10 /nobreak', smartam)
+        self.assertIn('deploy_windows.ps1" -NoBrowser', smartam)
+        self.assertNotIn('deploy_windows.ps1" -StartOnly', smartam)
 
 if __name__ == '__main__': unittest.main()

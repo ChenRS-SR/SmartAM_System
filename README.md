@@ -10,12 +10,12 @@ Windows 目标电脑推荐双击根目录 **`deploy_windows.bat`**，自动检�
 
 - **`deploy_windows.bat`**：首次部署、更新后部署，检查并补齐环境，按变化构建页面并启动。
 - **`start_platform.bat`**：日常启动，复用 `.venv` 和已构建页面，不下载、不安装、不重新构建。缺少环境或页面源码变化时提示先运行部署脚本。
-- **`start_smartam.bat`**：无浏览器、无交互的日常启动入口，供 Windows 任务计划使用。
+- **`start_smartam.bat`**：无浏览器、无交互的自动部署和启动入口，供 Windows 任务计划使用；每次启动会检查代码和依赖，发现变化时自动完成部署。
 - **`enable_autostart.bat`**：注册并立即启动当前用户登录后的 SmartAM 自动启动任务。
 
 Windows 部署和日常启动固定使用 `8001` 端口。本项目已运行时会复用现有服务；若 `8001` 被其他进程占用，启动脚本会停止该端口的占用进程后再启动本项目。
 
-部署完成后，双击 `enable_autostart.bat` 可注册任务 `SmartAM_System_AutoStart`。任务在当前用户登录后延迟 30 秒启动，以便 Windows 网络和用户环境完成初始化；任务使用 `start_smartam.bat`，不会自动打开浏览器。取消自启动可运行：`schtasks /Delete /TN "SmartAM_System_AutoStart" /F`。
+部署完成后，双击 `enable_autostart.bat` 可注册任务 `SmartAM_System_AutoStart`。任务在当前用户登录后延迟 30 秒启动，以便 Windows 网络和用户环境完成初始化；任务使用 `start_smartam.bat`，不会自动打开浏览器。每次启动会自动检查并部署代码变更，未变化时复用现有环境和构建；服务异常退出时，入口会清理本项目残留进程并每 10 秒重试，直到任务被停止。取消自启动可运行：`schtasks /Delete /TN "SmartAM_System_AutoStart" /F`。
 
 ## Windows 一键部署（推荐）
 
