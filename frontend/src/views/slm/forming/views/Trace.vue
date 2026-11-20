@@ -64,7 +64,6 @@
             </div>
           </div>
           <div v-if="replaySession && d.mode !== 'dual'" class="replay-note">工艺侧分析暂无数据，当前显示设备侧分析。</div>
-          <div class="hint">各侧分别与对应上限比较；贡献超限为支撑证据，同侧异常概率达到 50% 时确认归因。证据不一致时保留待复核状态。总改变量为两区贡献之和。</div>
         </div>
 
         </div>
