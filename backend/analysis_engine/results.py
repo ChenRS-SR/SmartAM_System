@@ -1,5 +1,22 @@
 """统一结果格式，封存结果和真实推理向页面提供相同字段。"""
 import copy
+import math
+
+
+def trace_availability(frame, results, rows):
+    """等待状态来自当前分析包；预计等待时间按压缩后的回放时间轴计算。"""
+    if frame['trace'] is not None:
+        return {'state': 'ready', 'reason': None, 'resultLayer': frame['trace']['layer']}
+    current = results[str(frame['layer'])]['trace']
+    if current is None:
+        reason = '当前层缺少前序正常参照层，等待可用参照与后续完整层。'
+    else:
+        reason = f'等待第 {frame["layer"]} 层完整图像到达。'
+    upcoming = next((r for r in rows if r['end'] > frame['timestamp'] and results[str(r['layer'])]['trace'] is not None), None)
+    if upcoming is None:
+        return {'state': 'unavailable', 'reason': '当前案例没有可用的后续溯源结果。'}
+    return {'state': 'waiting', 'reason': reason, 'nextLayer': upcoming['layer'],
+            'remainingSeconds': max(0, math.ceil(upcoming['offset'] + upcoming['end'] - upcoming['start'] - frame['offset']))}
 
 
 def conclusion(row, factors):

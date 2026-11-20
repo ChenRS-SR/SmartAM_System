@@ -1,6 +1,6 @@
 <template>
   <div v-if="d" class="page analysis-page trace-page">
-    <div class="row-top">
+    <div class="row-top" :class="{ 'replay-metadata': replaySession }">
       <Region kind="input" title="监测数据" class="r-input">
         <div class="fields">
           <div class="field"><span class="k">设备</span>
@@ -26,11 +26,8 @@
               @change="setRefLayer($event.target.value)" /></div>
         </div>
       </Region>
-      <Region kind="op" title="操作" class="r-op">
-        <div v-if="replaySession" class="ops replay-ops">
-          <span>{{ replaySession.playing ? '采集中' : '采集暂停' }}</span><span>随采集数据更新</span>
-        </div>
-        <div v-else class="ops">
+      <Region v-if="!replaySession" kind="op" title="操作" class="r-op">
+        <div class="ops">
           <button class="btn primary" :disabled="busy || stepper.running.value" @click="run(d.layer)">单层溯源</button>
           <button class="btn" :disabled="replay" @click="toggleStep">{{ stepper.running.value ? '停止溯源' : '逐层溯源' }}</button>
         </div>
@@ -51,9 +48,7 @@
             <span><i class="sw sw-band"></i>边缘邻域</span>
             <span><i class="sw sw-powder"></i>粉床区</span>
           </div>
-        </div>
-
-        <div class="card c-contrib">
+          <div class="c-contrib">
           <div class="card-title">因果因子贡献
             <span class="lg"><i class="lim-sw"></i>上限水平 {{ upperText }}</span></div>
           <div class="grp" v-for="g in groups" :key="g.key">
@@ -72,9 +67,12 @@
           <div class="hint">各侧分别与对应上限比较；贡献超限为支撑证据，同侧异常概率达到 50% 时确认归因。证据不一致时保留待复核状态。总改变量为两区贡献之和。</div>
         </div>
 
+        </div>
+
         <div class="card c-res" :class="{ dense: d.mode === 'dual' }">
-          <div class="card-title">溯源结论</div>
-          <div class="verdict" :class="verdictCls">{{ d.conclusion }}</div>
+          <div class="card-title">故障诊断</div>
+          <EquipmentDiagnosis :trace="d" :recognition="replaySession?.snapshot?.recognition" />
+          <div class="diagnosis-details">
           <div class="prob" v-for="p in probs" :key="p.name">
             <div class="p-head"><span>{{ p.name }}</span><b>{{ fmtPct(p.v) }}</b></div>
             <div class="track"><div class="fill" :style="{ width: p.v * 100 + '%', background: p.color }"></div></div>
@@ -82,13 +80,11 @@
           <div v-if="d.mode === 'dual'" class="kv ev"><span class="k">支撑区域</span>
             <div class="ev-lines"><div>工艺：<b>{{ zoneText(d.factors.proc.support) }}</b></div><div>设备：<b>{{ zoneText(d.factors.dev.support) }}</b></div></div></div>
           <div v-else class="kv"><span class="k">支撑区域</span><b class="t-zone">{{ zoneText(d.support) }}</b></div>
-          <div class="act" :class="{ multi: d.actions.length > 1 }">
-            <div class="act-k">处置对象</div>
-            <div class="act-row">
-              <div v-for="a in d.actions" :key="a" class="act-box" :class="{ two: d.actions.length > 1, proc: a.includes('工艺') }">
-                <span class="act-t">{{ a }}</span><span v-if="d.actions.length === 1" class="act-st">待处理</span></div>
-              <div v-if="!d.actions.length" class="act-box none"><span class="act-t">无需处置</span></div>
-            </div>
+          <div class="act">
+            <div class="act-k">诊断结论</div>
+            <p class="diagnosis-conclusion">{{ diagnosis.conclusion }}</p>
+            <p v-if="d.actions.length" class="check-advice">检查建议：{{ d.actions.join('；') }}</p>
+          </div>
           </div>
         </div>
 
@@ -124,13 +120,34 @@
       </div>
     </Region>
   </div>
-  <div v-else class="loading">{{ replaySession ? '当前时刻尚无可用溯源结果，等待完整层图像与正常参照层。' : '正在溯源…' }}</div>
+  <div v-else-if="replaySession?.snapshot" class="page analysis-page trace-page">
+    <div class="pending-layout">
+      <section class="card pending-evidence">
+        <div class="card-title">铺粉后图像与因果因子</div>
+        <img v-if="pendingImage?.available" :src="pendingImage.url" alt="当前已到达的铺粉后图像" />
+        <p v-else>等待铺粉后图像到达。</p>
+        <p class="hint">因果因子贡献等待完整层与正常参照层，暂不显示分区及数值。</p>
+        <p v-if="replaySession.snapshot.recognition">缺陷识别：第 {{ replaySession.snapshot.recognition.layer }} 层 · {{ replaySession.snapshot.recognition.label }}</p>
+      </section>
+      <section class="card pending-diagnosis">
+        <div class="card-title">故障诊断</div>
+        <EquipmentDiagnosis :recognition="replaySession.snapshot.recognition" />
+        <div class="act-k">诊断结论</div>
+        <p role="status">{{ replaySession.snapshot.tracePending || '等待完整层图像与正常参照层。' }}</p>
+        <p v-if="availability?.nextLayer" class="waiting-time">下一可用诊断层：第 {{ availability.nextLayer }} 层 · 按当前倍速约 {{ waitText }}后到达<span v-if="!replaySession.playing">（当前已暂停）</span></p>
+        <router-link :to="{path:'/slm/settings',query:{device:replaySession.snapshot.access.device.id}}">前往系统设置调整播放位置</router-link>
+      </section>
+    </div>
+  </div>
+  <div v-else class="loading">正在读取诊断数据…</div>
 </template>
 
 <script setup>
 import { computed, inject, onMounted, ref, watch } from 'vue'
 import Region from '../components/Region.vue'
 import EChart from '../components/EChart.vue'
+import EquipmentDiagnosis from '../components/EquipmentDiagnosis.vue'
+import { traceDiagnosis } from '../traceDiagnosis'
 import { api, mediaUrl } from '../api.js'
 import { devicesFor, selectDevice, state } from '../state.js'
 import { fmtPct, useCall, useStepper } from '../composables.js'
@@ -145,6 +162,13 @@ const stepper = useStepper(1500)
 const d = ref(null)
 // 回放设备从工作区共享快照读取，跳转时清空旧结果，不再启动页面各自的计时器。
 if (replaySession) watch(() => replaySession.snapshot?.trace, value => { d.value = value || null }, { immediate: true })
+const diagnosis = computed(() => traceDiagnosis(d.value, replaySession?.snapshot?.recognition))
+const pendingImage = computed(() => replaySession?.snapshot?.access.images.before)
+const availability = computed(() => replaySession?.snapshot?.traceAvailability)
+const waitText = computed(() => {
+  const seconds = Math.ceil((availability.value?.remainingSeconds || 0) / replaySession.speed)
+  return `${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒`
+})
 const layers = ref([])
 const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : devicesFor('trace'))
 const replay = computed(() => !!d.value.replay)
@@ -206,7 +230,6 @@ const probs = computed(() => [
   ...(d.value.factors.proc ? [{ name: '工艺诱发异常概率', v: d.value.factors.proc.prob, color: 'var(--proc)' }] : []),
   { name: '设备诱发异常概率', v: d.value.factors.dev.prob, color: 'var(--dev)' },
 ])
-const verdictCls = computed(() => ({ '由二者共同诱发': 'v-both', '由工艺因素诱发': 'v-proc', '由设备因素诱发': 'v-dev', '已识别异常，归因待确认': 'v-pending', '贡献超限，待复核': 'v-pending' }[d.value.conclusion] || 'v-nor'))
 const tagCls = (r) => ({ '由二者共同诱发': 't-both', '由工艺因素诱发': 't-proc', '由设备因素诱发': 't-dev', '已识别异常，归因待确认': 't-pending', '贡献超限，待复核': 't-pending' }[r] || 't-nor')
 const tagTxt = (r) => ({ '由二者共同诱发': '二者共同', '由工艺因素诱发': '工艺因素', '由设备因素诱发': '设备因素', '已识别异常，归因待确认': '异常·待归因', '贡献超限，待复核': '超限·待复核' }[r] || r)
 const visibleFactors = computed(() => layerWindow(factorCurveRows(d.value), d.value.layer))
@@ -256,7 +279,7 @@ const curveOption = computed(() => {
 .fields.one { grid-template-columns: auto; gap: 8px; }
 .ref-inp { width: 80px; }
 .btn { padding: 6px 14px; }
-.vis-grid { height: 100%; display: grid; grid-template-columns: minmax(0, 300fr) minmax(0, 510fr) minmax(0, 330fr); grid-template-rows: minmax(0, 300fr) minmax(0, 260fr); gap: 12px; }
+.vis-grid { height: 100%; display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr); grid-template-rows: auto auto; gap: 12px; }
 .card { padding: 8px 12px; }
 .overlay { flex: 1; min-height: 0; width: 100%; }
 .part { fill: rgba(178, 49, 46, 0.30); stroke: #b2312e; stroke-width: 0.6; vector-effect: non-scaling-stroke; }
@@ -317,7 +340,8 @@ const curveOption = computed(() => {
 .c-res.dense .prob { margin-top: 3px; }
 .c-res.dense .kv.ev { margin-top: 5px; }
 .c-res.dense .ev-lines { line-height: 1.3; }
-.c-curve { grid-column: 1 / 3; }
+.c-curve { grid-column: 2; grid-row: 2; }
+.c-rec { grid-column: 1; grid-row: 2; }
 .curve-note { font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
 .tbl { font-size: 15px; }
 .tbl th { padding: 4px 3px; }
@@ -325,4 +349,26 @@ const curveOption = computed(() => {
 .tbl td.over { font-weight: 700; }
 .tbl td.muted { color: var(--text-2); }
 .tag { padding: 0 7px; font-size: 14px; }
+/* 诊断图为主区，图像及贡献共用一个紧凑证据块。 */
+.c-contrib { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 10px; }
+.c-contrib .card-title, .c-contrib .g-name { font-size: 14px; }
+.c-contrib .g-sum, .c-contrib .g-sum b, .c-contrib .lg { font-size: 12px; }
+.c-contrib .zrow { grid-template-columns: 46px minmax(24px, 1fr) 42px 48px; font-size: 13px; gap: 5px; }
+.c-contrib .z-tag { font-size: 11px; padding: 0 3px; }
+.c-contrib .z-track { height: 12px; }
+.c-contrib .z-lim { height: 20px; }
+.c-contrib .hint { margin-top: 10px; font-size: 12px; }
+.diagnosis-details { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+.diagnosis-details .act { grid-column: 1 / -1; }
+.diagnosis-conclusion { font-size: 19px; font-weight: 600; margin: 6px 0; }
+.check-advice, .waiting-time { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+.pending-layout { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr); gap: 12px; }
+.pending-evidence img { width: 100%; max-height: 270px; object-fit: contain; }
+.pending-evidence, .c-img { align-self: start; }
+.pending-evidence .hint { margin-top: 16px; }
+.pending-layout p { font-size: 14px; line-height: 1.7; }
+.pending-layout a { color: var(--dev); font-size: 13px; }
+@container forming (max-width: 760px) {
+  .pending-layout { grid-template-columns: minmax(0, 1fr); }
+}
 </style>

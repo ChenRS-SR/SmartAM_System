@@ -7,7 +7,7 @@ import logging
 import hashlib
 import threading
 import zipfile
-from .results import attach, format_result
+from .results import attach, format_result, trace_availability
 
 ROOT=Path(__file__).resolve().parents[1]/'analysis_packages'
 logger=logging.getLogger(__name__)
@@ -72,6 +72,9 @@ class AnalysisPackage:
                 effective=False
                 selected=self.archived
         attach(frame,selected,rows)
+        # 覆盖旧采集包中的“尚未接入”提示，封存与真实处理共用实际层到达计划。
+        frame['traceAvailability'] = trace_availability(frame, self.archived, rows)
+        frame['tracePending'] = frame['traceAvailability']['reason']
         # B17 原识别展示保留；溯源必须使用修正分区后重新计算的完整结果，不能仅换轮廓。
         if not effective and self.meta.get('preserveOriginalRecognition'):
             frame['recognition']=original_recognition

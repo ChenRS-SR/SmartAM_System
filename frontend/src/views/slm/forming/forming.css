@@ -230,6 +230,22 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
   .forming-root .analysis-page .z-tag { padding: 0 4px; }
 }
 
+/* 溯源页以设备诊断图为核心，覆盖通用分析页的三列/跨列布局。 */
+.forming-root .trace-page .row-top.replay-metadata { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.forming-root .trace-page .vis-grid { grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr); grid-template-rows: auto auto; }
+.forming-root .trace-page .c-img { grid-column: 1; grid-row: 1; }
+.forming-root .trace-page .c-res { grid-column: 2; grid-row: 1; }
+.forming-root .trace-page .c-rec { grid-column: 1; grid-row: 2; }
+.forming-root .trace-page .c-curve { grid-column: 2; grid-row: 2; }
+@container forming (max-width: 760px) {
+  .forming-root .trace-page .row-top.replay-metadata { grid-template-columns: minmax(0, 1fr); }
+  .forming-root .trace-page .vis-grid { grid-template-columns: minmax(0, 1fr); }
+  .forming-root .trace-page .c-res { grid-column: 1; grid-row: 1; }
+  .forming-root .trace-page .c-img { grid-column: 1; grid-row: 2; }
+  .forming-root .trace-page .c-curve { grid-column: 1; grid-row: 3; }
+  .forming-root .trace-page .c-rec { grid-column: 1; grid-row: 4; }
+}
+
 /* 历史回放沿用原页面布局，仅补充数据尚未到达和统一控制的状态说明。 */
 .forming-root .replay-ops { flex-wrap: wrap; color: var(--text-2); font-size: 14px; }
 .forming-root .image-pending { min-height: 220px; flex: 1; display: grid; place-items: center; background: var(--img-bg); color: var(--text-2); }
