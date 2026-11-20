@@ -352,7 +352,8 @@ const curveOption = computed(() => {
 .check-advice, .waiting-time { font-size: 13px; color: var(--text-2); line-height: 1.6; }
 .pending-layout { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr); gap: 12px; }
 .pending-evidence img { width: 100%; max-height: 270px; object-fit: contain; }
-.pending-evidence, .c-img { align-self: start; }
+/* 同行证据与诊断卡片随网格行等高，避免左侧内容较少时底边悬空。 */
+.pending-layout > .card, .vis-grid > .card { align-self: stretch; }
 .pending-evidence .hint { margin-top: 16px; }
 .pending-layout p { font-size: 14px; line-height: 1.7; }
 .pending-layout a { color: var(--dev); font-size: 13px; }
