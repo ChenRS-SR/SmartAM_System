@@ -37,7 +37,7 @@ SAFE_RANGES = {
         "max": 500,         # W
         "default": 200,     # W
         "unit": "W",
-        "description": "填充功率",
+        "description": "激光功率",
     },
     "fill_speed": {
         "min": 100,         # mm/s
@@ -45,6 +45,14 @@ SAFE_RANGES = {
         "default": 1000,    # mm/s
         "unit": "mm/s",
         "description": "填充速度",
+    },
+    # 层间等待用于调控方案展示，现有试验台 HTTP 协议尚无对应执行接口。
+    "layer_wait_time": {
+        "min": 0,
+        "max": 600,
+        "default": 2.0,
+        "unit": "s",
+        "description": "层间等待时间",
     },
     "scan_spacing": {
         "min": 0.02,        # mm

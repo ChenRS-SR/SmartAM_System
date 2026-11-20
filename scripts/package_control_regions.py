@@ -37,6 +37,7 @@ def extract_regions(pixels, color_ids):
     return sorted(items, key=lambda r: r['number'])
 
 
+
 def annotated_svg(source, width, height, regions):
     """原图内嵌，标签分列两侧并均匀排布；浏览器直接用 img 加载，无外部图片依赖。"""
     margin = 190
@@ -46,7 +47,7 @@ def annotated_svg(source, width, height, regions):
     top = (canvas_height - height) / 2
     encoded = base64.b64encode(source.read_bytes()).decode('ascii')
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width + 2 * margin} {canvas_height}" role="img">',
-             '<title>当前层切片区域与引线标注</title>', '<rect width="100%" height="100%" fill="white"/>',
+             '<title>切片区域与引线标注</title>', '<rect width="100%" height="100%" fill="white"/>',
              f'<image x="{margin}" y="{top}" width="{width}" height="{height}" href="data:image/png;base64,{encoded}"/>']
     for side, members in enumerate(sides):
         for i, region in enumerate(sorted(members, key=lambda r: r['label'][1])):
@@ -69,34 +70,72 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--case', required=True)
+    parser.add_argument('--representative', action='store_true', help='source 为本任务典型切片文件，供全案例展示')
+    parser.add_argument('--binary', action='store_true', help='黑底白色切片或零件掩膜分区')
     args = parser.parse_args()
     manifest = json.loads((ROOT / 'backend/analysis_packages' / args.case / 'manifest.json').read_text())
     destination = ROOT / 'frontend/public/control-regions' / args.case
     destination.mkdir(parents=True, exist_ok=True)
     output = {'caseId': args.case, 'deviceId': manifest['device']['id'], 'task': manifest['task'],
-              'mapping': 'bp_<layer>.png 与案例当前层号一一对应；原图颜色作为区域身份', 'layers': {}}
+              'mapping': '任务典型截面，固定展示，不表示逐层几何变化' if args.representative else 'bp_<layer>.png 与当前层号一一对应',
+              'representation': 'representative' if args.representative else 'per-layer',
+              'segmentation': 'section-spatial-groups-max4' if args.binary else 'original-colors-max4', 'layers': {}}
     color_ids = {}
+    packaged = {}
     for layer in [r['layer'] for r in manifest['layers']]:
-        source = args.source / f'bp_{layer}.png'
+        source = args.source if args.representative else args.source / f'bp_{layer}.png'
+        if source in packaged:
+            output['layers'][str(layer)] = {**packaged[source], 'layer': layer}
+            continue
         # 缺层直接报错，不拿邻层切片代替当前层。
         with Image.open(source) as image:
             pixels = np.array(image.convert('RGB'))
         height, width = pixels.shape[:2]
-        items = extract_regions(pixels, color_ids)
-        if not items:
-            raise ValueError(f'第 {layer} 层没有非背景颜色区域')
         shutil.copyfile(source, destination / source.name)
-        illustration = destination / f'bp_{layer}_regions.svg'
-        illustration.write_text(annotated_svg(source, width, height, items), encoding='utf-8')
+        display = source
+        # 彩色示意最多四区：少量原色保持原分区；碎片较多时按实际截面的空间位置归并。
+        if args.binary:
+            foreground = (pixels.mean(axis=2) > 127).astype(np.uint8)
+            count, labels, stats, _ = cv2.connectedComponentsWithStats(foreground, connectivity=8)
+            usable = [i for i in range(1, count) if stats[i, cv2.CC_STAT_AREA] >= 16]
+            foreground = np.isin(labels, usable)
+            needs_group = len(usable) > 1
+        else:
+            foreground = np.any(pixels != 255, axis=2)
+            needs_group = len(np.unique(pixels[foreground], axis=0)) > 4
+        if not foreground.any():
+            raise ValueError(f'第 {layer} 层没有零件截面')
+        if args.binary or needs_group:
+            yy, xx = np.where(foreground)
+            center_x, center_y = (xx.min()+xx.max())/2, (yy.min()+yy.max())/2
+            groups = ((xx > center_x).astype(int) + 2*(yy > center_y)) if needs_group else np.zeros(len(xx), dtype=int)
+            palette = np.array([[255,176,218],[65,80,180],[75,167,149],[219,173,80]],dtype=np.uint8)
+            colored = np.full_like(pixels,255)
+            colored[yy,xx] = palette[groups]
+            pixels = colored
+            color_ids.update({'#' + ''.join(f'{int(v):02x}' for v in color): i+1 for i,color in enumerate(palette)})
+            display = destination / (source.stem + '_display.png')
+            Image.fromarray(colored).save(display)
+        items = extract_regions(pixels, color_ids)
+        if len(items) > 4:
+            raise ValueError('展示区域不得超过四个')
+        illustration = destination / (source.stem + '_regions.svg')
+        illustration.write_text(annotated_svg(display, width, height, items), encoding='utf-8')
         output['layers'][str(layer)] = {'layer': layer, 'width': width, 'height': height,
             'image': f'/control-regions/{args.case}/{source.name}',
             'annotatedImage': f'/control-regions/{args.case}/{illustration.name}', 'regions': items,
             'sourceFile': source.name, 'sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
             'annotatedSha256': hashlib.sha256(illustration.read_bytes()).hexdigest()}
+        packaged[source] = output['layers'][str(layer)]
+    layer_count = len(output['layers'])
+    if args.representative:
+        output['availableLayers'] = [int(layer) for layer in output['layers']]
+        output['representative'] = next(iter(output['layers'].values()))
+        output['layers'] = {}
     data = ROOT / 'frontend/src/assets/control-regions'
     data.mkdir(parents=True, exist_ok=True)
     (data / f'{args.case}.json').write_text(json.dumps(output, ensure_ascii=False, separators=(',', ':')) + '\n')
-    print(f'封存 {len(output["layers"])} 层原图与引线标注图；本案例共 {len(color_ids)} 个颜色区域身份')
+    print(f'封存 {len(packaged)} 张截面图，覆盖 {layer_count} 个案例层')
 
 
 if __name__ == '__main__':

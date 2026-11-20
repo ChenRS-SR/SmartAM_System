@@ -74,11 +74,6 @@
       >
         <div class="thumbnail-wrap">
           <img :src="device.thumbnail" :alt="device.name" class="device-thumbnail" />
-          <div v-if="device.dataTag" class="data-tag">{{ device.dataTag }}</div>
-          <div class="status-chip" :class="statusClass(device)">
-            <span class="status-dot"></span>
-            {{ statusText(device) }}
-          </div>
         </div>
         <div class="device-content">
           <div class="device-title-row">
@@ -96,70 +91,9 @@
               </el-button>
             </el-tooltip>
           </div>
-          <div class="device-meta">
-            <span>{{ device.location }}</span>
-            <span>{{ device.serial }}</span>
-          </div>
-          <div class="parameter-preview">
-            <div
-              v-for="param in previewParameters(device)"
-              :key="param.id || param.name"
-              class="preview-item"
-              :class="{ 'status-preview-item': param.id === 'record_status' || param.name === '状态参数' }"
-              :title="param.id === 'record_status' || param.name === '状态参数' ? param.value : ''"
-            >
-              <span>{{ param.name }}</span>
-              <strong>{{ param.value }}</strong>
-              <em>{{ param.unit }}</em>
-            </div>
-          </div>
-          <div class="device-footer">
-            <el-button
-              v-if="device.replayCase || formingDeviceIds.has(device.id)"
-              class="forming-entry"
-              type="primary"
-              size="small"
-              @click.stop="openForming(device.id)"
-            >成形监测</el-button>
-            <el-tag v-if="device.databaseTag" type="warning" size="small">
-              {{ device.databaseTag }}
-            </el-tag>
-            <el-tag
-              v-if="isMockMode && getDeviceMockCase(device)"
-              :type="device.mockCaseAvailable?.ready ? 'success' : 'info'"
-              size="small"
-            >
-              {{ getDeviceMockCase(device).label }}
-            </el-tag>
-            <el-tag
-              v-else-if="isMockMode && isStored7103MockDevice(device)"
-              type="success"
-              size="small"
-            >
-              7103存储数据
-            </el-tag>
-            <el-tag :type="device.online ? 'success' : 'info'" size="small">
-              {{ device.online ? '在线' : '离线' }}
-            </el-tag>
-            <el-tag :type="healthTagType(device)" size="small">
-              {{ device.statusText }}
-            </el-tag>
-            <el-tag v-if="device.healthData?.status_code !== undefined" type="info" size="small">
-              状态码 {{ device.healthData.status_code }}
-            </el-tag>
-          </div>
-
-          <!-- 6个关键部件状态 -->
-          <div class="component-status-grid">
-            <div
-              v-for="component in deviceComponentStatus(device)"
-              :key="component.key"
-              class="component-status-item"
-              :class="`status-${component.status}`"
-            >
-              <span class="component-name">{{ component.name }}</span>
-              <span class="component-state">{{ component.stateText }}</span>
-            </div>
+          <div class="device-status-row">
+            <span>设备状态</span>
+            <strong :class="statusClass(device)"><i></i>{{ statusText(device) }}</strong>
           </div>
         </div>
       </article>
@@ -455,10 +389,12 @@ const displayDevices = computed(() => deviceStore.devices.map(device => {
   if (device.replayCase) {
     const replay = caseSessions.get(device.replayCase)
     const frame = replay.snapshot
-    // 仅统一展示口径，保留原设备来源；采集状态跟随共享时间轴，不生成健康评级。
+    // 状态卡沿用当前快照的异常判定；不展示内部数据来源和冗长告警。
+    const probability = frame?.recognition?.prob
+    const abnormal = probability && Math.max(probability.proc, probability.dev) >= .5
     const acquisitionStatus = replay.error ? '数据异常' : !frame ? '等待数据' : replay.playing ? '采集中' : '采集暂停'
     return { ...device, name: device.name, dataTag: '', databaseTag: '', online: !!frame && !replay.error,
-      health: 'unknown', healthData: { status: 'unknown' }, statusText: acquisitionStatus,
+      health: abnormal ? 'fault' : 'healthy', healthData: { status: abnormal ? 'fault' : 'healthy' }, statusText: acquisitionStatus,
       parameters: [
         { id: 'current_layer', name: '当前层', value: frame?.layer ?? '—', unit: '层' },
         { id: 'data_time', name: '采集时间', value: frame?.time ?? '等待数据', unit: '' },
@@ -469,9 +405,11 @@ const displayDevices = computed(() => deviceStore.devices.map(device => {
   return isMockMode.value ? toMockDevice(device) : toRealtimeDevice(device, realtimeSamples.value[device.id])
 }))
 
+// 故障设备优先，随后完整案例；原始故障清单排序稳定，不随模拟波动跳动。
+const orderedDevices = computed(() => [...displayDevices.value].sort((a, b) => Number(deviceStore.getDeviceById(b.id)?.health === 'fault') - Number(deviceStore.getDeviceById(a.id)?.health === 'fault') || Number(Boolean(b.replayCase)) - Number(Boolean(a.replayCase))))
 const filteredDevices = computed(() => {
-  if (selectedOrg.value === 'all') return displayDevices.value
-  return displayDevices.value.filter((device) => {
+  if (selectedOrg.value === 'all') return orderedDevices.value
+  return orderedDevices.value.filter((device) => {
     const owner = (device.owner || '').trim()
     const dataTag = (device.dataTag || '').trim()
     const databaseTag = (device.databaseTag || '').trim()
@@ -501,49 +439,6 @@ const fleetStats = computed(() => ({
   fault: filteredDevices.value.filter((device) => device.online && device.health === 'fault').length
 }))
 
-// 6个关键部件状态（与设备状态监测界面的视情维护模块对应）
-const deviceComponentStatus = (device) => {
-  const statusCode = Number(device?.healthData?.status_code ?? -1)
-  const components = [
-    { key: 'filter', name: '滤芯' },
-    { key: 'argon', name: '氩气循环' },
-    { key: 'laser', name: '激光器' },
-    { key: 'powder', name: '刮刀' },
-    { key: 'feeder', name: '落粉轴' },
-    { key: 'fan', name: '风机' }
-  ]
-
-  // 根据设备整体状态码生成部件状态，与 MaintenanceDecisionPanel 的风险等级语义一致
-  const getStatus = (key) => {
-    if (device.replayCase || !device?.online || statusCode === -1) return 'unknown'
-    if (statusCode === 0) return 'normal'
-    if (statusCode === 1) return key === 'powder' ? 'danger' : 'normal'
-    if (statusCode === 2) return key === 'laser' ? 'danger' : 'normal'
-    if (statusCode === 3) {
-      if (key === 'argon' || key === 'fan') return 'danger'
-      if (key === 'filter') return 'warning'
-      return 'normal'
-    }
-    if (statusCode === 4) {
-      if (key === 'argon' || key === 'laser' || key === 'powder') return 'danger'
-      if (key === 'filter' || key === 'fan' || key === 'feeder') return 'warning'
-      return 'normal'
-    }
-    return 'normal'
-  }
-
-  return components.map((component) => {
-    const status = getStatus(component.key)
-    const stateMap = {
-      unknown: device.online ? '暂无数据' : '离线',
-      normal: '正常',
-      warning: '预警',
-      danger: '超阈值'
-    }
-    return { ...component, status, stateText: stateMap[status] }
-  })
-}
-
 // 装备群历史统计（与设备状态监测界面的视情维护模块对应）
 const maintenanceStats = computed(() => ({
   totalFaults: 40,
@@ -551,20 +446,14 @@ const maintenanceStats = computed(() => ({
   avoidanceRate: 70.0
 }))
 
-const previewParameters = (device) => Array.isArray(device.parameters) ? device.parameters.slice(0, 3) : []
-
 const statusClass = (device) => {
   if (!device.online) return 'offline'
   return device.health === 'fault' ? 'fault' : 'healthy'
 }
 
 const statusText = (device) => {
-  return device.online ? '在线' : '离线'
-}
-
-const healthTagType = (device) => {
-  if (!device.online || device.health === 'unknown') return 'info'
-  return device.health === 'fault' ? 'danger' : 'success'
+  if (!device.online) return '离线'
+  return device.health === 'fault' ? '异常' : '正常'
 }
 
 const resetForm = (device = null) => {
@@ -591,22 +480,6 @@ const openCreateDialog = () => {
 const openEditDialog = (device) => {
   resetForm(device)
   dialogVisible.value = true
-}
-
-// 已接入成形监测（数据接入、缺陷识别、异常溯源）的设备，卡片上显示跳转按钮
-const formingDeviceIds = ref(new Set())
-const loadFormingDevices = async () => {
-  try {
-    const r = await fetch('/api/slm/forming/devices')
-    if (!r.ok) return
-    formingDeviceIds.value = new Set((await r.json()).flatMap((d) => d.aliases || []))
-  } catch {
-    formingDeviceIds.value = new Set()
-  }
-}
-const openForming = (deviceId) => {
-  localStorage.setItem('slmSelectedDeviceId', deviceId)
-  router.push({ path: `/slm/device/${deviceId}`, query: { tab: 'access', org: selectedOrg.value } })
 }
 
 const openDeviceDashboard = (deviceId) => {
@@ -771,7 +644,6 @@ watch(() => deviceStore.devices.map((device) => device.id).join(','), () => {
 })
 
 onMounted(async () => {
-  loadFormingDevices()
   try {
     await deviceStore.loadDevicesFromBackend()
     await Promise.all(deviceStore.devices.filter(device => device.replayCase).map(device => caseSessions.get(device.replayCase).open({ autoplay: true })))
@@ -830,79 +702,12 @@ onUnmounted(() => {
   color: var(--am-text);
 }
 
-.forming-entry {
-  margin-right: 2px;
-}
-
-/* 6个关键部件状态 */
-.component-status-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--am-card-border-2);
-}
-
-.component-status-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 8px 4px;
-  border-radius: 6px;
-  background: var(--am-card-bg-2);
-  border: 1px solid var(--am-card-border-2);
-  text-align: center;
-  transition: all 0.2s ease;
-}
-
-.component-status-item .component-name {
-  font-size: 11px;
-  color: var(--am-text-2);
-  white-space: nowrap;
-}
-
-.component-status-item .component-state {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.component-status-item.status-normal {
-  border-color: color-mix(in srgb, var(--am-ok) 35%, transparent);
-}
-
-.component-status-item.status-normal .component-state {
-  color: var(--am-ok);
-}
-
-.component-status-item.status-warning {
-  border-color: color-mix(in srgb, var(--am-warn) 45%, transparent);
-  background: color-mix(in srgb, var(--am-warn) 11%, transparent);
-}
-
-.component-status-item.status-warning .component-state {
-  color: var(--am-warn);
-}
-
-.component-status-item.status-danger {
-  border-color: color-mix(in srgb, var(--am-danger) 50%, transparent);
-  background: color-mix(in srgb, var(--am-danger) 11%, transparent);
-  animation: danger-pulse 2s infinite;
-}
-
-.component-status-item.status-danger .component-state {
-  color: var(--am-danger);
-}
-
-.component-status-item.status-unknown {
-  opacity: 0.6;
-}
-
-.component-status-item.status-unknown .component-state {
-  color: var(--am-text-3);
-}
+.device-status-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--am-card-border); padding-top: 14px; margin-top: 14px; font-size: 14px; color: var(--am-text-2); }
+.device-status-row strong { display: flex; align-items: center; gap: 8px; }
+.device-status-row i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.device-status-row .healthy { color: var(--am-ok); }
+.device-status-row .fault { color: var(--am-danger); }
+.device-status-row .offline { color: var(--am-text-3); }
 
 /* 装备群历史统计 */
 .maintenance-statistics-panel {
@@ -1028,9 +833,6 @@ onUnmounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .component-status-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 
   .org-select {
     width: 140px;

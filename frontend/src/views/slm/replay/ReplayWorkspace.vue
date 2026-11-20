@@ -47,14 +47,6 @@
       />
     </template>
     <template v-else-if="tab === 'control'">
-      <section class="replay-card control-context" aria-label="调控分析依据">
-        <h2>调控分析依据</h2>
-        <dl>
-          <div><dt>缺陷识别</dt><dd>{{ frame?.recognition ? `第 ${frame.recognition.layer} 层 · ${frame.recognition.label}` : '等待本层数据' }}</dd></div>
-          <div><dt>故障诊断</dt><dd>{{ frame?.trace ? `第 ${frame.trace.layer} 层 · ${frame.trace.conclusion}` : '等待图像与参照层' }}</dd></div>
-          <div><dt>处置建议</dt><dd>{{ frame?.trace?.actions.join('；') || '暂无' }}</dd></div>
-        </dl>
-      </section>
       <RegionControlPanel v-if="currentSlice" :frame="frame" :slice="currentSlice" />
       <template v-else-if="frame">
         <section class="replay-card"><h2>当前切片区域</h2><p>当前设备任务尚未接入第 {{ frame.layer }} 层的切片区域图。</p></section>

@@ -19,7 +19,17 @@ def case(case_id):
 
 @router.get('/cases/{case_id}/manifest')
 def manifest(case_id: str):
-    manifest = dict(case(case_id).manifest)
+    current = case(case_id)
+    manifest = dict(current.manifest)
+    results = package(case_id).archived
+    # 从前几个有效层中最早已有诊断的层结束时开始；不改原始时序或提前泄露结果。
+    start = next((row for row in current.layers[1:] if results[str(row['layer'])]['trace'] is not None), None)
+    offset = start['offset'] + start['end'] - start['start'] if start else 0
+    if start:
+        # 层结束可能正好切到下一层，同时跳过新层图像尚未到达的空窗。
+        active = current.position(offset)[-1]
+        offset = max(offset, active['offset'] + active['recognitionAt'] - active['start'])
+    manifest['defaultOffset'] = offset
     manifest['capabilities'] = {'access': True, 'recognition': True, 'trace': True}
     return manifest
 
