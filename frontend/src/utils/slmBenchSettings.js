@@ -6,7 +6,8 @@ export const defaultSlmBenchSettings = {
   vibration_com: 'COM3',
   vibration_threshold: 0.05,
   save_directory: '',
-  use_mock: false
+  // 演示部署默认使用模拟采集；用户仍可在系统设置中主动切换。
+  use_mock: true
 }
 
 export function readSlmBenchSettings() {

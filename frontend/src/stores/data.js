@@ -1,18 +1,8 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onScopeDispose } from 'vue'
 import { defineStore } from 'pinia'
-import { ElNotification } from 'element-plus'
 import { generateMockWebSocketData } from '../utils/mockData'
 import { FORCE_MOCK } from '../utils/api'
 import { resolveBackendWebSocketUrl } from '../utils/backendBase'
-
-// 通知辅助函数
-const notify = (options) => {
-  ElNotification({
-    position: 'top-right',
-    duration: 4000,
-    ...options
-  })
-}
 
 export const useDataStore = defineStore('data', () => {
   // ============ State ============
@@ -99,8 +89,10 @@ export const useDataStore = defineStore('data', () => {
   
   // 模拟数据定时器
   let mockDataInterval = null
+  let stopped = false
   
   function startMockDataStream() {
+    if (mockDataInterval) return
     console.log('[DataStore] 启动模拟数据流')
     connected.value = true
     connecting.value = false
@@ -112,13 +104,6 @@ export const useDataStore = defineStore('data', () => {
     mockDataInterval = setInterval(() => {
       handleWebSocketData(generateMockWebSocketData())
     }, 1000)
-    
-    notify({
-      type: 'info',
-      title: '模拟模式',
-      message: '使用模拟数据运行（无后端）',
-      duration: 3000
-    })
   }
   
   function stopMockDataStream() {
@@ -131,6 +116,7 @@ export const useDataStore = defineStore('data', () => {
   function connectWebSocket() {
     if (ws.value || connecting.value || mockDataInterval) return
     
+    stopped = false
     connecting.value = true
     
     // 模拟模式：直接使用模拟数据
@@ -147,12 +133,6 @@ export const useDataStore = defineStore('data', () => {
       connected.value = true
       connecting.value = false
       console.log('WebSocket 连接成功')
-      notify({
-        type: 'success',
-        title: '系统已连接',
-        message: '实时数据流已建立',
-        duration: 2000
-      })
     }
     
     ws.value.onmessage = (event) => {
@@ -165,59 +145,35 @@ export const useDataStore = defineStore('data', () => {
     }
     
     ws.value.onclose = () => {
-      const wasConnected = connected.value
-      connected.value = false
-      connecting.value = false
       ws.value = null
-      if (wasConnected) {
-        notify({
-          type: 'warning',
-          title: '连接已断开',
-          message: '正在尝试重新连接...',
-          duration: 3000
-        })
-      }
-      // 3秒后重连
-      setTimeout(connectWebSocket, 3000)
+      connecting.value = false
+      // 演示部署保持数据流连续：连接断开后由唯一的模拟定时器接续。
+      // 仅替换基础 WebSocket 数据，不覆盖各设备封存的识别、溯源案例。
+      if (!stopped) startMockDataStream()
     }
-    
-    ws.value.onerror = (error) => {
-      // 连接失败且不在模拟模式，切换到模拟
-      if (!FORCE_MOCK && !connected.value) {
-        console.warn('[DataStore] WebSocket 连接失败，切换到模拟模式', error)
-        ws.value = null
-        connecting.value = false
-        startMockDataStream()
-      } else {
-        console.error('WebSocket 错误:', error)
-        ws.value?.close()
-      }
+
+    ws.value.onerror = () => {
+      // close 事件统一完成模拟接管，避免 error/close 各启动一条定时器。
+      ws.value?.close()
     }
   }
   
   function disconnectWebSocket() {
-    ws.value?.close()
+    stopped = true
+    const socket = ws.value
+    // 主动断开解绑旧实例，防止晚到的 close 事件再次启动模拟。
+    if (socket) {
+      socket.onopen = socket.onmessage = socket.onclose = socket.onerror = null
+      socket.close()
+    }
     ws.value = null
     stopMockDataStream()
     connected.value = false
+    connecting.value = false
   }
   
   function handleWebSocketData(data) {
-    // 调试输出（每3秒一次）
-    const now = Date.now()
-    if (!window._lastWsLog || now - window._lastWsLog > 3000) {
-      console.log('[WebSocket] Received data:', {
-        hasPrinter: !!data.printer,
-        hasAcquisition: !!data.acquisition,
-        acqState: data.acquisition?.state,
-        acqZ: data.acquisition?.current_z,
-        acqParams: data.acquisition?.current_params,
-        printerZ: data.printer?.position?.z,
-        sensorDataAcq: sensorData.value.acquisition?.state
-      })
-      window._lastWsLog = now
-    }
-    
+
     // 更新传感器数据 - 使用 Object.assign 确保响应式更新
     if (data.printer) {
       sensorData.value.printer = { ...sensorData.value.printer, ...data.printer }
@@ -335,6 +291,8 @@ export const useDataStore = defineStore('data', () => {
     alerts.value = []
   }
   
+  onScopeDispose(disconnectWebSocket)
+
   return {
     // State
     connected,

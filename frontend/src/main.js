@@ -4,6 +4,8 @@ import router from './router'
 import App from './App.vue'
 import i18n from './i18n'
 
+import 'element-plus/dist/index.css'
+
 // 全局样式
 import './styles/variables.css'
 import './styles/light-theme.css'
@@ -11,7 +13,6 @@ import './styles/am-theme.css'
 
 // Element Plus
 import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 // ECharts
@@ -37,11 +38,8 @@ app.use(router)
 app.use(ElementPlus)
 app.use(i18n)
 
-// 初始化主题（延迟到应用挂载后）
+// 挂载前应用主题，避免首次绘制出现颜色跳变。
 import { useThemeStore } from './stores/theme'
 
+useThemeStore().applyTheme()
 app.mount('#app')
-
-// 在挂载后初始化主题
-const themeStore = useThemeStore()
-themeStore.applyTheme()

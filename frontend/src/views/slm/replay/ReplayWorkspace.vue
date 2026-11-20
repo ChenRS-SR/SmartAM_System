@@ -2,7 +2,7 @@
   <div class="replay-workspace">
     <header class="workspace-heading">
       <div><h1>{{ caseConfig.name }}</h1><p>{{ replay.manifest?.task.name }}</p></div>
-      <router-link to="/slm/dashboard">返回设备群</router-link>
+      <router-link to="/slm/dashboard">返回设备总览</router-link>
     </header>
     <div v-if="frame" class="replay-summary">
       <span>{{ replay.playing ? '采集中' : '采集暂停' }}</span>
@@ -12,7 +12,7 @@
     <div v-if="replay.error" class="replay-error" role="alert">{{ replay.error }} <router-link :to="{ path: '/slm/settings', query: { device: deviceId } }">前往系统设置重试</router-link></div>
     <div v-if="!replay.manifest && !replay.error" class="waiting">正在接入设备数据…</div>
     <nav class="workspace-tabs" aria-label="设备功能页面">
-      <router-link v-for="item in tabs" :key="item.key" :to="{ path: route.path, query: { tab: item.key } }" :class="{ active: tab === item.key }">{{ item.label }}</router-link>
+      <router-link v-for="item in tabs" :key="item.key" :to="{ path: route.path, query: { tab: item.key } }" :class="{ active: tab === item.key }" :aria-current="tab === item.key ? 'page' : undefined">{{ item.label }}</router-link>
     </nav>
     <template v-if="tab === 'status'">
       <section class="replay-card">
@@ -23,34 +23,37 @@
         <p class="data-note">按时间取最近已到达的原始采样，零值保留原值。</p>
         <div v-if="frame" class="sample-times"><span v-for="(sample, key) in frame.samples" :key="key">{{ channelNames[key] }}：{{ sample ? `${sample.time}（${sample.age} 秒前更新）` : '暂无采样' }}</span></div>
       </section>
-      <section class="replay-card">
-        <h2>异常溯源分析</h2>
-        <template v-if="frame?.trace"><p>第 {{ frame.trace.layer }} 层：{{ frame.trace.conclusion }}</p><p>支撑区域：{{ frame.trace.support.join('、') || '无' }}；{{ frame.trace.actions.join('；') || '暂无处置建议' }}</p></template>
-        <p v-else>当前时刻尚无可用溯源结果。</p>
-        <p class="data-note">装备健康评级暂无数据。</p>
-      </section>
-      <section class="replay-card">
-        <h2>报警记录</h2>
-        <div v-if="frame?.access.alarms.length" class="alarm-list"><div v-for="a in frame.access.alarms" :key="a.time + a.text"><time>{{ a.time }}</time><span>{{ a.text }}</span></div></div>
-        <p v-else>当前暂无报警记录。</p>
-      </section>
+      <div class="status-details">
+        <section class="replay-card">
+          <h2>异常溯源分析</h2>
+          <template v-if="frame?.trace"><p>第 {{ frame.trace.layer }} 层：{{ frame.trace.conclusion }}</p><p>支撑区域：{{ frame.trace.support.join('、') || '无' }}；{{ frame.trace.actions.join('；') || '暂无处置建议' }}</p></template>
+          <p v-else>当前时刻尚无可用溯源结果。</p>
+          <p class="data-note">装备健康评级暂无数据。</p>
+        </section>
+        <section class="replay-card">
+          <h2>报警记录</h2>
+          <div v-if="frame?.access.alarms.length" class="alarm-list"><div v-for="a in frame.access.alarms" :key="a.time + a.text"><time>{{ a.time }}</time><span>{{ a.text }}</span></div></div>
+          <p v-else>当前暂无报警记录。</p>
+        </section>
+      </div>
       <!-- 每台设备均提供维护面板，详情按当前设备与所属单位展示。 -->
-        <MaintenanceDecisionPanel @system-click="openMaintenanceDetail" />
-        <MaintenanceDetailDialog
-          v-model="maintenanceVisible"
-          :system-key="maintenanceSystem.key"
-          :system-name="maintenanceSystem.name"
-          :device-name="caseConfig.name"
-          :organization-label="caseConfig.owner === '华科' ? '华科' : '7103（铂力特）'"
-        />
+      <MaintenanceDecisionPanel @system-click="openMaintenanceDetail" />
+      <MaintenanceDetailDialog
+        v-model="maintenanceVisible"
+        :system-key="maintenanceSystem.key"
+        :system-name="maintenanceSystem.name"
+        :device-name="caseConfig.name"
+        :organization-label="caseConfig.owner === '华科' ? '华科' : '7103（铂力特）'"
+      />
     </template>
     <template v-else-if="tab === 'control'">
-      <section class="replay-card">
-        <h2>调控分析依据 <small>当前分析结果</small></h2>
-        <p>采集时间：{{ frame?.time || '等待数据…' }}；当前层：{{ frame?.layer ?? '—' }}</p>
-        <p>识别：{{ frame?.recognition ? `第 ${frame.recognition.layer} 层 · ${frame.recognition.label}` : '等待数据到齐' }}</p>
-        <p>溯源：{{ frame?.trace ? `第 ${frame.trace.layer} 层 · ${frame.trace.conclusion}` : '等待图像与参照层数据' }}</p>
-        <p>处置建议：{{ frame?.trace?.actions.join('；') || '暂无' }}</p>
+      <section class="replay-card control-context" aria-label="调控分析依据">
+        <h2>调控分析依据</h2>
+        <dl>
+          <div><dt>缺陷识别</dt><dd>{{ frame?.recognition ? `第 ${frame.recognition.layer} 层 · ${frame.recognition.label}` : '等待本层数据' }}</dd></div>
+          <div><dt>故障诊断</dt><dd>{{ frame?.trace ? `第 ${frame.trace.layer} 层 · ${frame.trace.conclusion}` : '等待图像与参照层' }}</dd></div>
+          <div><dt>处置建议</dt><dd>{{ frame?.trace?.actions.join('；') || '暂无' }}</dd></div>
+        </dl>
       </section>
       <RegionControlPanel v-if="currentSlice" :frame="frame" :slice="currentSlice" />
       <template v-else-if="frame">
@@ -69,6 +72,7 @@
   </div>
 </template>
 <script setup>
+import { slmTabs, slmTab } from '../../../utils/slmNavigation'
 import { computed, onMounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useReplayStore, replayCaseForDevice } from '../../../stores/replay'
@@ -93,8 +97,8 @@ function openMaintenanceDetail(system) {
 }
 const devices = useSlmDeviceStore()
 const route = useRoute()
-const tabs = [{ key: 'status', label: '状态监测' }, { key: 'access', label: '数据接入' }, { key: 'recognition', label: '缺陷识别' }, { key: 'trace', label: '异常溯源' }, { key: 'control', label: '闭环调控' }]
-const tab = computed(() => tabs.some(t => t.key === route.query.tab) ? route.query.tab : 'access')
+const tabs = slmTabs
+const tab = computed(() => slmTab(route.query.tab).key)
 const views = { access: Access, recognition: Recognition, trace: Trace }
 const frame = computed(() => replay.snapshot)
 const currentSlice = computed(() => regionSlice(frame.value))
@@ -111,19 +115,12 @@ onMounted(() => {
 <style scoped>
 .replay-workspace { display: flex; flex-direction: column; gap: 16px; max-width: 1600px; margin: auto; min-width: 0; }
 .workspace-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-h1 { font-size: 24px; margin: 0; } h2 { margin: 0 0 14px; font-size: 18px; }
+h1 { font-size: 24px; margin: 0; } h2 { margin: 0 0 14px; font-size: 16px; }
 p { line-height: 1.7; } .workspace-heading p { font-size: 13px; color: var(--am-text-2); margin: 6px 0 0; }
 a { color: var(--am-accent); }
-.replay-card { padding: 16px; border: 1px solid var(--am-card-border); background: var(--am-card-bg); border-radius: 6px; min-width: 0; }
-.workspace-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-button, select { border: 1px solid var(--am-card-border); background: var(--am-card-bg); color: var(--am-text); padding: 7px 10px; font: inherit; font-size: 13px; border-radius: 3px; cursor: pointer; }
-button:disabled { opacity: .5; cursor: default; }
-button.primary, .workspace-tabs .active { background: var(--am-accent); color: white; border-color: var(--am-accent); }
-.playback-row label, .playback-row > span { font-size: 13px; }
+.replay-card { padding: 16px; border: 1px solid var(--am-card-border); background: var(--am-card-bg); border-radius: 4px; min-width: 0; }
+.workspace-tabs { display: none; flex-wrap: wrap; align-items: center; gap: 10px; }
 .playback-time { font-variant-numeric: tabular-nums; margin-left: auto; }
-.timeline { width: 100%; margin: 16px 0; accent-color: var(--am-accent); }
-.segment-row { color: var(--am-text-2); font-size: 12px; }
-.segment-row .selected { border-color: var(--am-accent); color: var(--am-accent); }
 .workspace-tabs a { padding: 8px 14px; border: 1px solid var(--am-card-border); text-decoration: none; font-size: 14px; }
 .replay-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; font-size: 13px; color: var(--am-text-2); }
 .replay-summary .playback-time { margin-left: 0; }
@@ -141,4 +138,16 @@ small, .data-note, .sample-times { font-size: 12px; font-weight: 400; color: var
 .replay-error { color: var(--am-danger); padding: 12px; border: 1px solid var(--am-danger); }
 .waiting { padding: 30px; text-align: center; }
 @media (max-width: 600px) { .workspace-heading { align-items: flex-start; } h1 { font-size: 20px; } .playback-time { margin-left: 0; } }
+/* 桌面直接使用侧栏，窄屏保留页内入口，减少重复导航占位。 */
+.workspace-tabs .active { color: white; background: var(--am-accent); border-color: var(--am-accent); }
+.status-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.control-context dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; }
+.control-context dt { color: var(--am-text-2); font-size: 12px; margin-bottom: 6px; }
+.control-context dd { margin: 0; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  .workspace-tabs { display: flex; gap: 6px; }
+  .workspace-tabs a { flex: 1 0 auto; text-align: center; padding: 8px 10px; font-size: 13px; }
+  .status-details, .control-context dl { grid-template-columns: minmax(0, 1fr); }
+  .workspace-heading { flex-wrap: wrap; }
+}
 </style>

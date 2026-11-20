@@ -104,7 +104,7 @@
 
 <script setup>
 import { amVar } from '@/utils/themeColor'
-import { computed, nextTick, ref, watch } from 'vue'
+import { onBeforeUnmount, computed, nextTick, ref, watch } from 'vue'
 import { ArrowLeft, ArrowRight, TrendCharts, Cpu } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -140,6 +140,8 @@ const visible = computed({
 const chartContainer = ref(null)
 let chartInstance = null
 let echartsModule = null
+let chartRevision = 0
+let resizeObserver = null
 
 const dialogTitle = computed(() => `${props.systemName} - 监测融合指标与阈值关系`)
 
@@ -227,11 +229,12 @@ const buildChartOption = () => {
     legend: {
       data: ['监测点风险指标 W', '经济阈值 WL', '可靠性阈值 WR', '维修阈值上限 WU'],
       top: 44,
+      type: 'scroll',
       textStyle: { color: amVar('--am-text-2') }
     },
     grid: {
-      left: 60,
-      right: 40,
+      left: 12,
+      right: 18,
       top: 90,
       bottom: 50,
       containLabel: true
@@ -291,7 +294,8 @@ const buildChartOption = () => {
 }
 
 const initChart = async () => {
-  if (!chartContainer.value) return
+  disposeChart()
+  const revision = chartRevision
   await nextTick()
 
   if (!echartsModule) {
@@ -299,31 +303,26 @@ const initChart = async () => {
   }
   const echarts = echartsModule.default || echartsModule
 
-  disposeChart()
-  chartInstance = echarts.init(chartContainer.value, 'dark', { renderer: 'canvas' })
+  // 异步加载期间关闭或离开页面时，禁止在已销毁的容器上创建图表。
+  if (revision !== chartRevision || !visible.value || !chartContainer.value) return
+  chartInstance = echarts.init(chartContainer.value, null, { renderer: 'canvas' })
   chartInstance.setOption(buildChartOption())
+  resizeObserver = new ResizeObserver(() => chartInstance?.resize())
+  resizeObserver.observe(chartContainer.value)
 }
 
 const disposeChart = () => {
+  chartRevision += 1
+  resizeObserver?.disconnect()
+  resizeObserver = null
   if (chartInstance) {
     chartInstance.dispose()
     chartInstance = null
   }
 }
 
-const handleResize = () => {
-  if (chartInstance) {
-    chartInstance.resize()
-  }
-}
-
-watch(() => props.modelValue, (value) => {
-  if (value) {
-    window.addEventListener('resize', handleResize)
-  } else {
-    window.removeEventListener('resize', handleResize)
-  }
-})
+watch(() => props.modelValue, value => { if (!value) disposeChart() })
+onBeforeUnmount(disposeChart)
 
 watch(() => [props.systemKey, props.systemName, props.deviceName], () => {
   if (visible.value && chartInstance) {

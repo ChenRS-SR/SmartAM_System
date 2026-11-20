@@ -6,7 +6,7 @@ Windows 目标电脑推荐双击根目录 **`deploy_windows.bat`**，自动检�
 
 跨平台手动入口为 `python start_platform.py`，首次准备环境见下文“新电脑独立部署”。
 
-根目录仅保留两个 Windows 批处理入口：
+根目录提供以下 Windows 批处理入口：
 
 - **`deploy_windows.bat`**：首次部署、更新后部署，检查并补齐环境，按变化构建页面并启动。
 - **`start_platform.bat`**：日常启动，复用 `.venv` 和已构建页面，不下载、不安装、不重新构建。缺少环境或页面源码变化时提示先运行部署脚本。
@@ -107,7 +107,7 @@ cd backend
 python main.py
 ```
 
-打开启动窗口显示的地址（默认 `http://localhost:8000/slm/dashboard`），点击设备卡片进入设备监测，或点击“成形监测”进入数据接入。Linux 已配置 `pytorch_env` 环境时也可运行 `./start_slm_complete.sh`。
+打开启动窗口显示的地址（默认 `http://localhost:8001/slm/dashboard`），点击设备卡片进入设备监测，或点击“成形监测”进入数据接入。Linux 已配置 `pytorch_env` 环境时也可运行 `./start_slm_complete.sh`。
 
 验证案例完整性及时间对齐：
 
@@ -184,3 +184,13 @@ BLT 另三个 case ID 为 `blt-s430-20240828`、`b10-20250509-07-47`、`b15-2025
 该清单使用 PyTorch 官方 CPU 软件源，不安装 CUDA。安装成功后重启平台，再从对应设备的系统设置启用“真实模型处理”。Linux 使用所选 Python 环境运行同一条 `python -m pip install -r backend/requirements-inference.txt` 命令。已有推理环境可继续使用，基础部署不会卸载其推理依赖。新采集任务必须具备相应模型输入和可用推理依赖；没有自己的封存结果时返回明确的处理失败，不使用旧案例替代。
 
 基础部署验收：在只安装 `backend/requirements.txt` 的环境中，额外安装测试工具 `httpx`，运行 `python -m unittest discover -s backend/tests -p test_playback_deployment.py`。该检查覆盖完整应用路由、五台设备的封存快照与图像、红外结果、调控配置，以及禁用推理依赖时误开真实处理的行为。
+
+## 界面维护与演示运行约定
+
+- 工艺首页、设备总览和设置按路由加载；SLM/SLS 设备卡片与设置布局分别共用 `device-fleet.css`、`device-settings.css`。侧栏、顶栏和案例页使用 `slmNavigation.js` 中的功能定义，默认进入状态监测。
+- 桌面案例页使用侧栏导航，窄屏保留平铺页签。设置表单按容器宽度切换标签布局；表格仅在自身区域横向滚动。闭环调控将分析依据压缩为摘要，给当前切片区域和参数更多展示空间。论文使用的三个分析页保持主要内容、图表和配色。
+- 当前按演示软件部署。新浏览器的 SLM/SLS 实验台设置默认使用模拟采集，已保存的显式设置不覆盖。基础 WebSocket 连接失败或中途断开时接续随机模拟数据，保持采集显示，不弹断线/模拟切换提示；同一时刻仅保留一个模拟定时器，主动断开或释放 store 时停止。此逻辑不覆盖五台设备已有的封存识别与溯源结果；案例播放仍需要本地后端服务，不依赖外网或推理环境。
+- 主题跟随系统变化时同步更新；运维详情关闭或离开设备页面时释放图表和尺寸监听。无效页面地址展示返回入口，不留空白页面。
+- 回归验证：`cd frontend && npm test -- --run`；发布前执行 `npm run build`。基础后端部署测试为 `python -m unittest discover -s tests -p 'test_*.py'`。Windows 安装脚本和真实硬件采集需在目标 Windows 设备另行验证。
+
+所有默认启动入口及 Vite 开发代理统一使用 8001；前端接口与图片采用同源地址。通过 VS Code Remote SSH 访问时转发远端 8001，再使用客户端的 `http://127.0.0.1:8001/`；局域网直接访问部署主机 IP 的 8001 端口。

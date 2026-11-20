@@ -24,7 +24,7 @@
         </el-select>
         <el-button @click="goToDeviceGroup">
           <el-icon><ArrowLeft /></el-icon>
-          设备群
+          设备总览
         </el-button>
         <!-- 模式指示器 -->
         <span
@@ -1254,7 +1254,8 @@ onUnmounted(() => {
 
 <style scoped>
 .sls-dashboard {
-  padding: 20px;
+  padding: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 20px;

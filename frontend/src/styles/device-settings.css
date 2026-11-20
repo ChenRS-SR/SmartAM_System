@@ -1,0 +1,18 @@
+/* 设置页按实际容器宽度布局，浏览器缩放与侧栏收放采用同一规则。 */
+.slm-settings, .sls-settings { max-width: 1600px; margin: auto; min-width: 0; container: settings / inline-size; }
+.settings-card { border: 1px solid var(--am-card-border); border-radius: 4px; background: var(--am-card-bg); }
+.card-header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-weight: 600; color: var(--am-text); }
+.settings-content, .correction-info { padding: 0; min-width: 0; }
+.camera-select-row, .port-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; max-width: 100%; min-width: 0; }
+:deep(.el-form-item__content) { min-width: 0; gap: 8px; }
+:deep(.el-input), :deep(.el-select) { max-width: 100%; }
+:deep(.el-alert__content) { min-width: 0; overflow-wrap: anywhere; }
+:deep(.el-card__body) { padding: 20px; }
+@container settings (max-width: 640px) {
+  :deep(.el-form-item) { display: flex; flex-direction: column; align-items: stretch; }
+  :deep(.el-form-item__label) { justify-content: flex-start; width: auto !important; height: auto; padding: 0 0 6px; }
+  :deep(.el-form-item__content) { margin-left: 0 !important; }
+  :deep(.el-card__body) { padding: 14px; }
+  .camera-select-row, .port-row { width: 100%; }
+  .inline-hint { margin-left: 0; }
+}

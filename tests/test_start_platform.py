@@ -27,7 +27,8 @@ class DeploymentTests(unittest.TestCase):
                 self.assertEqual(environment['VITE_API_BASE_URL'],'')
                 self.assertEqual(environment['VITE_MOCK_MODE'],'false')
                 self.assertEqual(server.call_args.args[0],[start_platform.sys.executable,'main.py'])
-                self.assertEqual(server.call_args.kwargs['env']['SMARTAM_PORT_START'],'8000')
+                self.assertEqual(server.call_args.kwargs['env']['SMARTAM_PORT_START'],'8001')
+                self.assertEqual(server.call_args.kwargs['env']['SMARTAM_PORT_END'],'8001')
                 self.assertEqual(server.call_args.kwargs['cwd'],root/'backend')
 
     def test_occupied_port_is_skipped_and_socket_stays_reserved(self):

@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent
-PORT = 8000
+from backend.utils.platform_port import DEFAULT_PORT, LAST_PORT
 
 
 def main():
@@ -23,10 +23,11 @@ def main():
         subprocess.run([npm, "install"], cwd=frontend, env=environment, check=True)
     subprocess.run([npm, "run", "build"], cwd=frontend, env=environment, check=True)
 
-    environment["SMARTAM_PORT_START"] = str(PORT)
+    environment["SMARTAM_PORT_START"] = str(DEFAULT_PORT)
+    environment["SMARTAM_PORT_END"] = str(LAST_PORT)
     environment["SMARTAM_RELOAD"] = "0"
     environment["SMARTAM_ACCESS_LOG"] = "0"
-    print(f"\n平台监听全部网卡，从 {PORT} 起自动选择可用端口；实际端口见后端启动输出。", flush=True)
+    print(f"\n平台监听全部网卡，端口 {DEFAULT_PORT}；实际端口见后端启动输出。", flush=True)
     print("按 Ctrl+C 停止。", flush=True)
     return subprocess.call(
         [sys.executable, "main.py"], cwd=ROOT / "backend", env=environment,

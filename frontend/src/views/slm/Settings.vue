@@ -476,10 +476,7 @@ onMounted(() => {
   margin: 0 0 20px 0;
 }
 
-.settings-card {
-  border: none;
-  background: var(--am-card-bg);
-}
+
 
 .card-header {
   display: flex;
@@ -535,3 +532,4 @@ onMounted(() => {
 }
 
 </style>
+<style scoped src="../../styles/device-settings.css"></style>

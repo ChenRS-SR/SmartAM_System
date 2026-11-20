@@ -16,29 +16,29 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8001',
         ws: true, // SLM/SLS 实时数据与 HTTP 接口共用 /api 前缀。
         changeOrigin: true
         // 注意：后端路由以 /api 开头，不需要 rewrite
       },
       '/state_picture': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8001',
         changeOrigin: true
       },
       '/slm_device_data': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8001',
         changeOrigin: true
       },
       '/sls_device_data': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8001',
         changeOrigin: true
       },
       '/video_feed': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8001',
         changeOrigin: true
       },
       '/ws': {
-        target: 'ws://localhost:8000',
+        target: 'ws://127.0.0.1:8001',
         ws: true,
         changeOrigin: true
       }

@@ -120,3 +120,7 @@ html .smartam-notification .el-notification__content { color: var(--am-text-2) !
 html .smartam-notification.el-notification--success { border-left: 4px solid var(--am-ok) !important; }
 html .smartam-notification.el-notification--warning { border-left: 4px solid var(--am-warn) !important; }
 html .smartam-notification.el-notification--error { border-left: 4px solid var(--am-danger) !important; }
+
+/* 弹窗适应小屏与浏览器缩放，表格宽内容仍在自身容器内滚动。 */
+html .el-dialog { max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; border-radius: 6px; }
+html .el-notification { max-width: calc(100vw - 32px); }

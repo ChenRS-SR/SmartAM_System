@@ -63,6 +63,7 @@
 </template>
 
 <script setup>
+import { slmTabs, slmTab } from '../utils/slmNavigation'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSlmDeviceStore } from '../stores/slmDevices'
@@ -101,23 +102,16 @@ const devicePath = (tab) => {
 }
 // 导航采用单层平铺结构，收起后以短名称显示，避免引入额外分类层级。
 const navItems = computed(() => {
-  const items = [
-    { key: 'fleet', name: '设备总览', shortName: '总览', path: `/${deviceType.value}/dashboard` },
-    deviceType.value === 'slm'
-      ? { key: 'status', name: '状态监测', shortName: '监测', path: devicePath('status'), tab: 'status' }
-      : { key: 'device', name: '设备状态监测', shortName: '监测', path: devicePath('status') }
-  ]
-  // 成形监测目前只有 SLM 实现，SLS 不展示尚未接入的功能。
-  if (deviceType.value === 'slm') items.push(
-    { key: 'access', name: '数据接入', shortName: '接入', path: devicePath('access'), tab: 'access' },
-    { key: 'recognition', name: '缺陷识别', shortName: '识别', path: devicePath('recognition'), tab: 'recognition' },
-    { key: 'trace', name: '异常溯源', shortName: '溯源', path: devicePath('trace'), tab: 'trace' },
-    { key: 'control', name: '闭环调控', shortName: '调控', path: devicePath('control'), tab: 'control' }
-  )
+  const items = [{ key: 'fleet', name: '设备总览', shortName: '总览', path: `/${deviceType.value}/dashboard` }]
+  if (deviceType.value === 'slm') {
+    items.push(...slmTabs.map(item => ({ ...item, name: item.label, path: devicePath(item.key), tab: item.key })))
+  } else {
+    items.push({ key: 'device', name: '设备状态监测', shortName: '监测', path: devicePath('status') })
+  }
   return items
 })
 const isActive = (item) => {
-  if (item.tab) return isDevicePage.value && (route.query.tab || 'status') === item.tab
+  if (item.tab) return isDevicePage.value && slmTab(route.query.tab).key === item.tab
   if (item.key === 'device') return isDevicePage.value
   return route.path === item.path
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="theme-toggle">
     <el-dropdown trigger="click" @command="handleCommand">
-      <el-button text class="theme-btn">
+      <el-button text class="theme-btn" aria-label="切换主题">
         <el-icon size="20">
           <Sunny v-if="themeStore.isLight" />
           <Moon v-else />
@@ -49,7 +49,7 @@ const handleCommand = (command) => {
 
 .theme-btn:hover {
   color: var(--am-accent);
-  transform: rotate(15deg);
+
 }
 
 :deep(.el-dropdown-menu__item) {

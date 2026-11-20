@@ -20,6 +20,11 @@
         v-for="system in displaySystems"
         :key="system.key"
         class="system-card"
+        role="button"
+        tabindex="0"
+        :aria-label="`${system.name}维护详情`"
+        @keydown.enter="handleSystemClick(system)"
+        @keydown.space.prevent="handleSystemClick(system)"
         :class="{ 'risk-warning': system.riskPercent > 50 && system.riskPercent <= 80, 'risk-danger': system.riskPercent > 80 }"
         @click="handleSystemClick(system)"
       >
@@ -280,14 +285,14 @@ const getReliabilityColor = (value) => {
   gap: 10px;
   padding: 14px;
   background: var(--am-card-bg-2);
-  border-radius: 10px;
+  border-radius: 4px;
   border: 1px solid var(--am-card-border-2);
-  transition: all 0.3s ease;
+  transition: border-color .15s ease;
 }
 
 .system-card:hover {
   border-color: color-mix(in srgb, var(--am-accent) 30%, transparent);
-  box-shadow: 0 0 15px color-mix(in srgb, var(--am-accent) 10%, transparent);
+
   cursor: pointer;
 }
 
@@ -306,7 +311,7 @@ const getReliabilityColor = (value) => {
   transition: opacity 0.2s ease;
 }
 
-.system-card:hover::after {
+.system-card:focus-visible::after, .system-card:hover::after {
   opacity: 1;
 }
 
@@ -318,13 +323,10 @@ const getReliabilityColor = (value) => {
 .system-card.risk-danger {
   border-color: color-mix(in srgb, var(--am-danger) 50%, transparent);
   background: color-mix(in srgb, var(--am-danger) 11%, transparent);
-  animation: danger-pulse 2s infinite;
+
 }
 
-@keyframes danger-pulse {
-  0%, 100% { box-shadow: 0 0 0 color-mix(in srgb, var(--am-danger) 0%, transparent); }
-  50% { box-shadow: 0 0 12px color-mix(in srgb, var(--am-danger) 20%, transparent); }
-}
+
 
 .system-title {
   font-size: 14px;
@@ -424,7 +426,7 @@ const getReliabilityColor = (value) => {
   margin-bottom: 20px;
   padding: 16px;
   background: var(--am-card-bg-2);
-  border-radius: 10px;
+  border-radius: 4px;
   border: 1px solid var(--am-card-border-2);
 }
 
@@ -506,7 +508,7 @@ const getReliabilityColor = (value) => {
   position: relative;
   padding: 20px 16px 16px;
   background: var(--am-card-bg-2);
-  border-radius: 10px;
+  border-radius: 4px;
   border: 1px solid var(--am-card-border);
   min-height: 80px;
 }
@@ -568,14 +570,14 @@ const getReliabilityColor = (value) => {
   gap: 12px;
   padding: 14px 16px;
   background: var(--am-card-bg-2);
-  border-radius: 10px;
+  border-radius: 4px;
   border: 1px solid var(--am-card-border-2);
 }
 
 .stat-icon {
   width: 42px;
   height: 42px;
-  border-radius: 10px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;

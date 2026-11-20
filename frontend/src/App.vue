@@ -26,21 +26,11 @@
           <LangSwitch />
           <ThemeToggle />
           <el-tooltip content="全屏" placement="bottom">
-            <el-button text @click="toggleFullscreen">
+            <el-button text aria-label="全屏显示" @click="toggleFullscreen">
               <el-icon size="20"><FullScreen /></el-icon>
             </el-button>
           </el-tooltip>
-          <el-dropdown>
-            <el-button text>
-              <el-icon size="20"><User /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item>个人设置</el-dropdown-item>
-                <el-dropdown-item divided @click="logout">退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+
         </div>
       </header>
       
@@ -62,11 +52,12 @@
 </template>
 
 <script setup>
+import { ElMessage } from 'element-plus'
 import { ref, onMounted, watch, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useDataStore } from './stores/data'
 import { useResponsive } from './composables/useResponsive'
-import { useNotification } from './composables/useNotification'
+import { slmTab } from './utils/slmNavigation'
 import AppSidebar from './components/AppSidebar.vue'
 import ThemeToggle from './components/ThemeToggle.vue'
 import LangSwitch from './components/LangSwitch.vue'
@@ -74,22 +65,16 @@ import AlertList from './components/AlertList.vue'
 
 const store = useDataStore()
 const route = useRoute()
-const router = useRouter()
 const { isMobile, sidebarCollapsed } = useResponsive()
-const { success } = useNotification()
 
 const isCollapsed = ref(sidebarCollapsed.value)
 
 // 是否显示侧边栏（设备选择页不显示）
-const showSidebar = computed(() => route.path !== '/' && route.path !== '/login')
+const showSidebar = computed(() => !!route.meta.device)
 
 // 标签切换也同步顶栏标题，明确当前所在的功能页面。
 const currentPageTitle = computed(() => {
-  const labels = {
-    status: '状态监测', control: '闭环调控',
-    access: '数据接入', recognition: '缺陷识别', trace: '异常溯源'
-  }
-  if (route.path.startsWith('/slm/device')) return labels[route.query.tab || 'status'] || route.meta.title
+  if (route.path.startsWith('/slm/device')) return slmTab(route.query.tab).label
   return route.meta.title || 'SmartAM'
 })
 const closeMobileNavigation = () => {
@@ -103,28 +88,19 @@ watch(() => sidebarCollapsed.value, (val) => {
   isCollapsed.value = val
 })
 
-// 连接成功后通知
-watch(() => store.connected, (connected) => {
-  if (connected) {
-    success('WebSocket 连接成功', '系统已连接')
-  }
-})
 
-const toggleFullscreen = () => {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen()
-  } else {
-    document.exitFullscreen()
-  }
+const toggleFullscreen = async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen()
+    } else {
+      await document.exitFullscreen()
+    }
+  } catch { ElMessage.info('当前浏览器不支持全屏显示') }
 }
 
-const logout = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('deviceType')
-  router.push('/login')
-}
 
-onMounted(async () => {
+onMounted(() => {
   // 连接 WebSocket 数据流（仅用于基础状态）
   store.connectWebSocket()
   
@@ -134,10 +110,11 @@ onMounted(async () => {
 
 <style scoped>
 /* 清除浏览器默认外边距，让应用外框完整贴合视口。 */
-:global(body) { margin: 0; }
+
 .app-wrapper {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   background: var(--am-page-bg);
   color: var(--am-text);
 }
@@ -190,7 +167,9 @@ onMounted(async () => {
 
 .page-container {
   flex: 1;
-  padding: 16px 20px;
+  min-height: 0;
+  scrollbar-gutter: stable;
+  padding: 20px 24px;
   overflow: auto;
 }
 
@@ -214,8 +193,6 @@ onMounted(async () => {
     padding: 16px;
   }
   
-  .status-cards {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
+
 }
 </style>

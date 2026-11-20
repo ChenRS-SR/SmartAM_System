@@ -11,7 +11,7 @@ describe('Data Store', () => {
     const store = useDataStore()
     
     expect(store.connected).toBe(false)
-    expect(store.sensorData).toEqual({})
+    expect(store.sensorData).toMatchObject({ printer: null, thermal: null, camera: null, acquisition: { state: 'idle', frame_count: 0 } })
     expect(store.prediction).toEqual({})
     expect(store.alerts).toEqual([])
   })

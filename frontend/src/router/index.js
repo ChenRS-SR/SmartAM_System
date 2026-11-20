@@ -1,18 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 // SLM 页面
-import SLMDeviceGroup from '../views/slm/DeviceGroup.vue'
-import SLMDashboard from '../views/slm/DeviceWorkspace.vue'
-import SLMSettings from '../views/slm/Settings.vue'
+const SLMDeviceGroup = () => import('../views/slm/DeviceGroup.vue')
+const SLMDashboard = () => import('../views/slm/DeviceWorkspace.vue')
+const SLMSettings = () => import('../views/slm/Settings.vue')
 
 // SLS 页面
-import SLSDeviceGroup from '../views/sls/DeviceGroup.vue'
-import SLSDashboard from '../views/sls/Dashboard.vue'
-import SLSSettings from '../views/sls/Settings.vue'
+const SLSDeviceGroup = () => import('../views/sls/DeviceGroup.vue')
+const SLSDashboard = () => import('../views/sls/Dashboard.vue')
+const SLSSettings = () => import('../views/sls/Settings.vue')
 
 // 其他页面
-import DeviceSelect from '../views/DeviceSelect.vue'
-import Login from '../views/Login.vue'
+const DeviceSelect = () => import('../views/DeviceSelect.vue')
+const Login = () => import('../views/Login.vue')
 
 const routes = [
   // 设备选择首页
@@ -63,6 +63,12 @@ const routes = [
     meta: { title: '设置', device: 'sls' }
   },
   
+  {
+    path: '/:pathMatch(.*)*',
+    component: () => import('../views/NotFound.vue'),
+    meta: { title: '页面未找到', public: true }
+  },
+
   // 登录
   {
     path: '/login',

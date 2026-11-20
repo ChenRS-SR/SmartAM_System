@@ -1,14 +1,17 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onScopeDispose } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useThemeStore = defineStore('theme', () => {
   // 主题模式: 'dark' | 'light' | 'auto'
   const themeMode = ref(localStorage.getItem('theme-mode') || 'light')
   
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  const systemDark = ref(mediaQuery.matches)
+
   // 实际主题（auto 时根据系统偏好决定）
   const actualTheme = computed(() => {
     if (themeMode.value === 'auto') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      return systemDark.value ? 'dark' : 'light'
     }
     return themeMode.value
   })
@@ -41,18 +44,14 @@ export const useThemeStore = defineStore('theme', () => {
     }
   }
   
-  // 监听系统主题变化
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  mediaQuery.addEventListener('change', () => {
-    if (themeMode.value === 'auto') {
-      applyTheme()
-    }
-  })
-  
+  // 将系统事件转成响应式状态；否则 computed 会缓存旧值，自动主题不会切换。
+  const updateSystemTheme = event => { systemDark.value = event.matches }
+  mediaQuery.addEventListener('change', updateSystemTheme)
+  onScopeDispose(() => mediaQuery.removeEventListener('change', updateSystemTheme))
+
   // 监听主题变化自动应用
   watch(actualTheme, applyTheme, { immediate: true })
   
-  // 主题配置
   // 主题配置：两种主题的具体颜色见 styles/am-theme.css，这里只把原有变量指向主题变量
   const themeConfig = computed(() => ({
     '--bg-primary': 'var(--am-page-bg)',

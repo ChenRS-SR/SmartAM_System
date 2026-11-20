@@ -24,7 +24,7 @@
         </el-select>
         <el-button @click="goToDeviceGroup">
           <el-icon><ArrowLeft /></el-icon>
-          设备群
+          设备总览
         </el-button>
         <template v-if="activePanel !== 'control'">
         <!-- 模式指示器 -->
@@ -1287,7 +1287,8 @@ onUnmounted(() => {
 
 <style scoped>
 .slm-dashboard {
-  padding: 20px;
+  padding: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 20px;
