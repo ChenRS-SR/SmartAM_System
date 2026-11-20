@@ -2,7 +2,7 @@
   <div class="device-group-page">
     <div class="page-header">
       <div>
-        <h1 class="page-title">设备群总览</h1>
+        <h1 class="page-title">设备总览</h1>
         <div class="page-subtitle">
           {{ deviceStore.sourceInfo.diagnosisPolicy || 'SLM 设备群实时状态' }}
         </div>

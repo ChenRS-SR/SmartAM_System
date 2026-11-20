@@ -88,7 +88,7 @@ const selectedId = computed(() => {
   return localStorage.getItem(`${deviceType.value}SelectedDeviceId`) || ''
 })
 const contextName = computed(() => {
-  if (!isDevicePage.value) return route.path === settingsPath.value ? '系统设置' : '设备群总览'
+  if (!isDevicePage.value) return route.path === settingsPath.value ? '系统设置' : '设备总览'
   const device = devices.value.getDeviceById(selectedId.value)
   return device?.name || selectedId.value || '尚未选择设备'
 })
@@ -102,7 +102,7 @@ const devicePath = (tab) => {
 // 导航采用单层平铺结构，收起后以短名称显示，避免引入额外分类层级。
 const navItems = computed(() => {
   const items = [
-    { key: 'fleet', name: '设备群总览', shortName: '总览', path: `/${deviceType.value}/dashboard` },
+    { key: 'fleet', name: '设备总览', shortName: '总览', path: `/${deviceType.value}/dashboard` },
     deviceType.value === 'slm'
       ? { key: 'status', name: '状态监测', shortName: '监测', path: devicePath('status'), tab: 'status' }
       : { key: 'device', name: '设备状态监测', shortName: '监测', path: devicePath('status') }

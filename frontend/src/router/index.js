@@ -28,7 +28,7 @@ const routes = [
     path: '/slm/dashboard',
     name: 'SLMDeviceGroup',
     component: SLMDeviceGroup,
-    meta: { title: '设备群总览', device: 'slm' }
+    meta: { title: '设备总览', device: 'slm' }
   },
   {
     path: '/slm/device/:deviceId?',
@@ -48,7 +48,7 @@ const routes = [
     path: '/sls/dashboard',
     name: 'SLSDeviceGroup',
     component: SLSDeviceGroup,
-    meta: { title: '设备群总览', device: 'sls' }
+    meta: { title: '设备总览', device: 'sls' }
   },
   {
     path: '/sls/device/:deviceId?',

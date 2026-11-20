@@ -38,7 +38,7 @@ describe('工业工作区导航', () => {
     expect(wrapper.get('[aria-current="page"]').attributes('aria-label')).toBe('缺陷识别')
     expect(wrapper.get('[aria-label="系统设置"]').attributes('href')).toBe('/slm/settings?device=machine-02')
     expect(wrapper.get('nav').findAll('a').map(a => a.attributes('aria-label')))
-      .toEqual(['设备群总览', '状态监测', '数据接入', '缺陷识别', '异常溯源', '闭环调控'])
+      .toEqual(['设备总览', '状态监测', '数据接入', '缺陷识别', '异常溯源', '闭环调控'])
     await wrapper.get('[aria-label="闭环调控"]').trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.fullPath).toBe('/slm/device/machine-02?tab=control')
