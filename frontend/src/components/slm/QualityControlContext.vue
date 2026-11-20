@@ -11,13 +11,13 @@
         <span>分析层：{{ context.layer }}</span>
       </div>
       <dl class="analysis-results">
-        <div><dt>异常识别</dt><dd>{{ context.recognition ? `${context.recognition.label}（异常概率 ${(context.recognition.probability * 100).toFixed(1)}%）` : '本层尚无识别记录' }}</dd></div>
+        <div><dt>缺陷识别</dt><dd>{{ context.recognition ? `${context.recognition.label}（异常概率 ${(context.recognition.probability * 100).toFixed(1)}%）` : '本层尚无识别记录' }}</dd></div>
         <div><dt>异常溯源</dt><dd>{{ context.trace?.conclusion || '本层尚无溯源记录' }}</dd></div>
         <div><dt>处置对象</dt><dd>{{ context.trace ? (context.trace.actions.join('、') || '无需处置') : '待溯源确认' }}</dd></div>
       </dl>
       <p class="context-note">以上为本次会话的分析记录。请核对下方试验台的任务、层号和零件后调整参数；分析结果不会自动下发。</p>
     </template>
-    <p v-else class="context-note">当前设备、当前分析层尚无本次会话的分析记录。可先完成异常识别与异常溯源，再核对调控对象。</p>
+    <p v-else class="context-note">当前设备、当前分析层尚无本次会话的分析记录。可先完成缺陷识别与异常溯源，再核对调控对象。</p>
   </section>
 </template>
 

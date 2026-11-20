@@ -3,7 +3,7 @@
     <div class="login-box">
       <div class="login-header">
         <el-icon size="48" color="#00d4ff"><Cpu /></el-icon>
-        <h1>增材制造异常识别系统</h1>
+        <h1>增材制造缺陷识别系统</h1>
         <p>智能增材制造监控系统</p>
       </div>
       

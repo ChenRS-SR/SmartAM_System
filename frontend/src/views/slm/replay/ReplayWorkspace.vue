@@ -61,7 +61,7 @@
         <span>当前采集：第 {{ frame.layer }} 层</span>
         <span v-if="tab !== 'access'">当前可用结果：{{ frame[tab] ? `第 ${frame[tab].layer} 层` : '尚未到达' }}</span>
       </div>
-      <section v-if="replay.manifest && !replay.manifest.capabilities[tab]" class="replay-card"><h2>{{ tab === 'recognition' ? '异常识别' : '异常溯源' }}</h2><p>该设备尚未接入{{ tab === 'recognition' ? '识别' : '溯源' }}结果，采集数据可在数据接入页查看。</p></section>
+      <section v-if="replay.manifest && !replay.manifest.capabilities[tab]" class="replay-card"><h2>{{ tab === 'recognition' ? '缺陷识别' : '异常溯源' }}</h2><p>该设备尚未接入{{ tab === 'recognition' ? '识别' : '溯源' }}结果，采集数据可在数据接入页查看。</p></section>
       <div v-else class="forming-root forming-replay"><component :is="views[tab]" /></div>
     </template>
   </div>
@@ -89,7 +89,7 @@ function openMaintenanceDetail(system) {
 }
 const devices = useSlmDeviceStore()
 const route = useRoute()
-const tabs = [{ key: 'status', label: '状态监测' }, { key: 'access', label: '数据接入' }, { key: 'recognition', label: '异常识别' }, { key: 'trace', label: '异常溯源' }, { key: 'control', label: '闭环调控' }]
+const tabs = [{ key: 'status', label: '状态监测' }, { key: 'access', label: '数据接入' }, { key: 'recognition', label: '缺陷识别' }, { key: 'trace', label: '异常溯源' }, { key: 'control', label: '闭环调控' }]
 const tab = computed(() => tabs.some(t => t.key === route.query.tab) ? route.query.tab : 'access')
 const views = { access: Access, recognition: Recognition, trace: Trace }
 const frame = computed(() => replay.snapshot)

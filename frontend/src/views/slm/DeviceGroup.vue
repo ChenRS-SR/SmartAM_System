@@ -589,7 +589,7 @@ const openEditDialog = (device) => {
   dialogVisible.value = true
 }
 
-// 已接入成形监测（数据接入、异常识别、异常溯源）的设备，卡片上显示跳转按钮
+// 已接入成形监测（数据接入、缺陷识别、异常溯源）的设备，卡片上显示跳转按钮
 const formingDeviceIds = ref(new Set())
 const loadFormingDevices = async () => {
   try {

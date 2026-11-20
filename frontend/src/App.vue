@@ -87,7 +87,7 @@ const showSidebar = computed(() => route.path !== '/' && route.path !== '/login'
 const currentPageTitle = computed(() => {
   const labels = {
     status: '状态监测', control: '闭环调控',
-    access: '数据接入', recognition: '异常识别', trace: '异常溯源'
+    access: '数据接入', recognition: '缺陷识别', trace: '异常溯源'
   }
   if (route.path.startsWith('/slm/device')) return labels[route.query.tab || 'status'] || route.meta.title
   return route.meta.title || 'SmartAM'

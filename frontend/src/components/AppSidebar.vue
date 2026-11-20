@@ -110,7 +110,7 @@ const navItems = computed(() => {
   // 成形监测目前只有 SLM 实现，SLS 不展示尚未接入的功能。
   if (deviceType.value === 'slm') items.push(
     { key: 'access', name: '数据接入', shortName: '接入', path: devicePath('access'), tab: 'access' },
-    { key: 'recognition', name: '异常识别', shortName: '识别', path: devicePath('recognition'), tab: 'recognition' },
+    { key: 'recognition', name: '缺陷识别', shortName: '识别', path: devicePath('recognition'), tab: 'recognition' },
     { key: 'trace', name: '异常溯源', shortName: '溯源', path: devicePath('trace'), tab: 'trace' },
     { key: 'control', name: '闭环调控', shortName: '调控', path: devicePath('control'), tab: 'control' }
   )

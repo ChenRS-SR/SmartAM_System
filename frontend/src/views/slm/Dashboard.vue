@@ -127,7 +127,7 @@
       </template>
 
       <template v-else>
-        <!-- 成形监测：数据接入 / 异常识别 / 异常溯源 -->
+        <!-- 成形监测：数据接入 / 缺陷识别 / 异常溯源 -->
         <div class="forming-section">
           <FormingPanel :device="selectedDeviceId" :module="activePanel" />
         </div>
@@ -213,11 +213,11 @@ const canUseDistortionCorrection = computed(() => (
 
 const panelNavItems = [
   { key: 'status', name: '状态监测', description: '集中展示设备实时参数、健康诊断与子系统状态，并关联维护建议。' },
-  // 成形监测（增材制造异常识别系统）：逐层数据接入、异常识别与异常溯源，组件见 ./forming/
+  // 成形监测（增材制造缺陷识别系统）：逐层数据接入、缺陷识别与异常溯源，组件见 ./forming/
   { key: 'access', name: '数据接入', description: '逐层接入铺粉后、熔化后图像，刮刀与加工平台扭矩和设备状态参数。', forming: true },
-  { key: 'recognition', name: '异常识别', description: '融合图像与扭矩的跨设备适配识别，给出逐层异常概率与各模态作用。', forming: true },
+  { key: 'recognition', name: '缺陷识别', description: '融合图像与扭矩的跨设备适配识别，给出逐层异常概率与各模态作用。', forming: true },
   { key: 'trace', name: '异常溯源', description: '两区联盟博弈判断异常由工艺因素还是设备因素诱发，并给出支撑区域与处置对象。', forming: true },
-  { key: 'control', name: '闭环调控', description: '承接异常识别与溯源结果，核对工艺参数、下发调整并查看指令反馈。', forming: true }
+  { key: 'control', name: '闭环调控', description: '承接缺陷识别与溯源结果，核对工艺参数、下发调整并查看指令反馈。', forming: true }
 ]
 const panelKeys = panelNavItems.map((item) => item.key)
 const activePanel = computed(() => {

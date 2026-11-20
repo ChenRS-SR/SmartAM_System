@@ -5,7 +5,7 @@
       <component :is="view" v-if="matched" :key="matched.id + module" />
       <div v-else class="unlinked">
         <div class="u-title">该设备尚未接入成形监测</div>
-        <div class="u-text">已接入的设备：{{ linkedNames || '无' }}。接入后可在此查看逐层数据接入、异常识别与异常溯源。</div>
+        <div class="u-text">已接入的设备：{{ linkedNames || '无' }}。接入后可在此查看逐层数据接入、缺陷识别与异常溯源。</div>
       </div>
     </template>
     <div v-else class="loading">{{ loadErr || '正在连接成形监测服务…' }}</div>
