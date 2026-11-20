@@ -104,7 +104,7 @@ const navItems = computed(() => {
   const items = [
     { key: 'fleet', name: '设备群总览', shortName: '总览', path: `/${deviceType.value}/dashboard` },
     deviceType.value === 'slm'
-      ? { key: 'status', name: '设备监测', shortName: '监测', path: devicePath('status'), tab: 'status' }
+      ? { key: 'status', name: '状态监测', shortName: '监测', path: devicePath('status'), tab: 'status' }
       : { key: 'device', name: '设备状态监测', shortName: '监测', path: devicePath('status') }
   ]
   // 成形监测目前只有 SLM 实现，SLS 不展示尚未接入的功能。

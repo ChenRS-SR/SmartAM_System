@@ -34,7 +34,7 @@ const routes = [
     path: '/slm/device/:deviceId?',
     name: 'SLMDeviceDashboard',
     component: SLMDashboard,
-    meta: { title: '设备监测', device: 'slm' }
+    meta: { title: '状态监测', device: 'slm' }
   },
   {
     path: '/slm/settings',
@@ -112,7 +112,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  // 原设备健康书签统一进入设备监测，保留设备编号和其他查询参数。
+  // 原设备健康书签统一进入状态监测，保留设备编号和其他查询参数。
   if (to.name === 'SLMDeviceDashboard' && to.query.tab === 'health') {
     next({ path: to.path, query: { ...to.query, tab: 'status' }, hash: to.hash, replace: true })
     return

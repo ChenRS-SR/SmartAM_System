@@ -212,7 +212,7 @@ const canUseDistortionCorrection = computed(() => (
 ))
 
 const panelNavItems = [
-  { key: 'status', name: '设备监测', description: '集中展示设备实时参数、健康诊断与子系统状态，并关联维护建议。' },
+  { key: 'status', name: '状态监测', description: '集中展示设备实时参数、健康诊断与子系统状态，并关联维护建议。' },
   // 成形监测（增材制造异常识别系统）：逐层数据接入、异常识别与异常溯源，组件见 ./forming/
   { key: 'access', name: '数据接入', description: '逐层接入铺粉后、熔化后图像，刮刀与加工平台扭矩和设备状态参数。', forming: true },
   { key: 'recognition', name: '异常识别', description: '融合图像与扭矩的跨设备适配识别，给出逐层异常概率与各模态作用。', forming: true },

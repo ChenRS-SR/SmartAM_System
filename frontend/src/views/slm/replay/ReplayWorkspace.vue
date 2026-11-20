@@ -34,6 +34,17 @@
         <div v-if="frame?.access.alarms.length" class="alarm-list"><div v-for="a in frame.access.alarms" :key="a.time + a.text"><time>{{ a.time }}</time><span>{{ a.text }}</span></div></div>
         <p v-else>当前暂无报警记录。</p>
       </section>
+      <!-- B44 接回 maintenance 分支的维护面板及系统级详情，沿用现有组件。 -->
+      <template v-if="deviceId === 'slm-b44'">
+        <MaintenanceDecisionPanel @system-click="openMaintenanceDetail" />
+        <MaintenanceDetailDialog
+          v-model="maintenanceVisible"
+          :system-key="maintenanceSystem.key"
+          :system-name="maintenanceSystem.name"
+          :device-name="caseConfig.name"
+          organization-label="7103（铂力特）"
+        />
+      </template>
     </template>
     <template v-else-if="tab === 'control'">
       <section class="replay-card">
@@ -56,7 +67,7 @@
   </div>
 </template>
 <script setup>
-import { computed, onMounted, provide } from 'vue'
+import { computed, onMounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useReplayStore, replayCaseForDevice } from '../../../stores/replay'
 import { useSlmDeviceStore } from '../../../stores/slmDevices'
@@ -64,13 +75,21 @@ import Access from '../forming/views/Access.vue'
 import Recognition from '../forming/views/Recognition.vue'
 import Trace from '../forming/views/Trace.vue'
 import SlmControlPanel from '../../../components/slm/SlmControlPanel.vue'
+import MaintenanceDecisionPanel from '../../../components/common/MaintenanceDecisionPanel.vue'
+import MaintenanceDetailDialog from '../../../components/common/MaintenanceDetailDialog.vue'
 import '../forming/forming.css'
 const props = defineProps({ deviceId: { type: String, required: true } })
 const caseConfig = replayCaseForDevice(props.deviceId)
 const replay = useReplayStore(caseConfig.id)
+const maintenanceVisible = ref(false)
+const maintenanceSystem = ref({ key: 'filter', name: '高效滤芯' })
+function openMaintenanceDetail(system) {
+  maintenanceSystem.value = system
+  maintenanceVisible.value = true
+}
 const devices = useSlmDeviceStore()
 const route = useRoute()
-const tabs = [{ key: 'status', label: '设备监测' }, { key: 'access', label: '数据接入' }, { key: 'recognition', label: '异常识别' }, { key: 'trace', label: '异常溯源' }, { key: 'control', label: '闭环调控' }]
+const tabs = [{ key: 'status', label: '状态监测' }, { key: 'access', label: '数据接入' }, { key: 'recognition', label: '异常识别' }, { key: 'trace', label: '异常溯源' }, { key: 'control', label: '闭环调控' }]
 const tab = computed(() => tabs.some(t => t.key === route.query.tab) ? route.query.tab : 'access')
 const views = { access: Access, recognition: Recognition, trace: Trace }
 const frame = computed(() => replay.snapshot)

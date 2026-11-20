@@ -86,7 +86,7 @@ const showSidebar = computed(() => route.path !== '/' && route.path !== '/login'
 // 标签切换也同步顶栏标题，明确当前所在的功能页面。
 const currentPageTitle = computed(() => {
   const labels = {
-    status: '设备监测', control: '闭环调控',
+    status: '状态监测', control: '闭环调控',
     access: '数据接入', recognition: '异常识别', trace: '异常溯源'
   }
   if (route.path.startsWith('/slm/device')) return labels[route.query.tab || 'status'] || route.meta.title
