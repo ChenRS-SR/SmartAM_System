@@ -76,10 +76,9 @@
             <div class="p-head"><span>{{ p.name }}</span><b>{{ fmtPct(p.v) }}</b></div>
             <div class="track"><div class="fill" :style="{ width: p.v * 100 + '%', background: p.color }"></div></div>
           </div>
-          <div class="act">
-            <div class="act-k">诊断结论</div>
-            <p class="diagnosis-conclusion">{{ diagnosis.conclusion }}</p>
-            <p v-if="d.actions.length" class="check-advice">检查建议：{{ d.actions.join('；') }}</p>
+          <div v-if="d.actions.length" class="check-advice">
+            <span>检查建议</span>
+            <p>{{ d.actions.join('；') }}</p>
           </div>
           </div>
         </div>
@@ -128,7 +127,7 @@
       <section class="card pending-diagnosis">
         <div class="card-title">故障诊断</div>
         <EquipmentDiagnosis :recognition="replaySession.snapshot.recognition" />
-        <div class="act-k">诊断结论</div>
+        <div class="act-k">诊断进度</div>
         <p role="status">{{ replaySession.snapshot.tracePending || '等待完整层图像与正常参照层。' }}</p>
         <p v-if="availability?.nextLayer" class="waiting-time">下一可用诊断层：第 {{ availability.nextLayer }} 层 · 按当前倍速约 {{ waitText }}后到达<span v-if="!replaySession.playing">（当前已暂停）</span></p>
         <router-link :to="{path:'/slm/settings',query:{device:replaySession.snapshot.access.device.id}}">前往系统设置调整播放位置</router-link>
@@ -143,7 +142,6 @@ import { computed, inject, onMounted, ref, watch } from 'vue'
 import Region from '../components/Region.vue'
 import EChart from '../components/EChart.vue'
 import EquipmentDiagnosis from '../components/EquipmentDiagnosis.vue'
-import { traceDiagnosis } from '../traceDiagnosis'
 import { api, mediaUrl } from '../api.js'
 import { devicesFor, selectDevice, state } from '../state.js'
 import { fmtPct, useCall, useStepper } from '../composables.js'
@@ -158,7 +156,6 @@ const stepper = useStepper(1500)
 const d = ref(null)
 // 回放设备从工作区共享快照读取，跳转时清空旧结果，不再启动页面各自的计时器。
 if (replaySession) watch(() => replaySession.snapshot?.trace, value => { d.value = value || null }, { immediate: true })
-const diagnosis = computed(() => traceDiagnosis(d.value, replaySession?.snapshot?.recognition))
 const pendingImage = computed(() => replaySession?.snapshot?.access.images.before)
 const availability = computed(() => replaySession?.snapshot?.traceAvailability)
 const waitText = computed(() => {
@@ -347,9 +344,10 @@ const curveOption = computed(() => {
 .c-contrib .z-lim { height: 20px; }
 .c-contrib .hint { margin-top: 10px; font-size: 12px; }
 .diagnosis-details { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
-.diagnosis-details .act { grid-column: 1 / -1; }
-.diagnosis-conclusion { font-size: 19px; font-weight: 600; margin: 6px 0; }
-.check-advice, .waiting-time { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+.check-advice { grid-column: 1 / -1; margin-top: 6px; padding: 12px 16px; text-align: center; border: 1px solid var(--border); border-top: 3px solid var(--dev); border-radius: 4px; background: var(--dev-soft); line-height: 1.6; }
+.check-advice span { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.check-advice p { margin: 4px 0 0; font-size: 17px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.waiting-time { font-size: 13px; color: var(--text-2); line-height: 1.6; }
 .pending-layout { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr); gap: 12px; }
 .pending-evidence img { width: 100%; max-height: 270px; object-fit: contain; }
 /* 同行证据与诊断卡片随网格行等高，避免左侧内容较少时底边悬空。 */
