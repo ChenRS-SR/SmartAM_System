@@ -26,7 +26,7 @@
       <div class="status-details">
         <section class="replay-card">
           <h2>异常溯源分析</h2>
-          <template v-if="frame?.trace"><p>第 {{ frame.trace.layer }} 层：{{ frame.trace.conclusion }}</p><p>支撑区域：{{ frame.trace.support.join('、') || '无' }}；{{ frame.trace.actions.join('；') || '暂无处置建议' }}</p></template>
+          <template v-if="frame?.trace"><p>第 {{ frame.trace.layer }} 层：{{ frame.trace.conclusion }}</p><p>{{ frame.trace.actions.join('；') || '暂无处置建议' }}</p></template>
           <p v-else>当前时刻尚无可用溯源结果。</p>
           <p class="data-note">装备健康评级暂无数据。</p>
         </section>

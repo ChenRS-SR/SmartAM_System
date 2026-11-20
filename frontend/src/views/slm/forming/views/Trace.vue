@@ -76,9 +76,6 @@
             <div class="p-head"><span>{{ p.name }}</span><b>{{ fmtPct(p.v) }}</b></div>
             <div class="track"><div class="fill" :style="{ width: p.v * 100 + '%', background: p.color }"></div></div>
           </div>
-          <div v-if="d.mode === 'dual'" class="kv ev"><span class="k">支撑区域</span>
-            <div class="ev-lines"><div>工艺：<b>{{ zoneText(d.factors.proc.support) }}</b></div><div>设备：<b>{{ zoneText(d.factors.dev.support) }}</b></div></div></div>
-          <div v-else class="kv"><span class="k">支撑区域</span><b class="t-zone">{{ zoneText(d.support) }}</b></div>
           <div class="act">
             <div class="act-k">诊断结论</div>
             <p class="diagnosis-conclusion">{{ diagnosis.conclusion }}</p>
@@ -223,11 +220,10 @@ const upperText = computed(() => {
   if (!f.proc) return f.dev.upper.toFixed(2)
   return f.dev.upper === f.proc.upper ? f.dev.upper.toFixed(2) : `工艺 ${f.proc.upper.toFixed(2)}　设备 ${f.dev.upper.toFixed(2)}`
 })
-const zoneText = (z) => (z && z.length ? z.join('、') : '无')
 const mx = (a, b) => Math.max(a, b)
 const probs = computed(() => [
-  ...(d.value.factors.proc ? [{ name: '工艺诱发异常概率', v: d.value.factors.proc.prob, color: 'var(--proc)' }] : []),
-  { name: '设备诱发异常概率', v: d.value.factors.dev.prob, color: 'var(--dev)' },
+  ...(d.value.factors.proc ? [{ name: '工艺问题', v: d.value.factors.proc.prob, color: 'var(--proc)' }] : []),
+  { name: '设备问题', v: d.value.factors.dev.prob, color: 'var(--dev)' },
 ])
 const tagCls = (r) => ({ '由二者共同诱发': 't-both', '由工艺因素诱发': 't-proc', '由设备因素诱发': 't-dev', '已识别异常，归因待确认': 't-pending', '贡献超限，待复核': 't-pending' }[r] || 't-nor')
 const tagTxt = (r) => ({ '由二者共同诱发': '二者共同', '由工艺因素诱发': '工艺因素', '由设备因素诱发': '设备因素', '已识别异常，归因待确认': '异常·待归因', '贡献超限，待复核': '超限·待复核' }[r] || r)
@@ -316,11 +312,6 @@ const curveOption = computed(() => {
 .p-head b { font-size: 17px; }
 .track { height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; margin-top: 2px; }
 .fill { height: 100%; border-radius: 4px; }
-.kv { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 16px; flex-wrap: nowrap; }
-.kv.ev { align-items: flex-start; margin-top: 8px; }
-.ev-lines { font-size: 16px; line-height: 1.4; }
-.ev-lines b { font-size: 17px; }
-.t-zone { color: var(--text); font-size: 18px; }
 .act { margin-top: auto; padding-bottom: 2px; }
 .act-k { font-size: 16px; color: var(--text-2); margin: 6px 0 4px; }
 .act-row { display: flex; gap: 6px; }
@@ -337,8 +328,6 @@ const curveOption = computed(() => {
 .act-box.none .act-t { color: var(--text-2); }
 .c-res.dense .verdict { font-size: 23px; padding: 3px 10px; margin-bottom: 2px; }
 .c-res.dense .prob { margin-top: 3px; }
-.c-res.dense .kv.ev { margin-top: 5px; }
-.c-res.dense .ev-lines { line-height: 1.3; }
 .c-curve { grid-column: 2; grid-row: 2; }
 .c-rec { grid-column: 1; grid-row: 2; }
 .curve-note { font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
