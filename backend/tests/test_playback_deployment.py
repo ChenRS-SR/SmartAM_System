@@ -33,6 +33,10 @@ with TestClient(app) as client:
         response = client.get(base + '/manifest')
         assert response.status_code == 200, response.text
         manifest = response.json()
+        start = client.get(base + '/snapshot', params={'offset':manifest['defaultOffset']}).json()
+        assert start['recognition'] and start['trace'], entry['id']
+        assert start['recognition']['layer'] == start['layer'], entry['id']
+        assert manifest['defaultOffset'] > 0
         frame = client.get(base + '/snapshot', params={'offset': manifest['duration']}).json()
         assert frame['processing']['real'] is False
         assert frame['recognition'] and frame['trace']

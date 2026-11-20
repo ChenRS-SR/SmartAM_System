@@ -1,10 +1,11 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import catalog from '../../../backend/replay_cases/catalog.json'
+import { standardDevice, standardDeviceName } from '../utils/deviceNames'
 
 export const REPLAY_DEVICE_ID = 'slm-b17-replay'
 export const REPLAY_CASE_ID = 'blt-s430-20240828'
-export const REPLAY_CASES = catalog.cases
+export const REPLAY_CASES = catalog.cases.map(standardDevice)
 export const replayCaseForDevice = id => REPLAY_CASES.find(item => item.deviceId === id)
 const definitions = new Map()
 
@@ -38,16 +39,19 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
   async function refresh(version = revision) {
     const restarting = restartPending && playing.value
     if (restarting) {
-      anchorOffset = 0
+      anchorOffset = manifest.value.defaultOffset
       anchorClock = performance.now()
       restartPending = false
     }
-    const requested = restarting ? 0 : position()
+    const requested = restarting ? manifest.value.defaultOffset : position()
     const request = new AbortController()
     controller = request
     try {
       const next = await read(`snapshot?offset=${requested}&processing=${realProcessing.value ? 'real' : 'archive'}`, request.signal)
       if (version !== revision) return
+      for (const payload of [next.access, next.recognition, next.trace]) {
+        if (payload?.device) payload.device.name = standardDeviceName(payload.device.name)
+      }
       snapshot.value = next
       if (next.processing && !next.processing.real) realProcessing.value = false
       error.value = ''
@@ -93,8 +97,8 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
         const saved = localStorage.getItem(KEY)
         const previous = saved ? JSON.parse(saved) : null
         realProcessing.value = previous?.realProcessing === true
-        // 新页面会话从头以 1 倍速播放；页面内导航复用此 store，不重置进度。
-        await move(0, true)
+        // 新会话从已具备分析结果的默认位置以 1 倍速播放。
+        await move(manifest.value.defaultOffset, true)
       } catch (e) {
         error.value = e.message
         manifest.value = null
@@ -119,7 +123,7 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
   }
   const play = () => {
     suspended = false
-    return move(snapshot.value?.offset >= manifest.value.duration ? 0 : anchorOffset, true, false)
+    return move(snapshot.value?.offset >= manifest.value.duration ? manifest.value.defaultOffset : anchorOffset, true, false)
   }
   const seek = (offset) => move(Number(offset))
   const seekLayer = (layer) => seek(manifest.value.layers.find(r => r.layer === Number(layer)).offset)

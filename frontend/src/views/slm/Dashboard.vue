@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="dashboard-header">
       <div class="title-block">
-        <h1 class="page-title">{{ selectedDeviceName }} {{ isFormingPanel ? '成形质量' : '装备诊断' }}</h1>
+        <h1 class="page-title">{{ selectedDeviceName }}</h1>
         <div class="device-subtitle">
           {{ selectedDevice?.dataTag || '7103设备' }} · {{ selectedDevice?.model || 'SLM 设备' }} · {{ selectedDevice?.location || '未设置位置' }}
         </div>
@@ -27,20 +27,6 @@
           设备总览
         </el-button>
         <template v-if="activePanel !== 'control'">
-        <!-- 模式指示器 -->
-        <span
-          class="header-status-pill"
-          :class="settings.use_mock ? 'warning' : 'success'"
-        >
-          {{ settings.use_mock ? '模拟模式' : '真实硬件' }}
-        </span>
-        <span
-          v-if="settings.use_mock"
-          class="header-status-pill"
-          :class="selectedMockSourceReady ? 'success' : 'info'"
-        >
-          {{ selectedMockCaseStatusText }}
-        </span>
         <span
           class="header-status-pill"
           :class="isRunning ? 'success' : 'info'"
@@ -78,14 +64,6 @@
       </div>
 
       <template v-if="activePanel === 'status'">
-        <section v-if="settings.use_mock && selectedMockSourceType === 'stored7103'" class="stored-source-panel">
-          <div>
-            <strong>7103存储数据模拟</strong>
-            <span>当前设备使用已导入的7103参数和诊断结果，不要求连接实时图像通道。</span>
-          </div>
-          <el-tag type="success" size="small">在线</el-tag>
-        </section>
-
         <!-- 当前设备实时参数 -->
         <section class="parameter-panel">
           <div class="panel-header">
@@ -118,9 +96,9 @@
         </div>
       </template>
 
+      <FaultCasePanel v-else-if="faultDemo" :key="selectedDeviceId" :device="selectedDevice" :data="faultDemo" :module="activePanel" :parameters="liveParameters" />
       <template v-else-if="activePanel === 'control'">
         <!-- 调控承接成形分析，仅保留参数调整和指令反馈。 -->
-        <QualityControlContext :device="selectedDeviceId" @open-trace="switchPanel('trace')" />
         <div class="slm-control-section">
           <SlmControlPanel :key="selectedDeviceId" />
         </div>
@@ -159,11 +137,12 @@ import axios from 'axios'
 import { resolveBackendWebSocketUrl } from '../../utils/backendBase'
 
 import EquipmentHealthStatus from '../../components/slm/EquipmentHealthStatus.vue'
-import QualityControlContext from '../../components/slm/QualityControlContext.vue'
 import SlmControlPanel from '../../components/slm/SlmControlPanel.vue'
 import MaintenanceDecisionPanel from '../../components/common/MaintenanceDecisionPanel.vue'
 import MaintenanceDetailDialog from '../../components/common/MaintenanceDetailDialog.vue'
 import FormingPanel from './forming/FormingPanel.vue'
+import FaultCasePanel from '../../components/slm/FaultCasePanel.vue'
+import faultDemos from '../../assets/fault-demos.json'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
 import { useROIStore } from '../../stores/roiStore'
 import { readSlmBenchSettings } from '../../utils/slmBenchSettings'
@@ -183,6 +162,7 @@ const HUAKE_VIDEO_DEVICE_IDS = new Set(['huake-slm-01', 'huake-slm-02', 'huake-s
 
 const selectedDeviceId = ref(route.params.deviceId || '')
 const selectedDevice = computed(() => slmDeviceStore.getDeviceById(selectedDeviceId.value) || slmDeviceStore.firstDevice)
+const faultDemo = computed(() => faultDemos[selectedDeviceId.value])
 const selectedDeviceName = computed(() => selectedDevice.value?.name || 'SLM设备')
 const selectedMockCase = computed(() => getDeviceMockCase(selectedDevice.value))
 const distortionCorrectionEnabled = ref(localStorage.getItem('slmHuakeDistortionCorrection') !== '0')

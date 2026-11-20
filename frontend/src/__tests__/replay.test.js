@@ -15,18 +15,18 @@ beforeEach(() => {
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
 describe('设备回放共享进度', () => {
-  it('新会话忽略旧进度和倍速，从头以 1 倍速自动播放', async () => {
+  it('新会话忽略旧进度和倍速，从默认有效位置以 1 倍速自动播放', async () => {
     localStorage.setItem('smartam-replay-blt-s430-20240828', JSON.stringify({ offset: 70, speed: 10, realProcessing: true }))
     const replay = useReplayStore()
     await replay.open()
     expect(replay.speed).toBe(1)
-    expect(replay.snapshot.offset).toBe(0)
+    expect(replay.snapshot.offset).toBe(10)
     expect(replay.playing).toBe(true)
     expect(replay.realProcessing).toBe(true)
     await vi.advanceTimersByTimeAsync(1000)
-    expect(replay.snapshot.offset).toBeCloseTo(1)
+    expect(replay.snapshot.offset).toBeCloseTo(11)
   })
-  it('末层展示后自动从头循环，并继续按当前倍速推进', async () => {
+  it('末层展示后自动从默认有效位置循环，并继续按当前倍速推进', async () => {
     const replay = useReplayStore()
     await replay.open()
     await replay.setSpeed(5)
@@ -35,11 +35,11 @@ describe('设备回放共享进度', () => {
     expect(replay.snapshot.offset).toBe(100)
     expect(replay.playing).toBe(true)
     await vi.advanceTimersByTimeAsync(250)
-    expect(replay.snapshot.offset).toBe(0)
+    expect(replay.snapshot.offset).toBe(10)
     await vi.advanceTimersByTimeAsync(1000)
-    expect(replay.snapshot.offset).toBeCloseTo(5)
+    expect(replay.snapshot.offset).toBeCloseTo(15)
   })
-  it('在末帧暂停会取消循环，恢复播放从头开始', async () => {
+  it('在末帧暂停会取消循环，恢复播放从默认有效位置开始', async () => {
     const replay = useReplayStore()
     await replay.open()
     await replay.seek(100)
@@ -48,7 +48,7 @@ describe('设备回放共享进度', () => {
     expect(replay.snapshot.offset).toBe(100)
     expect(replay.playing).toBe(false)
     await replay.play()
-    expect(replay.snapshot.offset).toBe(0)
+    expect(replay.snapshot.offset).toBe(10)
     expect(replay.playing).toBe(true)
   })
   it('进入自动播放，主动暂停后在设置与功能页间导航保留暂停', async () => {

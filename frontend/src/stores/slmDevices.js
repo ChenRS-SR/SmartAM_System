@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
+import { standardDevice } from '../utils/deviceNames'
 
 const STORAGE_KEY = 'smartam-slm-devices-v2'
 const BACKEND_DEVICES_ENDPOINT = '/api/slm/device-group/devices'
@@ -134,6 +135,7 @@ const cloneDevice = (device) => ({
 })
 
 const normalizeDevice = (device, index) => {
+  device = standardDevice(device)
   const sourceStatusCode = device.healthData?.status_code ?? (device.online === false ? -1 : 0)
   const statusCode = Number(sourceStatusCode)
   const online = device.online !== false
