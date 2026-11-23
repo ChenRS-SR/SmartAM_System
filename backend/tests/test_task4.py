@@ -155,13 +155,57 @@ class Task4Tests(unittest.TestCase):
         result=self.call('quality-control',dict(base,layerNo=9))
         self.assertEqual([r['strategy'] for r in result['regions']],['stop','stop'])
         self.assertTrue(all(r['strategy']=='adjust' for r in self.call('quality-control',{'deviceId':'slm-b10'})['regions']))
-        from task4.storage import active_strategies
-        self.assertEqual(active_strategies('slm-b44','another-task'),{})
+        from task4.storage import active_control_state
+        self.assertEqual(active_control_state('slm-b44','another-task')[0],{})
         apply('region-1','adjust','R4')
         result=self.call('quality-control',base)
         self.assertEqual([r['strategy'] for r in result['regions']],['adjust','adjust'])
         self.assertTrue(result['regions'][0]['automatic'])
         self.assertFalse(result['executed'])
+
+    def test_all_global_strategies_cover_new_regions_and_legacy_plans(self):
+        import copy, json
+        from task4.storage import database, active_control_state
+        base={'deviceId':'slm-b44','layerNo':8}
+        original=service.slice_for('slm-b44','B44-20250321-09-20',8)
+        expanded=copy.deepcopy(original)
+        expanded['regions'].append(dict(expanded['regions'][0],id='region-3',name='区域3'))
+        for strategy in ('recoat','stop'):
+            with self.subTest(strategy=strategy):
+                plan=self.call('quality-control',dict(base,operation='save',requestId='legacy-'+strategy,strategy=strategy))
+                # 模拟旧版本按单区域保存的整层方案，应用时必须补齐实际切片区域。
+                legacy=dict(plan,regions=plan['regions'][:1])
+                with database() as db:
+                    db.execute('UPDATE plans SET response_json=? WHERE id=?',(json.dumps(legacy),plan['planId']))
+                applied=self.call('quality-control',{'deviceId':'slm-b44','operation':'simulate','planId':plan['planId']})
+                self.assertEqual(len(applied['regions']),2)
+                with patch.object(service,'slice_for',return_value=expanded):
+                    result=self.call('quality-control',dict(base,layerNo=9))
+                    self.assertEqual([r['strategy'] for r in result['regions']],[strategy]*3)
+                    self.assertTrue(all(r['scope']=='layer' and not r['automatic'] for r in result['regions']))
+                plan2=self.call('quality-control',dict(base,operation='save',requestId='regional-'+strategy,strategy='remelt',regionIds=['region-2']))
+                self.call('quality-control',{'deviceId':'slm-b44','operation':'simulate','planId':plan2['planId']})
+                self.assertIsNone(active_control_state('slm-b44','B44-20250321-09-20')[1])
+                self.assertEqual([r['strategy'] for r in self.call('quality-control',base)['regions']],['adjust','remelt'])
+
+    def test_strategy_one_and_two_are_independent_by_region(self):
+        base={'deviceId':'slm-b44','layerNo':8,'operation':'save'}
+        for region,strategy,auto in [('region-1','adjust',False),('region-2','remelt',True)]:
+            plan=self.call('quality-control',dict(base,regionIds=[region],strategy=strategy,automatic=auto,requestId=region))
+            self.assertEqual(len(plan['regions']),1)
+            self.call('quality-control',{'deviceId':'slm-b44','planId':plan['planId'],'operation':'simulate'})
+        rows=self.call('quality-control',{'deviceId':'slm-b44','layerNo':9})['regions']
+        self.assertEqual([r['strategy'] for r in rows],['adjust','remelt'])
+        self.assertEqual([r['scope'] for r in rows],['region','region'])
+        self.assertFalse(rows[0]['automatic'])
+        self.assertEqual(rows[0]['status'],'自动调整已暂停')
+
+    def test_existing_layer_strategy_migrates_once(self):
+        from task4.storage import database, active_control_state
+        with database() as db:
+            db.execute('INSERT INTO region_strategies VALUES (?,?,?,?,?,?)',('slm-b44','old-task','region-1','old-plan','stop',1))
+            db.execute('PRAGMA user_version=0')
+        self.assertEqual(active_control_state('slm-b44','old-task')[1]['strategy'],'stop')
 
     def test_equipment_diagnosis(self):
         data=self.call('equipment-diagnosis',{})

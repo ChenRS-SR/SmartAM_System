@@ -14,7 +14,7 @@ from core.slm_device_data import get_slm_device_data_store
 from replay.service import case_for_device, get_case, replay_devices
 from replay.router import manifest
 from .schemas import Selection
-from .storage import database, remember, stored_plan, active_strategies, activate_plan
+from .storage import database, remember, stored_plan, activate_plan, active_control_state
 
 ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger(__name__)
@@ -150,7 +150,8 @@ def control(request):
         if request.operation == 'execute':
             raise HTTPException(409, '尚未绑定真机执行器，方案可保存或模拟')
         if request.operation == 'simulate':
-            return activate_plan(request.deviceId, request.planId)
+            regions = slice_for(request.deviceId, result['taskId'], result['layerNo'])['regions'] if result['strategy'] in ('recoat','stop') else None
+            return activate_plan(request.deviceId, request.planId, regions)
         return result
     fingerprint = json.dumps(request.model_dump(mode='json'), sort_keys=True, ensure_ascii=False)
     if request.operation == 'save':
@@ -173,14 +174,14 @@ def control(request):
     if request.strategy in ('recoat', 'stop'):
         ids = [r['id'] for r in regions]
     baseline = request.currentParameters.model_dump()
-    active = active_strategies(request.deviceId, result['taskId'])
+    active, whole_layer = active_control_state(request.deviceId, result['taskId'])
     signal = asset('fault-demos.json').get(request.deviceId, {}).get('control')
     prob = result['recognition']['prob'] if result['recognition'] else None
     rows = []
     for region in regions:
         if region['id'] not in ids:
             continue
-        existing = active.get(region['id'])
+        existing = whole_layer or active.get(region['id'])
         # 预览与导出默认读取各区域当前策略；显式策略或保存操作用于生成新的替换方案。
         use_active = request.operation == 'preview' and 'strategy' not in request.model_fields_set and existing is not None
         strategy = existing['strategy'] if use_active else request.strategy
