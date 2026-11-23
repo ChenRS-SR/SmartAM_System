@@ -133,6 +133,33 @@ class Task4Tests(unittest.TestCase):
             values=list(pool.map(lambda _: self.call('quality-control',dict(request,requestId='parallel')),range(4)))
         self.assertEqual(len({v['planId'] for v in values}),1)
 
+    def test_region_strategies_replace_each_other_and_survive_refresh(self):
+        base={'deviceId':'slm-b44','layerNo':8}
+        def apply(region, strategy, number):
+            plan=self.call('quality-control',dict(base,regionIds=[region],strategy=strategy,operation='save',requestId=number))
+            self.call('quality-control',dict(deviceId='slm-b44',planId=plan['planId'],operation='simulate'))
+            return plan
+        first=apply('region-1','remelt','R1')
+        result=self.call('quality-control',base)
+        self.assertEqual(result['strategy'],'mixed')
+        self.assertEqual([r['strategy'] for r in result['regions']],['remelt','adjust'])
+        self.assertFalse(result['regions'][0]['automatic'])
+        self.assertEqual(result['regions'][0]['controlParameters'],result['regions'][0]['currentParameters'])
+        apply('region-2','recoat','R2')
+        apply('region-1','stop','R3')
+        # 重复旧请求不可重新启用已经被停机策略替换的重熔方案。
+        self.call('quality-control',dict(deviceId='slm-b44',planId=first['planId'],operation='simulate'))
+        result=self.call('quality-control',dict(base,layerNo=9))
+        self.assertEqual([r['strategy'] for r in result['regions']],['stop','recoat'])
+        self.assertTrue(all(r['strategy']=='adjust' for r in self.call('quality-control',{'deviceId':'slm-b10'})['regions']))
+        from task4.storage import active_strategies
+        self.assertEqual(active_strategies('slm-b44','another-task'),{})
+        apply('region-1','adjust','R4')
+        result=self.call('quality-control',base)
+        self.assertEqual([r['strategy'] for r in result['regions']],['adjust','recoat'])
+        self.assertTrue(result['regions'][0]['automatic'])
+        self.assertFalse(result['executed'])
+
     def test_equipment_diagnosis(self):
         data=self.call('equipment-diagnosis',{})
         self.assertEqual(data['deviceCount'],32)

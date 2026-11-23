@@ -7,8 +7,9 @@
         <div class="region-list">
           <button v-for="(region, i) in slice.regions" :key="region.id" :class="{selected: selectedId === region.id}" @click="selectedId = region.id" :aria-pressed="selectedId === region.id">
             <strong><i :style="{background:region.color}"></i>{{ region.name }}</strong>
+            <span class="region-strategy" v-if="plans[i]">策略{{ controlStrategies[plans[i].strategy].number }} · {{ controlStrategies[plans[i].strategy].name }}</span>
             <span>{{ plans[i]?.status || '读取参数配置…' }}</span>
-            <small v-if="plans[i]">功率 {{ plans[i].parameters.fill_power }} W · 速度 {{ plans[i].parameters.fill_speed }} mm/s · 层间等待 {{ plans[i].parameters.layer_wait_time }} s</small>
+            <small v-if="plans[i]?.strategy === 'adjust'">功率 {{ plans[i].parameters.fill_power }} W · 速度 {{ plans[i].parameters.fill_speed }} mm/s · 层间等待 {{ plans[i].parameters.layer_wait_time }} s</small>
           </button>
         </div>
       </div>
@@ -20,14 +21,17 @@
         <section aria-label="当前工艺参数"><h3>当前工艺参数</h3>
           <label v-for="key in paramKeys" :key="key">{{ paramDefs[key].label }} / {{ paramDefs[key].unit }}<input :value="activePlan.baseline[key]" readonly :aria-label="`当前${paramDefs[key].label}`" /></label>
         </section>
-        <section class="adaptive-form" aria-label="自适应调整"><div class="adaptive-heading"><h3>自适应调整</h3><input v-model="automatic" type="checkbox" role="switch" aria-label="区域自适应调整" /></div>
+        <section class="adaptive-form" :class="{replaced:activePlan.strategy !== 'adjust'}" aria-label="自适应调整"><div class="adaptive-heading"><h3>自适应调整</h3><input :checked="activePlan.automatic" :disabled="submitting" @change="submitStrategy('adjust', $event.target.checked)" type="checkbox" role="switch" aria-label="区域自适应调整" /></div>
+          <template v-if="activePlan.strategy === 'adjust'">
           <label v-for="key in paramKeys" :key="key" :class="{changed:activePlan.parameters[key] !== activePlan.baseline[key]}">{{ paramDefs[key].label }} / {{ paramDefs[key].unit }}<input :value="activePlan.parameters[key]" readonly :aria-label="`自适应${paramDefs[key].label}`" /></label>
+          </template>
+          <div v-else class="strategy-replacement"><strong>层间调控策略{{ controlStrategies[activePlan.strategy].number }} · {{ controlStrategies[activePlan.strategy].name }}</strong><span>当前区域已切换策略，自适应参数调整已停用</span></div>
         </section>
         <p class="plan-status" aria-live="polite">{{ selectedRegion.name }} · {{ activePlan.status }} · 第 {{ frame.layer }} 层</p>
       </div>
       <p v-else class="note">正在读取工艺基准…</p>
     </section>
-    <LayerStrategyPlaceholders :region-name="selectedRegion.name" :region-color="selectedRegion.color" :enabled="!!activePlan && !submitting" @strategy="submitStrategy" />
+    <LayerStrategyPlaceholders :region-name="selectedRegion.name" :region-color="selectedRegion.color" :enabled="!!activePlan && !submitting" :active-strategy="activePlan?.strategy" :pending-strategy="pendingRegion === selectedId ? pendingStrategy : ''" @strategy="submitStrategy" />
   </div>
 </template>
 <script setup>
@@ -36,12 +40,12 @@ import { controlParameterKeys as paramKeys, controlParameterDefs as paramDefs } 
 import { REPLAY_CASES } from '../../stores/replay'
 import { task4Api } from '../../utils/task4Api'
 import { readCurrentTask4, downloadTask4 } from '../../utils/exportTask4'
+import { controlStrategies } from './controlStrategies'
 import { ElMessage } from 'element-plus'
 import LayerStrategyPlaceholders from './LayerStrategyPlaceholders.vue'
 import RegionBadge from './RegionBadge.vue'
 const props = defineProps({ frame: { type: Object, required: true }, slice: { type: Object, required: true } })
 const selectedId = ref(props.slice.regions[0].id)
-const automatic = ref(true)
 const config = ref(null)
 const error = ref('')
 // 跨层保留所选颜色区域；区域消失时选当前层首个真实区域，不保留旧层参数。
@@ -51,6 +55,8 @@ watch(() => props.slice, slice => {
 const selectedRegion = computed(() => props.slice.regions.find(r => r.id === selectedId.value))
 const plans = ref([])
 const submitting = ref(false)
+const pendingRegion = ref(''), pendingStrategy = ref('')
+let disposed = false
 const exporting = ref(false)
 const isReplay = computed(() => REPLAY_CASES.some(c => c.id === props.frame.caseId))
 async function exportCurrent() {
@@ -58,7 +64,7 @@ async function exportCurrent() {
   const frame = props.frame
   const request = selection()
   try {
-    const data = await readCurrentTask4(request.deviceId, frame, {currentParameters:request.currentParameters, automatic:request.automatic})
+    const data = await readCurrentTask4(request.deviceId, frame, {currentParameters:request.currentParameters})
     downloadTask4(data)
   } catch (e) { ElMessage.error(e.message) }
   finally { exporting.value = false }
@@ -67,7 +73,7 @@ let previewController, actionController
 const deviceId = computed(() => REPLAY_CASES.find(c => c.id === props.frame.caseId)?.deviceId || props.frame.caseId)
 function selection() {
   const baseline = config.value.defaults
-  const request = { deviceId: deviceId.value, automatic: automatic.value,
+  const request = { deviceId: deviceId.value,
     currentParameters: { laserPower: baseline.fill_power, fillSpeed: baseline.fill_speed, layerWaitTime: baseline.layer_wait_time } }
   // 档案设备没有逐层模型数据；真实案例传当前游标，避免读取尚未到达的层结果。
   if (REPLAY_CASES.some(c => c.deviceId === deviceId.value)) {
@@ -78,36 +84,45 @@ function selection() {
   return request
 }
 const fields = p => ({fill_power:p.laserPower, fill_speed:p.fillSpeed, layer_wait_time:p.layerWaitTime})
-watch([() => props.frame.caseId, () => props.frame.layer, () => props.frame.recognition?.layer,
-  () => props.frame.processing?.real, automatic, config], async () => {
+async function refreshPlans() {
   previewController?.abort()
-  if (!config.value) return
+  if (!config.value || disposed || submitting.value) return
   const controller = new AbortController()
   previewController = controller
-  plans.value = []
   try {
     const data = await task4Api('quality-control', selection(), controller.signal)
-    if (controller.signal.aborted) return
+    if (controller.signal.aborted || disposed) return
     plans.value = data.regions.map(r => ({...r, baseline:fields(r.currentParameters), parameters:fields(r.controlParameters)}))
     error.value = ''
   } catch (e) { if (e.name !== 'AbortError') error.value = e.message }
-}, { immediate:true })
-async function submitStrategy(strategy) {
-  if (submitting.value) return
+}
+watch([() => props.frame.caseId, () => props.frame.layer, () => props.frame.recognition?.layer,
+  () => props.frame.processing?.real, config], refreshPlans, { immediate:true })
+async function submitStrategy(strategy, automatic = true) {
+  if (submitting.value || !config.value) return
   submitting.value = true
-  const request = {...selection(), strategy, regionIds:[selectedId.value], operation:'save',
+  error.value = ''
+  previewController?.abort()
+  const request = {...selection(), strategy, automatic, regionIds:[selectedId.value], operation:'save',
     requestId:`ui-${Date.now()}-${Math.random().toString(36).slice(2)}`}
-  const regionName = selectedRegion.value.name
+  pendingRegion.value = selectedId.value
+  pendingStrategy.value = strategy
+  // 当前只提示提交过程；成功/失败结论留给后续真实执行器回执。
+  ElMessage.info({message:`${selectedRegion.value.name} · ${controlStrategies[strategy].name}应用中`, duration:2000})
   const controller = new AbortController()
   actionController = controller
   try {
     const plan = await task4Api('quality-control', request, controller.signal)
     await task4Api('quality-control', {deviceId:request.deviceId, planId:plan.planId, operation:'simulate'}, controller.signal)
-    ElMessage.success(`${regionName}策略已模拟`)
-  } catch (e) { if (e.name !== 'AbortError') ElMessage.error(e.message) }
-  finally { submitting.value = false }
+  } catch (e) { if (e.name !== 'AbortError') error.value = e.message }
+  finally {
+    submitting.value = false
+    pendingRegion.value = ''; pendingStrategy.value = ''
+  }
+  // 从持久化状态重读全部区域，旧的预览请求不得把已切换策略覆盖回策略1。
+  if (!error.value && !disposed) await refreshPlans()
 }
-onUnmounted(() => { previewController?.abort(); actionController?.abort() })
+onUnmounted(() => { disposed = true; previewController?.abort(); actionController?.abort() })
 const activePlan = computed(() => plans.value.find(p => p.regionId === selectedId.value))
 onMounted(async () => {
   try {
@@ -136,6 +151,10 @@ header label { margin-left: auto; display: flex; gap: 8px; align-items: center; 
 .region-parameters section { border: 1px solid var(--am-card-border); padding: 18px; min-width: 0; }
 .adaptive-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .adaptive-form { border-top: 3px solid var(--am-accent) !important; background: var(--am-card-bg-2); }
+.region-strategy { font-weight:600; }
+.adaptive-form.replaced { border-top-color:var(--am-card-border) !important; }
+.strategy-replacement { min-height:150px; display:flex; flex-direction:column; justify-content:center; gap:12px; font-size:14px; }
+.strategy-replacement span { color:var(--am-text-2); }
 .adaptive-heading input { accent-color: var(--am-accent); }
 .region-parameters label { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; font-size: 13px; color: var(--am-text-2); }
 .region-parameters input:not([type="checkbox"]) { width: 100%; box-sizing: border-box; border: 1px solid var(--am-card-border); background: var(--am-card-bg-2); padding: 9px; color: var(--am-text); font: inherit; }

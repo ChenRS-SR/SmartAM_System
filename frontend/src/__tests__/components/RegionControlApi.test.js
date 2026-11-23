@@ -2,12 +2,13 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import RegionControlPanel from '../../components/slm/RegionControlPanel.vue'
 import LayerStrategyPlaceholders from '../../components/slm/LayerStrategyPlaceholders.vue'
+import { ElMessage } from 'element-plus'
 import { task4Api } from '../../utils/task4Api'
 vi.mock('../../utils/task4Api', () => ({ task4Api: vi.fn() }))
-vi.mock('element-plus', () => ({ElMessage:{success:vi.fn(),error:vi.fn()}}))
+vi.mock('element-plus', () => ({ElMessage:{success:vi.fn(),error:vi.fn(),info:vi.fn()}}))
 afterEach(() => {vi.restoreAllMocks();vi.unstubAllGlobals();task4Api.mockReset()})
 const slice={annotatedImage:'/slice.svg',regions:[{id:'region-1',name:'区域1',color:'#fff'}]}
-const output=power=>({regions:[{regionId:'region-1',status:'保持基准',currentParameters:{laserPower:200,fillSpeed:1000,layerWaitTime:2},controlParameters:{laserPower:power,fillSpeed:1000,layerWaitTime:2}}]})
+const output=power=>({regions:[{regionId:'region-1',strategy:'adjust',automatic:true,status:'保持基准',currentParameters:{laserPower:200,fillSpeed:1000,layerWaitTime:2},controlParameters:{laserPower:power,fillSpeed:1000,layerWaitTime:2}}]})
 const setup=async()=>{
  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({defaults:{fill_power:200,fill_speed:1000,layer_wait_time:2}})}))
  const w=mount(RegionControlPanel,{props:{slice,frame:{caseId:'b44-20250321-09-20',layer:8,offset:1000,recognition:{layer:8}}},global:{stubs:{ElButton:true}}})
@@ -33,4 +34,31 @@ describe('区域调控通过开放接口统一生成方案',()=>{
   expect(task4Api.mock.calls[2][1]).toEqual({deviceId:'slm-b44',operation:'simulate',planId:'P1'})
   w.unmount()
  })
+ it('区域策略互斥、区域独立，并且只提示一次应用中',async()=>{
+  const state={'region-1':'adjust','region-2':'adjust'}
+  let saved
+  task4Api.mockImplementation(async (_,body)=>{
+   if(body.operation==='save'){saved=body;return {planId:'P2'}}
+   if(body.operation==='simulate'){state[saved.regionIds[0]]=saved.strategy;return {state:'simulated'}}
+   return {regions:Object.entries(state).map(([regionId,strategy])=>({...output(180).regions[0],regionId,strategy,automatic:strategy==='adjust',status:strategy==='adjust'?'自动调整':'策略2 · 重熔'}))}
+  })
+  const w=await setup()
+  await w.setProps({slice:{...slice,regions:[...slice.regions,{id:'region-2',name:'区域2',color:'#ddd'}]}})
+  const before=ElMessage.info.mock.calls.length
+  w.findComponent(LayerStrategyPlaceholders).vm.$emit('strategy','remelt');await flushPromises()
+  expect(w.get('[aria-label="区域自适应调整"]').element.checked).toBe(false)
+  expect(w.find('.strategy-replacement').text()).toContain('重熔')
+  expect(w.findAll('.region-strategy').map(x=>x.text())).toEqual(['策略2 · 重熔','策略1 · 自适应调整'])
+  expect(ElMessage.info.mock.calls.length-before).toBe(1)
+  expect(ElMessage.info.mock.lastCall[0].message).toContain('应用中')
+  expect(ElMessage.success).not.toHaveBeenCalled()
+  await w.findAll('.region-list button')[1].trigger('click')
+  expect(w.get('[aria-label="区域自适应调整"]').element.checked).toBe(true)
+  await w.findAll('.region-list button')[0].trigger('click')
+  await w.get('[aria-label="区域自适应调整"]').setValue(true);await flushPromises()
+  expect(w.find('.strategy-replacement').exists()).toBe(false)
+  expect(state['region-1']).toBe('adjust')
+  w.unmount()
+ })
+
 })

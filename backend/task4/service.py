@@ -14,7 +14,7 @@ from core.slm_device_data import get_slm_device_data_store
 from replay.service import case_for_device, get_case, replay_devices
 from replay.router import manifest
 from .schemas import Selection
-from .storage import database, remember, stored_plan
+from .storage import database, remember, stored_plan, active_strategies, activate_plan
 
 ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger(__name__)
@@ -116,6 +116,33 @@ def slice_for(device_id, task_id, layer):
     return result
 
 
+def region_parameters(strategy, automatic, baseline, signal, prob):
+    adjusted = baseline.copy()
+    status = '保持基准'
+    if strategy != 'adjust':
+        status = {'remelt': '策略2 · 重熔', 'recoat': '策略3 · 重铺粉', 'stop': '策略4 · 停机调整'}[strategy]
+    elif not automatic:
+        status = '自动调整已暂停'
+    elif signal and signal.get('stop'):
+        status = '停机检查，保持当前参数'
+    elif not signal and not prob:
+        status = '等待本层识别'
+    elif signal or max(prob['proc'], prob['dev']) >= .5:
+        process_side = signal['side'] == 'proc' if signal else prob['proc'] >= prob['dev']
+        strength = 1 if signal else min(1, max(0, ((prob['proc'] if process_side else prob['dev']) - .5) / .5))
+        if process_side:
+            increase = signal and signal.get('direction') == 'increase'
+            ratio = .05 + .05 * strength
+            adjusted['laserPower'] = math.floor(baseline['laserPower'] * (1 + (ratio if increase else -ratio)) + .5)
+            status = '预计提高输入能量' if increase else '预计降低输入能量'
+        else:
+            adjusted['layerWaitTime'] = round(baseline['layerWaitTime'] + 1 + strength, 1)
+            status = '延长层间等待'
+    if not (50 <= adjusted['laserPower'] <= 500 and 0 <= adjusted['layerWaitTime'] <= 600):
+        raise HTTPException(409, '调控值超出允许范围，请修订当前参数')
+    return adjusted, status
+
+
 def control(request):
     devices([request.deviceId])
     if request.operation in ('get', 'simulate', 'execute'):
@@ -123,11 +150,7 @@ def control(request):
         if request.operation == 'execute':
             raise HTTPException(409, '尚未绑定真机执行器，方案可保存或模拟')
         if request.operation == 'simulate':
-            # 这里只改变方案状态，不调用硬件，也不产生实际维修或故障消除记录。
-            result.update(state='simulated', executed=False)
-            with database() as db:
-                db.execute('UPDATE plans SET response_json=? WHERE id=? AND device=?',
-                           (json.dumps(result, ensure_ascii=False), request.planId, request.deviceId))
+            return activate_plan(request.deviceId, request.planId)
         return result
     fingerprint = json.dumps(request.model_dump(mode='json'), sort_keys=True, ensure_ascii=False)
     if request.operation == 'save':
@@ -147,39 +170,30 @@ def control(request):
     if set(ids) - {r['id'] for r in regions}:
         raise HTTPException(400, 'regionIds 必须对应当前切片中的区域编号')
     baseline = request.currentParameters.model_dump()
-    adjusted = baseline.copy()
-    status = '保持基准'
+    active = active_strategies(request.deviceId, result['taskId'])
     signal = asset('fault-demos.json').get(request.deviceId, {}).get('control')
     prob = result['recognition']['prob'] if result['recognition'] else None
-    if request.strategy != 'adjust':
-        status = {'remelt': '待重熔', 'recoat': '待重铺粉', 'stop': '待停机调整'}[request.strategy]
-    elif not request.automatic:
-        status = '自动调整已暂停'
-    elif signal and signal.get('stop'):
-        status = '停机检查，保持当前参数'
-    elif not signal and not prob:
-        status = '等待本层识别'
-    elif signal or max(prob['proc'], prob['dev']) >= .5:
-        process_side = signal['side'] == 'proc' if signal else prob['proc'] >= prob['dev']
-        strength = 1 if signal else min(1, max(0, ((prob['proc'] if process_side else prob['dev']) - .5) / .5))
-        if process_side:
-            increase = signal and signal.get('direction') == 'increase'
-            ratio = .05 + .05 * strength
-            adjusted['laserPower'] = math.floor(baseline['laserPower'] * (1 + (ratio if increase else -ratio)) + .5)
-            status = '预计提高输入能量' if increase else '预计降低输入能量'
-        else:
-            adjusted['layerWaitTime'] = round(baseline['layerWaitTime'] + 1 + strength, 1)
-            status = '延长层间等待'
-    if not (50 <= adjusted['laserPower'] <= 500 and 0 <= adjusted['layerWaitTime'] <= 600):
-        raise HTTPException(409, '调控值超出允许范围，请修订当前参数')
+    rows = []
+    for region in regions:
+        if region['id'] not in ids:
+            continue
+        existing = active.get(region['id'])
+        # 预览与导出默认读取各区域当前策略；显式策略或保存操作用于生成新的替换方案。
+        use_active = request.operation == 'preview' and 'strategy' not in request.model_fields_set and existing is not None
+        strategy = existing['strategy'] if use_active else request.strategy
+        automatic = bool(existing['automatic']) if use_active and 'automatic' not in request.model_fields_set else request.automatic
+        adjusted, status = region_parameters(strategy, automatic, baseline, signal, prob)
+        rows.append(dict(regionId=region['id'], name=region['name'], color=region['color'],
+                         currentParameters=baseline, controlParameters=adjusted, status=status,
+                         strategy=strategy, automatic=automatic and strategy == 'adjust',
+                         activePlanId=existing['plan_id'] if use_active else None))
+    strategies = {r['strategy'] for r in rows}
     payload = dict(deviceId=request.deviceId, taskId=result['taskId'], layerNo=result['layerNo'],
-                   planId=None, state='preview', executed=False, strategy=request.strategy,
+                   planId=None, state='preview', executed=False, strategy=next(iter(strategies)) if len(strategies) == 1 else 'mixed',
                    source='configured-region-control-demo', image=drawing['annotatedImage'],
                    parameterSource='request-and-platform-config' if request.currentParameters.model_fields_set else 'platform-config',
                    units=dict(laserPower='W', fillSpeed='mm/s', layerWaitTime='s'),
-                   regions=[dict(regionId=r['id'], name=r['name'], color=r['color'],
-                                 currentParameters=baseline, controlParameters=adjusted, status=status)
-                            for r in regions if r['id'] in ids])
+                   regions=rows)
     if request.operation == 'save':
         payload.update(planId=uuid.uuid4().hex, state='planned')
         with database() as db:

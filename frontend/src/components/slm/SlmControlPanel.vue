@@ -10,24 +10,41 @@
           </label>
         </section>
         <section class="adaptive-form" aria-label="自适应调整">
-          <div class="adaptive-heading"><h3>自适应调整</h3><el-switch v-model="automatic" aria-label="自适应调整开关" /></div>
+          <div class="adaptive-heading"><h3>自适应调整</h3><el-switch :model-value="automatic" @change="setAutomatic" aria-label="自适应调整开关" /></div>
+          <template v-if="strategy === 'adjust'">
           <label v-for="key in paramKeys" :key="key">{{ paramDefs[key].label }} / {{ paramDefs[key].unit }}
             <el-input :model-value="plan.parameters[key]?.toFixed(paramDefs[key].precision)" readonly :aria-label="`自适应${paramDefs[key].label}`" />
           </label>
+          </template>
+          <p v-else class="strategy-notice">当前采用层间调控策略{{ controlStrategies[strategy].number }} · {{ controlStrategies[strategy].name }}</p>
         </section>
       </div>
     </section>
-    <LayerStrategyPlaceholders />
+    <LayerStrategyPlaceholders :enabled="!!config" :active-strategy="strategy" @strategy="selectStrategy" />
   </div>
 </template>
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { controlParameterKeys as paramKeys, controlParameterDefs as paramDefs } from './controlParameters'
+import { ElMessage } from 'element-plus'
+import { controlStrategies } from './controlStrategies'
 import { regionControlPlan } from './regionControl'
 import LayerStrategyPlaceholders from './LayerStrategyPlaceholders.vue'
 const props = defineProps({ historical: Boolean, replayContext: Object })
 const automatic = ref(true), config = ref(null), error = ref('')
 const inputValues = reactive({})
+const strategy = ref('adjust')
+// 尚无区域档案的设备保留本页策略示意，选择其他策略同样停用策略1。
+function selectStrategy(value) {
+  strategy.value = value
+  automatic.value = false
+  ElMessage.info({message:`${controlStrategies[value].name}应用中`, duration:2000})
+}
+function setAutomatic(value) {
+  strategy.value = 'adjust'
+  automatic.value = value
+  ElMessage.info({message:'自适应调整应用中', duration:2000})
+}
 // 展示端只生成参数方案；实机协议保留在后端，不在这里启动监听或下发指令。
 const plan = computed(() => config.value ? regionControlPlan({id:'current',name:'当前区域'},props.replayContext,inputValues,config.value.safe_ranges,automatic.value) : null)
 onMounted(async () => {

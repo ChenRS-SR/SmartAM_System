@@ -18,6 +18,10 @@ def database():
           CREATE TABLE IF NOT EXISTS plans (
             id TEXT PRIMARY KEY, device TEXT NOT NULL, request_id TEXT NOT NULL,
             request_json TEXT NOT NULL, response_json TEXT NOT NULL, UNIQUE(device, request_id));
+          CREATE TABLE IF NOT EXISTS region_strategies (
+            device TEXT NOT NULL, task TEXT NOT NULL, region TEXT NOT NULL,
+            plan_id TEXT NOT NULL, strategy TEXT NOT NULL, automatic INTEGER NOT NULL,
+            PRIMARY KEY(device,task,region));
           CREATE TABLE IF NOT EXISTS tasks (
             device TEXT NOT NULL, id TEXT NOT NULL, at REAL NOT NULL, faulted INTEGER NOT NULL,
             PRIMARY KEY(device,id));
@@ -47,3 +51,29 @@ def stored_plan(device, plan_id):
     if not row:
         raise HTTPException(404, '未找到该设备的调控方案')
     return json.loads(row[0])
+
+
+def active_strategies(device, task):
+    with database() as db:
+        return {r['region']: dict(r) for r in db.execute(
+            'SELECT * FROM region_strategies WHERE device=? AND task=?', (device, task or ''))}
+
+
+def activate_plan(device, plan_id):
+    # 区域状态与方案状态同事务更新；重复模拟旧方案不能覆盖后来选择的新策略。
+    with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        row = db.execute('SELECT response_json,request_json FROM plans WHERE id=? AND device=?', (plan_id,device)).fetchone()
+        if not row:
+            raise HTTPException(404, '未找到该设备的调控方案')
+        result, request = json.loads(row[0]), json.loads(row[1])
+        if result['state'] == 'simulated':
+            return result
+        for region in result['regions']:
+            db.execute('''INSERT INTO region_strategies VALUES (?,?,?,?,?,?)
+                ON CONFLICT(device,task,region) DO UPDATE SET
+                plan_id=excluded.plan_id,strategy=excluded.strategy,automatic=excluded.automatic''',
+                (device, result['taskId'] or '', region['regionId'], plan_id, result['strategy'], int(request['automatic'])))
+        result.update(state='simulated', executed=False)
+        db.execute('UPDATE plans SET response_json=? WHERE id=?', (json.dumps(result,ensure_ascii=False),plan_id))
+    return result
