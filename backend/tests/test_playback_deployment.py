@@ -18,6 +18,9 @@ def without_inference(name, *args, **kwargs):
         raise ModuleNotFoundError('测试环境无推理依赖', name=name.split('.')[0])
     return original(name, *args, **kwargs)
 builtins.__import__ = without_inference
+import os, tempfile
+store = tempfile.TemporaryDirectory()
+os.environ["SMARTAM_TASK4_DB"] = store.name + "/task4.sqlite"
 from fastapi.testclient import TestClient
 from main import app
 from replay.service import catalog
@@ -47,7 +50,17 @@ with TestClient(app) as client:
         if entry['id'] == 'm130-20251120':
             assert len(frame['access']['images']) == 4
             assert frame['recognition']['infrared']['classes']
+    for endpoint, body in [
+        ('defect-recognition', {'deviceId':'slm-b44', 'layerNo':8}),
+        ('quality-control', {'deviceId':'slm-b44', 'layerNo':8}),
+        ('equipment-diagnosis', {}), ('maintenance-statistics', {})]:
+        response = client.post('/api/task4/' + endpoint, json=body)
+        assert response.status_code == 200, response.text
+        assert response.json()['status'] == 200
     assert attempts == [], attempts
+    response = client.post('/api/task4/defect-recognition', json={
+        'deviceId':'slm-b44','layerNo':8,'processingMode':'real'})
+    assert response.status_code == 503, response.text
     # 误开真实处理只影响当前请求，仍返回该设备自己的封存结果。
     response = client.get('/api/slm/replay/cases/b44-20250321-09-20/snapshot',
                           params={'offset': 9999999, 'processing':'real'})

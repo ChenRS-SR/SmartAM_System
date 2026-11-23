@@ -122,6 +122,7 @@
     </div>
 
     <!-- 底部统计信息 -->
+    <p v-if="statisticsError" role="alert">{{ statisticsError }}</p>
     <div class="statistics-section">
       <div class="stat-card">
         <div class="stat-icon">
@@ -137,7 +138,7 @@
           <el-icon><FirstAidKit /></el-icon>
         </div>
         <div class="stat-content">
-          <span class="stat-label">提前维修决策次数</span>
+          <span class="stat-label">维护记录次数</span>
           <span class="stat-value">{{ displayStats.preventiveRepairs }}</span>
         </div>
       </div>
@@ -146,8 +147,8 @@
           <el-icon><CircleCheck /></el-icon>
         </div>
         <div class="stat-content">
-          <span class="stat-label">避免故障比例</span>
-          <span class="stat-value">{{ displayStats.avoidanceRate.toFixed(1) }}%</span>
+          <span class="stat-label">故障任务率</span>
+          <span class="stat-value">{{ displayStats.rateText }}%</span>
         </div>
       </div>
     </div>
@@ -156,9 +157,11 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useMaintenanceStatistics } from '../../composables/useMaintenanceStatistics'
 import { FirstAidKit, Odometer, Warning, CircleCheck } from '@element-plus/icons-vue'
 
 const props = defineProps({
+  deviceId: {type:String,default:''},
   systems: {
     type: Array,
     default: () => []
@@ -189,15 +192,7 @@ const defaultSystems = [
   { key: 'fan', name: '风机', riskValue: 0.52, thresholdValue: 0.65, riskPercent: 80, thresholdPercent: 65, reliability: 0.65 }
 ]
 
-// 统计指标说明：
-// - totalFaults: 累计发生故障任务数（本应发生的故障总数）
-// - preventiveRepairs: 提前维修决策次数（通过视情维护提前介入的次数）
-// - avoidanceRate: 避免故障比例 = preventiveRepairs / totalFaults * 100%
-const defaultStats = {
-  totalFaults: 40,
-  preventiveRepairs: 28,
-  avoidanceRate: 70.0
-}
+const {statistics:apiStats, error:statisticsError} = useMaintenanceStatistics(() => props.deviceId ? [props.deviceId] : null)
 
 const defaultAdvice = [
   { priority: '高', type: 'danger', text: '氩气循环系统风险指标已超过阈值（87%），建议立即检查气体密封性及循环泵状态，防止氧含量超标影响打印质量。' },
@@ -206,7 +201,7 @@ const defaultAdvice = [
 ]
 
 const displaySystems = computed(() => props.systems.length > 0 ? props.systems : defaultSystems)
-const displayStats = computed(() => ({ ...defaultStats, ...props.statistics }))
+const displayStats = computed(() => ({ ...apiStats.value, ...props.statistics }))
 const adviceLines = computed(() => props.advice.length > 0 ? props.advice : defaultAdvice)
 
 const overallStatus = computed(() => {

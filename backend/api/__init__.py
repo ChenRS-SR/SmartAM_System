@@ -107,6 +107,10 @@ router.include_router(replay_router)
 from analysis_engine.intake import router as analysis_router
 router.include_router(analysis_router)
 
+# 课题四开放接口与封存播放共用数据，导入时不初始化推理模型。
+from task4.router import router as task4_router
+router.include_router(task4_router)
+
 # 健康检查
 @router.get("/health")
 async def health_check():
