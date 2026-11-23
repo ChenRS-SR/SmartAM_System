@@ -41,7 +41,7 @@ def recognition(request):
     entry = case_for_device(request.deviceId)
     faults = asset('fault-demos.json')
     base = dict(deviceId=request.deviceId, taskId=request.taskId, layerNo=request.layerNo,
-                processingMode=request.processingMode, ready=False, recognition=None, trace=None)
+                processingMode=request.processingMode, resultScope=request.resultScope, ready=False, recognition=None, trace=None)
     if not entry:
         if request.processingMode == 'real':
             raise HTTPException(409, '该设备尚未绑定推理模型')
@@ -76,6 +76,14 @@ def recognition(request):
     row = next((r for r in current.layers if r['layer'] == layer), None)
     if row is None:
         raise HTTPException(404, '该任务没有此层数据')
+    if request.resultScope == 'display':
+        # 与工作区使用同一快照装配逻辑；每个结果保留其实际层号，不冒充当前采集层。
+        displayed = item.apply(frame, current.layers, request.processingMode == 'real')
+        if request.processingMode == 'real' and not displayed['processing']['real']:
+            raise HTTPException(503, '真实处理不可用，请检查推理环境及模型输入')
+        return dict(base, taskId=task_id, layerNo=layer, offset=displayed['offset'], time=displayed['time'],
+                    source=displayed['analysisOrigin'], ready=displayed['recognition'] is not None,
+                    recognition=displayed['recognition'], trace=displayed['trace'])
     base.update(taskId=task_id, layerNo=layer, source='sealed-model-results')
     if frame and frame['timestamp'] < row['recognitionAt']:
         return base
@@ -130,7 +138,9 @@ def control(request):
             if old[0] != fingerprint:
                 raise HTTPException(409, 'requestId 已用于不同的调控方案')
             return json.loads(old[1])
-    result = recognition(Selection(**request.model_dump(include=set(Selection.model_fields))))
+    selected = request.model_dump(include=set(Selection.model_fields))
+    selected['resultScope'] = 'layer'
+    result = recognition(Selection(**selected))
     drawing = slice_for(request.deviceId, result['taskId'], result['layerNo'])
     regions = drawing['regions']
     ids = request.regionIds or [r['id'] for r in regions]
@@ -165,6 +175,7 @@ def control(request):
     payload = dict(deviceId=request.deviceId, taskId=result['taskId'], layerNo=result['layerNo'],
                    planId=None, state='preview', executed=False, strategy=request.strategy,
                    source='configured-region-control-demo', image=drawing['annotatedImage'],
+                   parameterSource='request-and-platform-config' if request.currentParameters.model_fields_set else 'platform-config',
                    units=dict(laserPower='W', fillSpeed='mm/s', layerWaitTime='s'),
                    regions=[dict(regionId=r['id'], name=r['name'], color=r['color'],
                                  currentParameters=baseline, controlParameters=adjusted, status=status)
@@ -192,25 +203,44 @@ def equipment(request):
         name = model + ' ' + serial[0].upper() if model.startswith('铂力特 ') and serial else device['name']
         fault = faults.get(key)
         entry = case_for_device(key)
+        if request.resultScope == 'display' and not entry:
+            raise HTTPException(409, '该设备没有案例游标，不能将档案参数当作当前画面')
         row = dict(deviceId=key, name=name, source=device['source'], layerNo=None, taskId=None,
                    status='fault' if fault or device['health'] == 'fault' else ('normal' if device['health'] == 'healthy' else 'unknown'),
                    diagnosis=fault['status'] if fault else device['statusText'],
                    advice=[fault['advice']] if fault else [], parameters=device['parameters'],
                    recognition=None, trace=None)
-        if entry:
-            result = recognition(Selection(deviceId=key, offset=request.offset))
+        if entry and request.parameterSource == 'archive':
+            result = recognition(Selection(deviceId=key, offset=request.offset, resultScope=request.resultScope, processingMode=request.processingMode))
             row.update({k: result[k] for k in ('source', 'layerNo', 'taskId', 'recognition', 'trace')})
             current = get_case(entry['id'])
             offset = request.offset if request.offset is not None else manifest(entry['id'])['defaultOffset']
-            row['parameters'] = current.snapshot(offset)['parameters']
+            sample = current.snapshot(offset)
+            row.update(parameters=sample['parameters'], offset=sample['offset'], time=sample['time'],
+                       alarms=sample['access']['alarms'], samples=sample['samples'])
             rec, trace = result['recognition'], result['trace']
             if rec:
-                row['status'] = 'abnormal' if max(rec['prob']['proc'], rec['prob']['dev']) >= .5 else 'normal'
+                # B17 论文画面保留原始缺陷概率格式，按其实际显示标签判断，不补造双侧概率。
+                row['status'] = {'异常':'abnormal', '正常':'normal'}.get(rec['label'], 'unknown')
                 row['diagnosis'] = trace['conclusion'] if trace else '等待本层故障诊断'
                 row['advice'] = trace['actions'] if trace else []
                 if trace and any(f['over'] for factor in trace['factors'].values() for f in factor['zones']):
                     if row['status'] == 'normal':
                         row['status'] = 'review'
+        if request.parameterSource == 'live':
+            from core.slm_realtime import get_slm_realtime_store
+            sample = get_slm_realtime_store().latest(key)
+            if not sample['hasData']:
+                raise HTTPException(404, '该设备暂无已接入的实时参数')
+            # 实时接入与历史分析不混合成同一份当前状态。
+            row.update(parameters=sample['parameters'], source='live-acquisition',
+                       recognition=None, trace=None, taskId=None, layerNo=None,
+                       realtimeSample=sample, time=sample['eventTime'], alarms=sample['alarms'],
+                       diagnosis=sample['diagnosis']['statusLabel'], advice=[],
+                       status=('unknown' if sample['diagnosis']['statusCode'] < 0 else
+                               'normal' if sample['diagnosis']['statusCode'] == 0 else 'fault'))
+            for field in ('offset', 'samples'):
+                row.pop(field, None)
         output.append(row)
     return dict(devices=output, deviceCount=len(output), faultDeviceCount=sum(d['status'] == 'fault' for d in output))
 

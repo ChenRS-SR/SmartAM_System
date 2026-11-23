@@ -143,6 +143,51 @@ class Task4Tests(unittest.TestCase):
         self.assertIn(data['devices'][1]['status'],['normal','review','abnormal'])
         self.call('equipment-diagnosis',{'deviceIds':['slm-b44','slm-b44']},400)
 
+    def test_display_export_matches_all_five_workspace_snapshots(self):
+        from replay.router import manifest, snapshot
+        for entry in catalog():
+            offset=manifest(entry['id'])['defaultOffset']
+            for position in (offset, get_case(entry['id']).manifest['duration']):
+                displayed=snapshot(entry['id'], offset=position)
+                body={'deviceId':entry['deviceId'], 'offset':position, 'resultScope':'display'}
+                result=self.call('defect-recognition',body)
+                self.assertEqual(result['recognition'],displayed['recognition'])
+                self.assertEqual(result['trace'],displayed['trace'])
+                self.assertEqual(result['offset'],displayed['offset'])
+                equipment=self.call('equipment-diagnosis',{'deviceIds':[entry['deviceId']], 'offset':position, 'resultScope':'display'})['devices'][0]
+                self.assertEqual(equipment['parameters'],displayed['parameters'])
+                self.assertEqual(equipment['alarms'],displayed['access']['alarms'])
+                self.assertEqual(equipment['trace'],displayed['trace'])
+        self.call('defect-recognition',{'deviceId':'slm-b44','resultScope':'display'},400)
+        self.call('equipment-diagnosis',{'deviceIds':['slm-b44'],'resultScope':'display'},400)
+
+        self.call('equipment-diagnosis',{'deviceIds':['slm-b17'],'resultScope':'display','offset':1},409)
+        self.call('equipment-diagnosis',{'deviceIds':['slm-b44'],'parameterSource':'live','offset':1},400)
+
+    def test_control_defaults_follow_platform_configuration(self):
+        from slm_control.config import SAFE_RANGES
+        with patch.dict(SAFE_RANGES['fill_power'], default=240):
+            data=self.call('quality-control',{'deviceId':'huake-slm-02'})
+            self.assertEqual(data['regions'][0]['currentParameters']['laserPower'],240)
+            self.assertEqual(data['regions'][0]['controlParameters']['laserPower'],216)
+            self.assertEqual(data['parameterSource'],'platform-config')
+            data=self.call('quality-control',{'deviceId':'huake-slm-02','currentParameters':{'laserPower':250}})
+            self.assertEqual(data['regions'][0]['currentParameters']['laserPower'],250)
+
+    def test_live_parameters_never_replaced_by_archive_values(self):
+        from core.slm_realtime import get_slm_realtime_store
+        sample={'hasData':True,'eventTime':'2026-11-23T12:00:00+08:00',
+                'parameters':[{'name':'激光功率','value':231.25,'unit':'W'}],
+                'alarms':[], 'diagnosis':{'statusCode':0,'statusLabel':'正常'}}
+        with patch.object(get_slm_realtime_store(),'latest',return_value=sample):
+            result=self.call('equipment-diagnosis',{'deviceIds':['slm-b44'],'parameterSource':'live'})['devices'][0]
+            self.assertEqual(result['parameters'], sample['parameters'])
+            self.assertEqual(result['time'],sample['eventTime'])
+            self.assertIsNone(result['trace'])
+            self.assertEqual(result['source'],'live-acquisition')
+        with patch.object(get_slm_realtime_store(),'latest',return_value={'hasData':False}):
+            self.call('equipment-diagnosis',{'deviceIds':['slm-b44'],'parameterSource':'live'},404)
+
     def test_statistics_exact_period_deduplication_and_device_scope(self):
         empty=self.call('maintenance-statistics',{'deviceIds':['slm-b44']})
         self.assertIsNone(empty['taskFaultRate'])

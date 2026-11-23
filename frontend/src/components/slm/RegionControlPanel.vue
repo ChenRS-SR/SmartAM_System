@@ -1,7 +1,7 @@
 <template>
   <div class="region-control">
     <section class="region-panel" aria-label="当前切片区域总览">
-      <header><h2>当前切片区域</h2><span>第 {{ frame.layer }} 层</span></header>
+      <header><h2>当前切片区域</h2><span>第 {{ frame.layer }} 层</span><button v-if="isReplay" class="export-button" :disabled="exporting || !config" @click="exportCurrent">{{ exporting ? '正在导出…' : '导出当前接口数据' }}</button></header>
       <div class="region-overview">
         <img class="slice-illustration" :src="slice.annotatedImage" :alt="`第${frame.layer}层切片区域引线标注图，共${slice.regions.length}个区域`" />
         <div class="region-list">
@@ -35,6 +35,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { controlParameterKeys as paramKeys, controlParameterDefs as paramDefs } from './controlParameters'
 import { REPLAY_CASES } from '../../stores/replay'
 import { task4Api } from '../../utils/task4Api'
+import { readCurrentTask4, downloadTask4 } from '../../utils/exportTask4'
 import { ElMessage } from 'element-plus'
 import LayerStrategyPlaceholders from './LayerStrategyPlaceholders.vue'
 import RegionBadge from './RegionBadge.vue'
@@ -50,6 +51,18 @@ watch(() => props.slice, slice => {
 const selectedRegion = computed(() => props.slice.regions.find(r => r.id === selectedId.value))
 const plans = ref([])
 const submitting = ref(false)
+const exporting = ref(false)
+const isReplay = computed(() => REPLAY_CASES.some(c => c.id === props.frame.caseId))
+async function exportCurrent() {
+  exporting.value = true
+  const frame = props.frame
+  const request = selection()
+  try {
+    const data = await readCurrentTask4(request.deviceId, frame, {currentParameters:request.currentParameters, automatic:request.automatic})
+    downloadTask4(data)
+  } catch (e) { ElMessage.error(e.message) }
+  finally { exporting.value = false }
+}
 let previewController, actionController
 const deviceId = computed(() => REPLAY_CASES.find(c => c.id === props.frame.caseId)?.deviceId || props.frame.caseId)
 function selection() {
@@ -105,6 +118,7 @@ onMounted(async () => {
 })
 </script>
 <style scoped>
+.export-button { margin-left:auto; padding:6px 10px; border:1px solid var(--am-card-border); background:var(--am-card-bg); color:var(--am-text); cursor:pointer; }
 .region-control { min-width: 0; }
 .region-panel { border: 1px solid var(--am-card-border); border-radius: 4px; background: var(--am-card-bg); margin-bottom: 16px; overflow: hidden; }
 header { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 18px; background: var(--am-card-bg-2); border-bottom: 1px solid var(--am-card-border); }

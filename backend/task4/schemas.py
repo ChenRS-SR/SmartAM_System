@@ -2,6 +2,7 @@
 from datetime import datetime
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from slm_control.config import SAFE_RANGES
 
 
 class Request(BaseModel):
@@ -14,12 +15,20 @@ class Selection(Request):
     layerNo: Optional[int] = Field(default=None, ge=1)
     offset: Optional[float] = Field(default=None, ge=0)
     processingMode: Literal['archive', 'real'] = 'archive'
+    resultScope: Literal['layer', 'display'] = 'layer'
+
+    @model_validator(mode='after')
+    def check_display(self):
+        if self.resultScope == 'display' and self.offset is None:
+            raise ValueError('导出当前画面须提供 offset，不能以默认播放起点代替当前游标')
+        return self
 
 
+# 参数缺省值与页面配置共用，避免对外接口维护另一套固定数值。
 class Parameters(Request):
-    laserPower: float = Field(default=200, ge=50, le=500)
-    fillSpeed: float = Field(default=1000, ge=100, le=5000)
-    layerWaitTime: float = Field(default=2, ge=0, le=600)
+    laserPower: float = Field(default_factory=lambda: SAFE_RANGES['fill_power']['default'], ge=50, le=500)
+    fillSpeed: float = Field(default_factory=lambda: SAFE_RANGES['fill_speed']['default'], ge=100, le=5000)
+    layerWaitTime: float = Field(default_factory=lambda: SAFE_RANGES['layer_wait_time']['default'], ge=0, le=600)
 
 
 class Control(Selection):
@@ -43,8 +52,19 @@ class Control(Selection):
 
 
 class Equipment(Request):
+    resultScope: Literal['layer', 'display'] = 'layer'
+    parameterSource: Literal['archive', 'live'] = 'archive'
+    processingMode: Literal['archive', 'real'] = 'archive'
     deviceIds: Optional[list[str]] = Field(default=None, min_length=1, max_length=100)
     offset: Optional[float] = Field(default=None, ge=0)
+
+    @model_validator(mode='after')
+    def check_display(self):
+        if self.resultScope == 'display' and self.offset is None:
+            raise ValueError('导出当前画面须提供 offset')
+        if self.parameterSource == 'live' and (self.offset is not None or self.resultScope != 'layer' or self.processingMode != 'archive'):
+            raise ValueError('live 读取已接入实时流，不接受案例游标或案例推理选项')
+        return self
 
 
 class Maintenance(Request):
