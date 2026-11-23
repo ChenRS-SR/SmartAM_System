@@ -113,7 +113,7 @@
 
       <!-- 视情维护可视化模块 -->
       <div v-if="activePanel === 'status'" class="maintenance-section">
-        <MaintenanceDecisionPanel @system-click="openMaintenanceDetail" />
+        <MaintenanceDecisionPanel :device-id="selectedDeviceId" @system-click="openMaintenanceDetail" />
       </div>
     </section>
 

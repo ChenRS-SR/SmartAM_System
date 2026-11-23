@@ -110,6 +110,7 @@
         <el-icon><TrendCharts /></el-icon>
         装备群历史统计情况
       </div>
+      <p v-if="statisticsError" role="alert">{{ statisticsError }}</p>
       <div class="maintenance-statistics-grid">
         <div class="maintenance-stat-card">
           <div class="maintenance-stat-icon faults">
@@ -127,7 +128,7 @@
             <el-icon><FirstAidKit /></el-icon>
           </div>
           <div class="maintenance-stat-content">
-            <span class="maintenance-stat-label">提前维修决策次数</span>
+            <span class="maintenance-stat-label">维护记录次数</span>
             <span class="maintenance-stat-value">
               {{ maintenanceStats.preventiveRepairs }}<span class="maintenance-stat-unit">次</span>
             </span>
@@ -138,9 +139,9 @@
             <el-icon><CircleCheck /></el-icon>
           </div>
           <div class="maintenance-stat-content">
-            <span class="maintenance-stat-label">避免故障比例</span>
+            <span class="maintenance-stat-label">故障任务率</span>
             <span class="maintenance-stat-value">
-              {{ maintenanceStats.avoidanceRate.toFixed(1) }}<span class="maintenance-stat-unit">%</span>
+              {{ maintenanceStats.rateText }}<span class="maintenance-stat-unit">%</span>
             </span>
           </div>
         </div>
@@ -216,6 +217,7 @@
 import { useReplayStore, REPLAY_CASES } from '../../stores/replay'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMaintenanceStatistics } from '../../composables/useMaintenanceStatistics'
 import { ElMessage } from 'element-plus'
 import { EditPen, Plus, Refresh, Upload, TrendCharts, Warning, FirstAidKit, CircleCheck } from '@element-plus/icons-vue'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
@@ -439,12 +441,8 @@ const fleetStats = computed(() => ({
   fault: filteredDevices.value.filter((device) => device.online && device.health === 'fault').length
 }))
 
-// 装备群历史统计（与设备状态监测界面的视情维护模块对应）
-const maintenanceStats = computed(() => ({
-  totalFaults: 40,
-  preventiveRepairs: 28,
-  avoidanceRate: 70.0
-}))
+// 统计使用已登记的任务与维护事件，不用固定示例数字。
+const {statistics:maintenanceStats, error:statisticsError} = useMaintenanceStatistics(() => [])
 
 const statusClass = (device) => {
   if (!device.online) return 'offline'

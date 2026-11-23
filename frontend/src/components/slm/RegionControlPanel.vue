@@ -27,13 +27,15 @@
       </div>
       <p v-else class="note">正在读取工艺基准…</p>
     </section>
-    <LayerStrategyPlaceholders :region-name="selectedRegion.name" :region-color="selectedRegion.color" />
+    <LayerStrategyPlaceholders :region-name="selectedRegion.name" :region-color="selectedRegion.color" :enabled="!!activePlan && !submitting" @strategy="submitStrategy" />
   </div>
 </template>
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { controlParameterKeys as paramKeys, controlParameterDefs as paramDefs } from './controlParameters'
-import { regionControlPlan } from './regionControl'
+import { REPLAY_CASES } from '../../stores/replay'
+import { task4Api } from '../../utils/task4Api'
+import { ElMessage } from 'element-plus'
 import LayerStrategyPlaceholders from './LayerStrategyPlaceholders.vue'
 import RegionBadge from './RegionBadge.vue'
 const props = defineProps({ frame: { type: Object, required: true }, slice: { type: Object, required: true } })
@@ -46,7 +48,53 @@ watch(() => props.slice, slice => {
   if (!slice.regions.some(r => r.id === selectedId.value)) selectedId.value = slice.regions[0].id
 })
 const selectedRegion = computed(() => props.slice.regions.find(r => r.id === selectedId.value))
-const plans = computed(() => config.value ? props.slice.regions.map(r => regionControlPlan(r, props.frame, config.value.defaults, config.value.safe_ranges, automatic.value)) : [])
+const plans = ref([])
+const submitting = ref(false)
+let previewController, actionController
+const deviceId = computed(() => REPLAY_CASES.find(c => c.id === props.frame.caseId)?.deviceId || props.frame.caseId)
+function selection() {
+  const baseline = config.value.defaults
+  const request = { deviceId: deviceId.value, automatic: automatic.value,
+    currentParameters: { laserPower: baseline.fill_power, fillSpeed: baseline.fill_speed, layerWaitTime: baseline.layer_wait_time } }
+  // 档案设备没有逐层模型数据；真实案例传当前游标，避免读取尚未到达的层结果。
+  if (REPLAY_CASES.some(c => c.deviceId === deviceId.value)) {
+    request.layerNo = props.frame.layer
+    request.offset = props.frame.offset
+    request.processingMode = props.frame.processing?.real ? 'real' : 'archive'
+  }
+  return request
+}
+const fields = p => ({fill_power:p.laserPower, fill_speed:p.fillSpeed, layer_wait_time:p.layerWaitTime})
+watch([() => props.frame.caseId, () => props.frame.layer, () => props.frame.recognition?.layer,
+  () => props.frame.processing?.real, automatic, config], async () => {
+  previewController?.abort()
+  if (!config.value) return
+  const controller = new AbortController()
+  previewController = controller
+  plans.value = []
+  try {
+    const data = await task4Api('quality-control', selection(), controller.signal)
+    if (controller.signal.aborted) return
+    plans.value = data.regions.map(r => ({...r, baseline:fields(r.currentParameters), parameters:fields(r.controlParameters)}))
+    error.value = ''
+  } catch (e) { if (e.name !== 'AbortError') error.value = e.message }
+}, { immediate:true })
+async function submitStrategy(strategy) {
+  if (submitting.value) return
+  submitting.value = true
+  const request = {...selection(), strategy, regionIds:[selectedId.value], operation:'save',
+    requestId:`ui-${Date.now()}-${Math.random().toString(36).slice(2)}`}
+  const regionName = selectedRegion.value.name
+  const controller = new AbortController()
+  actionController = controller
+  try {
+    const plan = await task4Api('quality-control', request, controller.signal)
+    await task4Api('quality-control', {deviceId:request.deviceId, planId:plan.planId, operation:'simulate'}, controller.signal)
+    ElMessage.success(`${regionName}策略已模拟`)
+  } catch (e) { if (e.name !== 'AbortError') ElMessage.error(e.message) }
+  finally { submitting.value = false }
+}
+onUnmounted(() => { previewController?.abort(); actionController?.abort() })
 const activePlan = computed(() => plans.value.find(p => p.regionId === selectedId.value))
 onMounted(async () => {
   try {

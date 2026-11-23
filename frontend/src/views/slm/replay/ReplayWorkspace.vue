@@ -37,7 +37,7 @@
         </section>
       </div>
       <!-- 每台设备均提供维护面板，详情按当前设备与所属单位展示。 -->
-      <MaintenanceDecisionPanel @system-click="openMaintenanceDetail" />
+      <MaintenanceDecisionPanel :device-id="deviceId" @system-click="openMaintenanceDetail" />
       <MaintenanceDetailDialog
         v-model="maintenanceVisible"
         :system-key="maintenanceSystem.key"
