@@ -120,7 +120,7 @@ def region_parameters(strategy, automatic, baseline, signal, prob):
     adjusted = baseline.copy()
     status = '保持基准'
     if strategy != 'adjust':
-        status = {'remelt': '策略2 · 重熔', 'recoat': '策略3 · 重铺粉', 'stop': '策略4 · 停机调整'}[strategy]
+        status = {'remelt': '策略2 · 重熔', 'recoat': '策略3 · 整层重铺粉', 'stop': '策略4 · 整层停机调整'}[strategy]
     elif not automatic:
         status = '自动调整已暂停'
     elif signal and signal.get('stop'):
@@ -169,6 +169,9 @@ def control(request):
     ids = request.regionIds or [r['id'] for r in regions]
     if set(ids) - {r['id'] for r in regions}:
         raise HTTPException(400, 'regionIds 必须对应当前切片中的区域编号')
+    # 重铺粉、停机作用于整层；即使调用方只传一个合法区域，也扩展为当前全部区域。
+    if request.strategy in ('recoat', 'stop'):
+        ids = [r['id'] for r in regions]
     baseline = request.currentParameters.model_dump()
     active = active_strategies(request.deviceId, result['taskId'])
     signal = asset('fault-demos.json').get(request.deviceId, {}).get('control')
@@ -185,7 +188,8 @@ def control(request):
         adjusted, status = region_parameters(strategy, automatic, baseline, signal, prob)
         rows.append(dict(regionId=region['id'], name=region['name'], color=region['color'],
                          currentParameters=baseline, controlParameters=adjusted, status=status,
-                         strategy=strategy, automatic=automatic and strategy == 'adjust',
+                         strategy=strategy, scope='layer' if strategy in ('recoat', 'stop') else 'region',
+                         automatic=automatic and strategy == 'adjust',
                          activePlanId=existing['plan_id'] if use_active else None))
     strategies = {r['strategy'] for r in rows}
     payload = dict(deviceId=request.deviceId, taskId=result['taskId'], layerNo=result['layerNo'],

@@ -61,4 +61,21 @@ describe('区域调控通过开放接口统一生成方案',()=>{
   w.unmount()
  })
 
+ it.each(['recoat','stop'])('整层策略 %s 提交所有区域且提示整层应用中',async strategy=>{
+  task4Api.mockResolvedValue(output(180))
+  const w=await setup()
+  await w.setProps({slice:{...slice,regions:[...slice.regions,{id:'region-2',name:'区域2',color:'#ddd'}]}})
+  task4Api.mockResolvedValueOnce({planId:'whole-layer'}).mockResolvedValueOnce({state:'simulated',executed:false})
+  w.findComponent(LayerStrategyPlaceholders).vm.$emit('strategy',strategy);await flushPromises()
+  const save=task4Api.mock.calls.find(([,body])=>body.operation==='save')[1]
+  expect(save.regionIds).toEqual(['region-1','region-2'])
+  expect(ElMessage.info.mock.lastCall[0].message).toContain('整层')
+  const panels=w.findComponent(LayerStrategyPlaceholders).findAll('.strategy-panel')
+  expect(panels[0].classes()).toContain('strategy-wide')
+  expect(panels[0].find('.scope-label').exists()).toBe(false)
+  expect(panels[1].find('.scope-label').text()).toBe('整层')
+  expect(panels[2].find('.scope-label').text()).toBe('整层')
+  w.unmount()
+ })
+
 })

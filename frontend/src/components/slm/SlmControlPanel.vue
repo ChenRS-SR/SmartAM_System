@@ -38,7 +38,7 @@ const strategy = ref('adjust')
 function selectStrategy(value) {
   strategy.value = value
   automatic.value = false
-  ElMessage.info({message:`${controlStrategies[value].name}应用中`, duration:2000})
+  ElMessage.info({message:`${controlStrategies[value].scope === 'layer' ? '整层 · ' : ''}${controlStrategies[value].name}应用中`, duration:2000})
 }
 function setAutomatic(value) {
   strategy.value = 'adjust'

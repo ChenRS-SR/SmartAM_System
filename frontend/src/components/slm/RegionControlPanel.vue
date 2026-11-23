@@ -31,7 +31,7 @@
       </div>
       <p v-else class="note">正在读取工艺基准…</p>
     </section>
-    <LayerStrategyPlaceholders :region-name="selectedRegion.name" :region-color="selectedRegion.color" :enabled="!!activePlan && !submitting" :active-strategy="activePlan?.strategy" :pending-strategy="pendingRegion === selectedId ? pendingStrategy : ''" @strategy="submitStrategy" />
+    <LayerStrategyPlaceholders :region-name="selectedRegion.name" :region-color="selectedRegion.color" :enabled="!!activePlan && !submitting" :active-strategy="activePlan?.strategy" :pending-strategy="pendingRegion === '*' || pendingRegion === selectedId ? pendingStrategy : ''" @strategy="submitStrategy" />
   </div>
 </template>
 <script setup>
@@ -103,12 +103,13 @@ async function submitStrategy(strategy, automatic = true) {
   submitting.value = true
   error.value = ''
   previewController?.abort()
-  const request = {...selection(), strategy, automatic, regionIds:[selectedId.value], operation:'save',
+  const wholeLayer = controlStrategies[strategy].scope === 'layer'
+  const request = {...selection(), strategy, automatic, regionIds:wholeLayer ? props.slice.regions.map(r => r.id) : [selectedId.value], operation:'save',
     requestId:`ui-${Date.now()}-${Math.random().toString(36).slice(2)}`}
-  pendingRegion.value = selectedId.value
+  pendingRegion.value = wholeLayer ? '*' : selectedId.value
   pendingStrategy.value = strategy
   // 当前只提示提交过程；成功/失败结论留给后续真实执行器回执。
-  ElMessage.info({message:`${selectedRegion.value.name} · ${controlStrategies[strategy].name}应用中`, duration:2000})
+  ElMessage.info({message:`${wholeLayer ? '整层' : selectedRegion.value.name} · ${controlStrategies[strategy].name}应用中`, duration:2000})
   const controller = new AbortController()
   actionController = controller
   try {

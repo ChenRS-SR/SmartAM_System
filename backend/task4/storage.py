@@ -69,6 +69,10 @@ def activate_plan(device, plan_id):
         result, request = json.loads(row[0]), json.loads(row[1])
         if result['state'] == 'simulated':
             return result
+        # 切回分区策略即退出整层覆盖；其余区域恢复默认策略1，不能留下半层停机/重铺粉。
+        if result['strategy'] in ('adjust', 'remelt'):
+            db.execute("DELETE FROM region_strategies WHERE device=? AND task=? AND strategy IN ('recoat','stop')",
+                       (device, result['taskId'] or ''))
         for region in result['regions']:
             db.execute('''INSERT INTO region_strategies VALUES (?,?,?,?,?,?)
                 ON CONFLICT(device,task,region) DO UPDATE SET
