@@ -88,23 +88,22 @@ def record_workspace(device_id):
     channels = [dict(name=name, spec=kind, rate='未接入', imageKey=key) for name, kind, key in [
         ('铺粉后图像', '图像', 'before'), ('熔化后图像', '图像', 'after'),
         ('刮刀扭矩', '采样', None), ('加工平台扭矩', '采样', None), ('设备状态参数', '采样', None)]]
-    # 展示只读取预先矫正的媒体；缺失时不退回原图，部署无需实时矫正环境。
-    # 可见光使用同轴 CH1，红外独立保留，侧轴不进入监测通道。
-    media_channels = (device.get('mockVideo') or {}).get('correctedChannels', {})
-    media = [dict(name=name, **media_channels[key]) for key, name in
-             [('camera_ch1', '可见光图像'), ('thermal', '红外图像')]
-             if media_channels.get(key, {}).get('available')]
-    for i, media in enumerate(media):
-        key = 'video_' + str(i)
-        is_video = media['media_type'] == 'video'
-        sequence = media.get('frameSequence') if is_video else None
-        # 视频仅提供离线抽帧图像，不向监测页暴露播放器地址。
-        if is_video and not sequence:
-            continue
-        images[key] = dict(url=sequence['baseUrl'] + '/000001.jpg' if sequence else media['url'],
-                           frameSequence=sequence,
-                           time=None, layer=None, available=True, distortionCorrected=True)
-        channels.append(dict(name=media['name'], spec='图像', rate='1 帧/秒' if sequence else '单帧', imageKey=key))
+    # 经用户确认的演示阶段映射，仅引用本设备预矫正代表帧，不作为模型输入。
+    stage_demo = asset('monitor-stage-demos.json').get(device_id)
+    corrected = (device.get('mockVideo') or {}).get('correctedChannels', {})
+    for channel, prefix, suffix in [('camera_ch1', '', '图像'), ('thermal', 'ir_', '红外图像')]:
+        sequence = corrected.get(channel, {}).get('frameSequence')
+        for stage, label in [('before', '铺粉后'), ('after', '熔化后')]:
+            key = prefix + stage
+            if prefix:
+                images[key] = dict(url=None, time=None, layer=None, available=False)
+                channels.append(dict(name=label + suffix, spec='图像', rate='未接入', imageKey=key))
+            if stage_demo and sequence and stage_demo[stage] <= sequence['count']:
+                index = stage_demo[stage]
+                images[key] = dict(url=f"{sequence['baseUrl']}/{index:06d}.jpg", time=None, layer=None,
+                                   available=True, distortionCorrected=True,
+                                   sourceKind='stage-demo', sourceFrame=index)
+                next(c for c in channels if c.get('imageKey') == key)['rate'] = '代表帧'
     alarms = [dict(time='', text=e['text']) for e in (fault or {}).get('diagnosis', {}).get('evidence', [])]
     access = dict(**context, progress=dict(layer=layer, total=None), images=images, env=env, torque=torque,
                   channels=channels, alarms=alarms, records=[], acquisition=dict(running=False, mode='record', layer=layer),

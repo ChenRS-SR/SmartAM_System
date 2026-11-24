@@ -102,7 +102,8 @@ const filtered = true
 // 取消勾选时移除整张卡片，已勾选但未接入的通道保留缺省占位。
 const activeImageChannels = computed(() => monitoringImages.filter(channel => visible(channel.name)))
 const channelGroups = computed(() => [
-  { title: '图像通道', channels: d.value.channels.filter(c => c.imageKey) },
+  { title: '可见光', channels: d.value.channels.filter(c => ['before', 'after'].includes(c.imageKey)) },
+  { title: '红外', channels: d.value.channels.filter(c => ['ir_before', 'ir_after'].includes(c.imageKey)) },
   { title: '扭矩通道', channels: d.value.channels.filter(c => !c.imageKey) },
 ])
 const topColumns = 2
@@ -205,14 +206,14 @@ const torqueOption = computed(() => {
 .r-param { flex: 416 1 416px; min-width: 0; }
 .r-vis { flex: 1; }
 .fields { gap: 6px 14px; }
-.channel-group + .channel-group { margin-top: 12px; }
-.channel-group-title { margin-bottom: 6px; font-size: 12px; color: var(--text-2); }
-.chs { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 6px 12px; font-size: 14px; }
-.chs .ch { min-height: 30px; min-width: 0; }
-.chs .ch { cursor: pointer; display: flex; align-items: center; gap: 6px; }
-.ch input { accent-color: var(--nav-bg); width: 15px; height: 15px; flex: none; cursor: pointer; }
-.channel-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
-.channel-actions .btn { padding: 4px 9px; font-size: 12px; }
+.channel-group + .channel-group { margin-top: 14px; }
+.channel-group-title { margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--text-2); }
+.r-param .chs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; font-size: 15px; }
+.r-param .chs .ch { box-sizing: border-box; min-height: 42px; min-width: 0; padding: 8px 10px; margin: 0; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 10px; white-space: normal; line-height: 1.5; }
+.r-param .chs .ch:has(input:checked) { border-color: var(--nav-bg); }
+.ch input { accent-color: var(--nav-bg); width: 18px; height: 18px; flex: none; cursor: pointer; }
+.channel-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.channel-actions .btn { box-sizing: border-box; width: 100%; min-height: 42px; padding: 9px 16px; font-size: 15px; line-height: 1.5; }
 .field-value { font-size: 15px; overflow-wrap: anywhere; }
 .channels-empty { color: var(--text-2); padding: 24px; }
 .grid { height: 100%; display: grid; grid-template-columns: minmax(0, 300fr) minmax(0, 300fr) minmax(0, 540fr); grid-template-rows: minmax(0, 282fr) minmax(0, 278fr); gap: 12px; }

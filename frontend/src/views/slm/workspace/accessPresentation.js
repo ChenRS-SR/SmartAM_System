@@ -2,14 +2,12 @@
 export const monitoringImages = [
   {key:'before', name:'铺粉后图像'}, {key:'after', name:'熔化后图像'},
   {key:'ir_before', name:'铺粉后红外图像'}, {key:'ir_after', name:'熔化后红外图像'},
-  {key:'coax', name:'可见光图像'}, {key:'thermal', name:'红外图像'}
 ]
 export function monitoringAccess(data) {
   if (!data) return null
   const images = {}, channels = []
   for (const slot of monitoringImages) {
-    // 兼容已固化案例的同轴名称；侧轴不参与可见光通道映射。
-    const source = data.channels.find(c => c.name === slot.name || (slot.key === 'coax' && c.name === '同轴图像'))
+    const source = data.channels.find(c => c.name === slot.name)
     images[slot.key] = data.images[source?.imageKey || slot.key] || {url:null, time:null, layer:null, available:false}
     channels.push({...source, name:slot.name, imageKey:slot.key, spec:source?.spec || '图像', rate:source?.rate || '未接入'})
   }

@@ -48,29 +48,32 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(normal['trace']['recordDiagnosis']['state'], 'pending')
         self.assertIsNone(record_workspace('huake-slm-01')['snapshot']['layer'])
 
-    def test_video_not_mislabeled_as_model_input(self):
-        frame = record_workspace('huake-slm-02')['snapshot']
-        self.assertIsNone(frame['recognition']['image']['url'])
-        self.assertIsNone(frame['access']['images']['before']['url'])
-        self.assertEqual([c['name'] for c in frame['access']['channels'][-2:]], ['可见光图像', '红外图像'])
-        image = frame['access']['images']['video_0']
-        self.assertTrue(image['url'].endswith('/mock_video_corrected/CH1/frames/000001.jpg'))
-        self.assertGreater(image['frameSequence']['count'], 1)
-        self.assertNotIn('videoUrl', image)
+    def test_stage_demo_images_do_not_become_model_input(self):
+        from urllib.parse import unquote
+        from task4.service import ROOT
+        for device_id, stages in asset('monitor-stage-demos.json').items():
+            frame = record_workspace(device_id)['snapshot']
+            self.assertIsNone(frame['recognition']['image']['url'])
+            access = frame['access']
+            names = [c['name'] for c in access['channels']]
+            self.assertNotIn('可见光图像', names)
+            self.assertNotIn('红外图像', names)
+            for prefix, channel in [('', 'CH1'), ('ir_', 'CH3')]:
+                for stage, index in stages.items():
+                    image = access['images'][prefix + stage]
+                    self.assertTrue(image['url'].endswith(f'/{channel}/frames/{index:06d}.jpg'))
+                    self.assertEqual(image['sourceKind'], 'stage-demo')
+                    self.assertIsNone(image['layer'])
+                    self.assertTrue((ROOT / unquote(image['url']).lstrip('/')).is_file())
 
-    def test_corrected_image_and_missing_correction_never_use_raw(self):
+    def test_missing_correction_never_uses_raw(self):
         device = record_workspace('huake-slm-02')['device']
         with patch('device_workspace.get_slm_device_data_store') as store:
             store.return_value.get_device.return_value = device
-            device['mockVideo']['correctedChannels'] = {
-                'camera_ch1': dict(available=True, url='/corrected.jpg', media_type='image')}
-            access = record_workspace('huake-slm-02')['snapshot']['access']
-            self.assertEqual(access['images']['video_0']['url'], '/corrected.jpg')
-            self.assertNotIn('videoUrl', access['images']['video_0'])
-            self.assertTrue(access['images']['video_0']['distortionCorrected'])
             device['mockVideo']['correctedChannels'] = {}
             access = record_workspace('huake-slm-02')['snapshot']['access']
-            self.assertFalse(any(c['name'] == '可见光图像' for c in access['channels']))
+            for key in ('before', 'after', 'ir_before', 'ir_after'):
+                self.assertIsNone(access['images'][key]['url'])
 
     def test_corrected_media_scanner_accepts_still_images(self):
         with tempfile.TemporaryDirectory() as directory:
