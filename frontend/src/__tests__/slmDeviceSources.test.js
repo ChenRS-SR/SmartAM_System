@@ -9,18 +9,23 @@ describe('设备数据源列表', () => {
     expect(row.status).toBe('已配置')
     expect(row.content).toContain(`${entry.layerCount} 层`)
   })
-  it('同名真实采集设备与案例设备分开，配置不等于硬件已连接', () => {
-    const row = deviceSourceRow({ id: 'huake-real', name: '华科 CRPBFM130', source: 'real' })
-    expect(row.type).toBe('真实采集')
-    expect(row.status).toBe('硬件连接由采集页确认')
+  it('设备档案不再指向废弃的硬件设置入口', () => {
+    const row = deviceSourceRow({ id: 'huake-real', name: '华科 CRPBFM130', source: 'real', parameters:[{value:10}] })
+    expect(row.type).toBe('设备档案')
+    expect(row.status).toBe('已配置')
+    expect(row.location).not.toContain('连接设置')
   })
-  it('目录视频按实际可用通道显示状态', () => {
+  it('仅报告工作区可展示的预矫正图像，不将原视频或侧轴计为可用通道', () => {
     const device = { id: 'directory', dataDirectory: 'devices/directory' }
-    expect(deviceSourceRow(device).status).toBe('待接入')
-    device.mockVideo = { channels: {
-      camera_ch1: { available: true, url: '/one.mp4', channel: 'CH1' },
-      thermal: { available: false, channel: 'CH3' },
+    expect(deviceSourceRow(device).status).toBe('图像待接入')
+    device.mockVideo = { channels: {camera_ch1:{available:true,url:'/raw.mp4'}}, correctedChannels: {
+      camera_ch1: { available: true, url: '/one.mp4', media_type:'video' },
+      camera_ch2: { available: true, url: '/side.png', media_type:'image' },
     } }
-    expect(deviceSourceRow(device)).toMatchObject({ content: 'CH1', status: '部分通道可用' })
+    expect(deviceSourceRow(device).type).toBe('设备档案')
+    device.mockVideo.correctedChannels.camera_ch1.frameSequence={count:12}
+    expect(deviceSourceRow(device)).toMatchObject({type:'预矫正图像', content:'可见光图像', status:'部分通道可用'})
+    device.mockVideo.correctedChannels.thermal={available:true,url:'/thermal.jpg',media_type:'image'}
+    expect(deviceSourceRow(device).status).toBe('通道齐全')
   })
 })

@@ -3,110 +3,6 @@
     <h2 class="page-title">系统设置</h2>
     <ReplaySettings :key="contextDeviceId" :device-id="contextDeviceId" />
 
-    <!-- 华科实验台连接设置 -->
-    <el-card class="settings-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>华科实验台连接设置</span>
-          <el-tag :type="benchSettings.use_mock ? 'warning' : 'success'" size="small" effect="dark">
-            {{ benchSettings.use_mock ? '模拟数据' : '真实硬件' }}
-          </el-tag>
-        </div>
-      </template>
-
-      <div class="settings-content">
-        <el-alert
-          title="实验台采集连接参数"
-          description="这里集中维护华科实验台 USB 摄像头、红外热像仪和调试模式设置；设备状态监测页启动采集时读取此处保存的配置。"
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 20px;"
-        />
-
-        <el-form :model="benchSettings" label-width="140px" size="default">
-          <el-divider content-position="left">摄像头设置 (USB)</el-divider>
-          <el-form-item label="CH1主摄像头">
-            <div class="camera-select-row">
-              <el-select v-model="benchSettings.camera_ch1_index" style="width: 240px" :loading="camerasLoading">
-                <el-option
-                  v-for="cam in availableCameras"
-                  :key="`ch1-${cam.index}`"
-                  :label="formatCameraLabel(cam)"
-                  :value="cam.index"
-                />
-                <el-option v-if="availableCameras.length === 0 && !camerasLoading" label="未检测到摄像头" :value="-1" disabled />
-                <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
-              </el-select>
-              <el-button type="primary" @click="fetchCameras" :loading="camerasLoading">
-                刷新
-              </el-button>
-            </div>
-          </el-form-item>
-          <el-form-item label="CH2副摄像头">
-            <el-select v-model="benchSettings.camera_ch2_index" style="width: 240px" :loading="camerasLoading">
-              <el-option
-                v-for="cam in availableCameras"
-                :key="`ch2-${cam.index}`"
-                :label="formatCameraLabel(cam)"
-                :value="cam.index"
-              />
-              <el-option v-if="availableCameras.length === 0 && !camerasLoading" label="未检测到摄像头" :value="-1" disabled />
-              <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
-            </el-select>
-          </el-form-item>
-
-          <el-divider content-position="left">真实数据采集</el-divider>
-          <el-form-item label="振动传感器串口">
-            <el-input v-model="benchSettings.vibration_com" style="width: 240px" placeholder="COM3" />
-            <span class="form-hint inline-hint">WTVB02-485，9600 baud，地址 0x50</span>
-          </el-form-item>
-          <el-form-item label="振动计层阈值">
-            <el-input-number v-model="benchSettings.vibration_threshold" :min="0.01" :max="10" :step="0.01" :precision="2" />
-            <span class="form-hint inline-hint">振动下降沿完成两次动作后计为一层</span>
-          </el-form-item>
-          <el-form-item label="数据保存文件夹">
-            <div class="camera-select-row">
-              <el-input v-model="benchSettings.save_directory" style="width: 420px" placeholder="请选择真实数据保存文件夹" clearable />
-              <el-button type="primary" plain @click="chooseSaveDirectory" :loading="directoryLoading">
-                选择文件夹
-              </el-button>
-            </div>
-            <div class="form-hint">真实采集启动后，按层保存 CH1、CH2、CH3 的 before/after 图像。</div>
-          </el-form-item>
-
-          <el-divider content-position="left">红外热像仪</el-divider>
-          <el-form-item>
-            <el-alert
-              type="info"
-              :closable="false"
-              show-icon
-            >
-              <template #title>
-                红外热像仪通过 PIX Connect SDK 连接，不需要 COM 口
-              </template>
-              <template #default>
-                请确认 PIX Connect 软件已安装并启动、热像仪设备已连接，并在 PIX Connect 中启用 IPC 通信。
-              </template>
-            </el-alert>
-          </el-form-item>
-
-          <el-divider content-position="left">调试模式</el-divider>
-          <el-form-item label="使用模拟数据">
-            <el-switch v-model="benchSettings.use_mock" />
-            <span class="form-hint inline-hint">
-              开启后无需连接真实硬件，用于界面测试
-            </span>
-          </el-form-item>
-
-          <el-form-item>
-            <el-button type="primary" @click="saveBenchSettings">
-              保存连接设置
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </div>
-    </el-card>
     <!-- 数据源列表与设备群和工作区保持一致。 -->
     <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
       <template #header>
@@ -125,7 +21,7 @@
           </el-table-column>
           <el-table-column prop="type" label="数据源" min-width="100" />
           <el-table-column prop="content" label="数据内容" min-width="200" />
-          <el-table-column prop="location" label="资源位置 / 配置入口" min-width="220" show-overflow-tooltip />
+          <el-table-column prop="location" label="资源位置" min-width="220" show-overflow-tooltip />
           <el-table-column prop="status" label="资源状态" min-width="160" />
           <el-table-column label="操作" width="110" fixed="right">
             <template #default="{ row }">
@@ -135,156 +31,24 @@
         </el-table>
       </div>
     </el-card>
-    <!-- 畸变矫正信息 -->
-    <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
-      <template #header>
-        <div class="card-header">
-          <span>畸变矫正信息</span>
-          <el-button 
-            type="primary" 
-            size="small" 
-            @click="reloadCalibration"
-            :loading="reloadingCalibration"
-          >
-            重新加载
-          </el-button>
-        </div>
-      </template>
-      <div class="correction-info">
-        <!-- 标定文件路径 -->
-        <el-form label-width="150px" size="small" style="margin-bottom: 15px;">
-          <el-form-item label="标定文件路径">
-            <el-input 
-              v-model="calibrationFilePath" 
-              placeholder="默认: 项目根目录/calibration_points.json"
-            >
-              <template #append>
-                <el-button @click="setCalibrationPath">
-                  设置路径
-                </el-button>
-              </template>
-            </el-input>
-            <div class="form-hint">
-              默认自动查找项目根目录下的 calibration_points.json 文件
-            </div>
-          </el-form-item>
-        </el-form>
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="标定文件">
-            {{ correctionInfo.calibration_file ? '已加载' : '未加载' }}
-          </el-descriptions-item>
-          <el-descriptions-item label="已标定通道">
-            <el-tag 
-              v-for="ch in calibratedChannels" 
-              :key="ch"
-              type="success"
-              size="small"
-              style="margin-right: 5px;"
-            >
-              {{ ch }}
-            </el-tag>
-            <span v-if="calibratedChannels.length === 0">无</span>
-          </el-descriptions-item>
-        </el-descriptions>
-        <div v-if="calibratedChannels.length > 0" class="channel-details">
-          <h4>通道详情</h4>
-          <el-table :data="channelDetails" border size="small">
-            <el-table-column prop="channel" label="通道" width="80" />
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="row.calibrated ? 'success' : 'info'" size="small">
-                  {{ row.calibrated ? '已标定' : '未标定' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="source_points" label="源标定点" />
-            <el-table-column prop="output_size" label="输出尺寸" width="120" />
-          </el-table>
-        </div>
-        <el-alert
-          v-else
-          title="未找到标定数据"
-          description="请确保 calibration_points.json 文件存在于项目根目录，并包含有效的4点标定数据。"
-          type="warning"
-          :closable="false"
-          show-icon
-          style="margin-top: 15px;"
-        />
-      </div>
-    </el-card>
-    <!-- ROI区域配置 -->
-    <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
-      <template #header>
-        <div class="card-header">
-          <span>ROI区域配置</span>
-          <el-tag v-if="roiConfigured" type="success" size="small" effect="dark">已配置</el-tag>
-        </div>
-      </template>
-      <ROIConfigPanel 
-        @config-loaded="onROIConfigLoaded"
-        @config-cleared="onROIConfigCleared"
-      />
-    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import ROIConfigPanel from '../../components/slm/ROIConfigPanel.vue'
-import { readSlmBenchSettings, writeSlmBenchSettings } from '../../utils/slmBenchSettings'
+import { useRoute } from 'vue-router'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
 import { deviceSourceRow } from '../../utils/slmDeviceSources'
-import { useRoute } from 'vue-router'
 import ReplaySettings from '../../components/slm/ReplaySettings.vue'
-import { replayCaseForDevice } from '../../stores/replay'
+
 const route = useRoute()
 const contextDeviceId = computed(() => typeof route.query.device === 'string'
   ? route.query.device : localStorage.getItem('slmSelectedDeviceId') || '')
-
-// API 基础地址
-const API_BASE = '/api/slm'
 const slmDeviceStore = useSlmDeviceStore()
-
-// 华科实验台连接设置，供设备状态监测页启动采集时读取。
-const benchSettings = reactive(readSlmBenchSettings())
-const availableCameras = ref([])
-const camerasLoading = ref(false)
-const directoryLoading = ref(false)
-
-// 畸变矫正信息
-const correctionInfo = reactive({
-  calibration_file: '',
-  channels: {}
-})
-
-// 标定文件路径
-const calibrationFilePath = ref('')
-
-// 加载状态
-const reloadingCalibration = ref(false)
-
-// ROI配置状态
-const roiConfigured = ref(false)
-
-// 计算属性
-const calibratedChannels = computed(() => {
-  return Object.keys(correctionInfo.channels).filter(ch => 
-    correctionInfo.channels[ch]?.calibrated
-  )
-})
-
-const channelDetails = computed(() => {
-  return Object.entries(correctionInfo.channels).map(([channel, info]) => ({
-    channel,
-    calibrated: info.calibrated,
-    source_points: info.source_points?.map(p => `[${p[0]}, ${p[1]}]`).join(', ') || '-',
-    output_size: info.output_size ? `${info.output_size[0]} x ${info.output_size[1]}` : '-'
-  }))
-})
-
 const deviceSourceRows = computed(() => slmDeviceStore.devices.map(deviceSourceRow))
 
+// 设置页仅加载设备目录与当前回放，不再探测旧实验台硬件或修改标定、ROI。
 async function refreshDeviceSources() {
   try {
     await slmDeviceStore.loadDevicesFromBackend()
@@ -292,221 +56,15 @@ async function refreshDeviceSources() {
     ElMessage.error(error.message)
   }
 }
-
-function formatCameraLabel(camera) {
-  const resolution = camera.resolution?.length === 2
-    ? `${camera.resolution[0]}x${camera.resolution[1]}`
-    : '未知分辨率'
-  return `摄像头 ${camera.index} (${resolution})`
-}
-
-async function fetchCameras() {
-  camerasLoading.value = true
-  try {
-    const response = await fetch(`${API_BASE}/cameras`)
-    const result = await response.json()
-
-    if (result.success) {
-      availableCameras.value = result.cameras || []
-
-      // 只在当前保存的索引不存在时，按检测顺序填入可用摄像头。
-      const availableIndices = availableCameras.value.map(camera => camera.index)
-      const ch1Valid = availableIndices.includes(benchSettings.camera_ch1_index)
-      const ch2Valid = availableIndices.includes(benchSettings.camera_ch2_index)
-
-      if (availableCameras.value.length >= 2) {
-        if (!ch1Valid) benchSettings.camera_ch1_index = availableCameras.value[0].index
-        if (!ch2Valid) benchSettings.camera_ch2_index = availableCameras.value[1].index
-      } else if (availableCameras.value.length === 1) {
-        if (!ch1Valid) benchSettings.camera_ch1_index = availableCameras.value[0].index
-      }
-    } else {
-      ElMessage.warning(result.message || '摄像头检测失败')
-    }
-  } catch (error) {
-    console.error('获取摄像头失败:', error)
-    ElMessage.error('摄像头检测失败: ' + error.message)
-  } finally {
-    camerasLoading.value = false
-  }
-}
-
-function saveBenchSettings() {
-  writeSlmBenchSettings(benchSettings)
-  ElMessage.success('华科实验台连接设置已保存')
-}
-
-async function chooseSaveDirectory() {
-  directoryLoading.value = true
-  try {
-    const response = await fetch(`${API_BASE}/capture/choose-directory`, { method: 'POST' })
-    const result = await response.json()
-    if (result.success && result.path) {
-      benchSettings.save_directory = result.path
-      writeSlmBenchSettings(benchSettings)
-      ElMessage.success('数据保存文件夹已选择')
-    } else if (!result.cancelled) {
-      ElMessage.error(result.message || '选择文件夹失败')
-    }
-  } catch (error) {
-    ElMessage.error('选择文件夹失败: ' + error.message)
-  } finally {
-    directoryLoading.value = false
-  }
-}
-
-// ROI配置回调
-function onROIConfigLoaded(config) {
-  roiConfigured.value = true
-  ElMessage.success('ROI配置已加载')
-}
-
-function onROIConfigCleared() {
-  roiConfigured.value = false
-}
-
-// 加载畸变矫正信息
-async function loadCorrectionInfo() {
-  try {
-    const response = await fetch(`${API_BASE}/capture/correction_info`)
-    const result = await response.json()
-    if (result.success) {
-      Object.assign(correctionInfo, result)
-    }
-  } catch (error) {
-    console.error('获取矫正信息失败:', error)
-  }
-}
-
-// 设置标定文件路径
-async function setCalibrationPath() {
-  if (!calibrationFilePath.value) {
-    ElMessage.warning('请输入标定文件路径')
-    return
-  }
-  try {
-    const response = await fetch(`${API_BASE}/capture/correction/set_path`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        path: calibrationFilePath.value
-      })
-    })
-    const result = await response.json()
-    if (result.success) {
-      ElMessage.success('标定文件路径已设置')
-      await loadCorrectionInfo()
-    } else {
-      ElMessage.error(result.message || '设置失败')
-    }
-  } catch (error) {
-    console.error('设置路径失败:', error)
-    ElMessage.error('设置路径失败: ' + error.message)
-  }
-}
-
-// 重新加载标定数据
-async function reloadCalibration() {
-  reloadingCalibration.value = true
-  try {
-    const response = await fetch(`${API_BASE}/capture/correction/reload`, {
-      method: 'POST'
-    })
-    const result = await response.json()
-    if (result.success) {
-      ElMessage.success('标定数据已重新加载')
-      await loadCorrectionInfo()
-    } else {
-      ElMessage.error(result.message || '重新加载失败')
-    }
-  } catch (error) {
-    console.error('重新加载失败:', error)
-    ElMessage.error('重新加载失败: ' + error.message)
-  } finally {
-    reloadingCalibration.value = false
-  }
-}
-
-// 初始化
-onMounted(() => {
-  // 历史设备的设置页不触发实体摄像头探测。
-  if (!replayCaseForDevice(contextDeviceId.value)) fetchCameras()
-  loadCorrectionInfo()
-  refreshDeviceSources()
-})
+onMounted(refreshDeviceSources)
 </script>
 
 <style scoped>
 .current-device { margin-left: 6px; color: var(--am-accent); font-size: 12px; }
 .device-source-link { color: var(--am-accent); text-decoration: none; }
 .device-source-link:hover { text-decoration: underline; }
-.slm-settings {
-  padding: 0;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--am-text);
-  margin: 0 0 20px 0;
-}
-
-
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  color: var(--am-text);
-}
-
-.settings-content {
-  padding: 10px 0;
-}
-
-.form-hint {
-  font-size: 12px;
-  color: var(--am-text-3);
-  margin-top: 5px;
-}
-
-.inline-hint {
-  margin-left: 10px;
-  margin-top: 0;
-}
-
-.camera-select-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.correction-info {
-  padding: 10px 0;
-}
-
-.channel-details {
-  margin-top: 20px;
-}
-
-.channel-details h4 {
-  color: var(--am-text);
-  margin-bottom: 15px;
-}
-
-:deep(.el-descriptions__label) {
-  background: var(--am-card-bg) !important;
-  color: var(--am-text-2) !important;
-}
-
-:deep(.el-descriptions__content) {
-  background: var(--am-card-bg) !important;
-  color: var(--am-text) !important;
-}
-
+.slm-settings { padding: 0; }
+.page-title { font-size: 24px; font-weight: 600; color: var(--am-text); margin: 0 0 20px; }
+.card-header { justify-content: space-between; }
 </style>
 <style scoped src="../../styles/device-settings.css"></style>
