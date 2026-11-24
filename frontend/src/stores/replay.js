@@ -127,12 +127,12 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
   }
   const seek = (offset) => move(Number(offset))
   const seekLayer = (layer) => seek(manifest.value.layers.find(r => r.layer === Number(layer)).offset)
-  // 历史识别记录定位到结果到达时刻，暂停便于检查；不是层开始的空白时刻。
+  // 历史识别记录定位到结果到达时刻，从该层继续播放；不是层开始的空白时刻。
   function seekRecognitionLayer(layer) {
     const row = manifest.value.layers.find(r => r.layer === Number(layer))
     if (!row) return
     suspended = false
-    return move(row.offset + row.recognitionAt - row.start, false, false)
+    return move(row.offset + row.recognitionAt - row.start, true, false)
   }
   function setSpeed(value) {
     const offset = position()

@@ -4,31 +4,14 @@
       <Region kind="input" title="识别对象" class="r-input">
         <div class="fields">
           <div class="field"><span class="k">设备</span>
-            <select class="sel" :value="replaySession ? d.device.id : state.device" :disabled="embedded || stepper.running.value" @change="switchDevice($event.target.value)">
+            <select class="sel" :value="replaySession ? d.device.id : state.device" :disabled="embedded || busy" @change="switchDevice($event.target.value)">
               <option v-for="x in devs" :key="x.id" :value="x.id">{{ x.name }}</option></select></div>
           <div class="field"><span class="k">成形任务</span><select class="sel" disabled><option>{{ d.task.name }}</option></select></div>
           <div class="field"><span class="k">识别模型</span><select class="sel" disabled><option>{{ d.model.name }}</option></select></div>
           <div class="field"><span class="k">成形层</span>
-            <select class="sel" :value="d.layer" :disabled="!!replaySession || stepper.running.value" @change="run(+$event.target.value)">
+            <select class="sel" :value="d.layer" :disabled="!!replaySession || busy" @change="run(+$event.target.value)">
               <option v-if="replaySession" :value="d.layer">第 {{ d.layer ?? '—' }} 层</option>
               <option v-for="L in layers" :key="L" :value="L">第 {{ L }} 层</option></select></div>
-        </div>
-      </Region>
-      <Region kind="param" title="识别参数" class="r-param">
-        <div class="fields">
-          <div class="field wide"><span class="k">判定阈值</span>
-            <input v-if="replaySession" class="inp" type="number" :value="(d.params.threshold == null ? '' : d.params.threshold * 100)" disabled /><input v-else class="inp" type="number" min="1" max="99" step="1" v-model.number="state.recog.threshold" @change="run(d.layer)" /><span class="k">%</span></div>
-          <div class="field wide"><span class="k">输入模态</span>
-            <span v-for="m in (d.infrared ? MODS.filter(m => m.key === 'vis') : MODS)" :key="m.key" class="ch" @click="!replaySession && toggle(m.key)"><i class="ck" :class="{ off: !(replaySession ? d.params.modalities : state.recog.modalities).includes(m.key) }">✓</i>{{ m.label }}</span><span v-if="d.infrared" class="ch"><i class="ck">✓</i>红外（独立识别）</span></div>
-        </div>
-      </Region>
-      <Region kind="op" title="操作" class="r-op">
-        <div v-if="replaySession" class="ops replay-ops">
-          <span>{{ replaySession.statusLabel || (replaySession.playing ? '采集中' : '采集暂停') }}</span><span>{{ d.available === false ? '暂无模型输出' : '随采集数据更新' }}</span>
-        </div>
-        <div v-else class="ops">
-          <button class="btn primary" :disabled="busy || stepper.running.value" @click="run(d.layer)">单层识别</button>
-          <button class="btn" @click="toggleStep">{{ stepper.running.value ? '停止识别' : '逐层识别' }}</button>
         </div>
       </Region>
     </div>
@@ -45,28 +28,26 @@
         </div>
 
         <div class="card c-res">
-          <div class="card-title">{{ d.infrared ? '可见光识别结果' : '识别结果' }}<span class="tm">第 {{ d.layer ?? '—' }} 层</span></div>
+          <div class="card-title">异常识别<span class="tm">第 {{ d.layer ?? '—' }} 层</span></div>
           <div class="vc">
             <div class="verdict" :class="{ nor: d.label === '正常', pending: d.available === false }">{{ d.label }}</div>
-            <div class="prob-row"><span>异常概率</span><b>{{ fmtPct(d.prob.def) }}</b></div>
+            <div class="prob-row main-prob"><span>模型异常识别概率</span><b>{{ fmtPct(d.prob.def) }}</b></div>
             <div class="pbar"><div class="pfill" :style="{ width: d.prob.def * 100 + '%' }"></div><i class="th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
             <div class="prob-row"><span>正常概率</span><b>{{ fmtPct(Number.isFinite(d.prob.def) ? 1 - d.prob.def : null) }}</b></div>
           </div>
         </div>
 
         <div class="card c-mod">
-          <div class="card-title">各模态的作用</div>
+          <div class="card-title">辅助模态分析</div>
           <div class="vc">
             <template v-if="!d.infrared">
-            <div class="m-sub">模态权重<span class="m-hint">融合时各模态所占比重</span></div>
-            <div class="wbar">
-              <div class="wseg w-vis" :style="{ width: d.weights.vis * 100 + '%' }"><span v-if="d.weights.vis > 0.3">铺粉后图像 {{ fmtPct(d.weights.vis) }}</span></div>
-              <div class="wseg w-tq" :style="{ width: d.weights.tq * 100 + '%' }"><span v-if="d.weights.tq > 0.3">刮刀与平台扭矩 {{ fmtPct(d.weights.tq) }}</span></div>
-            </div>
-            <div class="w-legend"><span><i class="sw w-vis"></i>铺粉后图像 {{ fmtPct(d.weights.vis) }}</span>
-              <span v-if="d.params.modalities.includes('tq')"><i class="sw w-tq"></i>刮刀与平台扭矩 {{ fmtPct(d.weights.tq) }}</span></div>
+              <div class="m-sub">融合权重</div>
+              <div v-for="m in weightedModalities" :key="m.key" class="weight-row" :class="{ dominant:m.dominant }">
+                <div class="weight-heading"><span>{{ m.name }}</span><b>{{ fmtPct(m.weight) }}</b><span v-if="m.dominant" class="dominant-label">主导模态</span></div>
+                <div class="weight-track"><div :style="{width: (m.weight ?? 0) * 100 + '%'}"></div></div>
+              </div>
             </template>
-            <div class="m-sub second">单模态判断<span class="m-hint">只用该模态时的异常概率</span></div>
+            <div class="m-sub second">单一模态异常识别概率</div>
             <div class="single" v-for="m in modalityResults" :key="m.key" :class="{ unused: !m.used }">
               <span class="s-name">{{ m.name }}</span>
               <div class="s-track"><div class="s-fill" :style="{ width: m.p * 100 + '%' }"></div><i class="s-th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
@@ -120,24 +101,30 @@ import Region from '../components/Region.vue'
 import EChart from '../components/EChart.vue'
 import { api, mediaUrl } from '../api.js'
 import { devicesFor, selectDevice, state } from '../state.js'
-import { fmtPct, useCall, useStepper } from '../composables.js'
+import { fmtPct, useCall } from '../composables.js'
 import { pal } from '../theme.js'
 import { torqueWindow, replayTimeLabel } from '../rollingWindow.js'
 
-const MODS = [{ key: 'vis', label: '铺粉后图像' }, { key: 'tq', label: '扭矩' }]
 const embedded = inject('formingEmbedded', false)
 const replaySession = inject('formingReplay', null)
 const { busy, call, report } = useCall()
-const stepper = useStepper(1200)
 const d = ref(null)
 // 回放设备从工作区共享快照读取，跳转时清空旧结果，不再启动页面各自的计时器。
 if (replaySession) watch(() => replaySession.snapshot, frame => { d.value = frame?.recognition || pendingAnalysis(frame, 'recognition') }, { immediate: true })
 const layers = ref([])
 const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : devicesFor('recognition'))
 const modalityResults = computed(() => d.value?.infrared ? [...d.value.singles, { key:'ir', name:'铺粉后红外', p:d.value.infrared.anomalyProbability, label:d.value.infrared.anomalyProbability >= .5 ? '异常' : '正常', used:true }] : d.value?.singles || [])
+// 主导关系仅取模型实际融合权重，不把单模态异常概率当作贡献权重。
+const weightedModalities = computed(() => {
+  const rows = (d.value?.singles || []).filter(m => m.used).map(m => ({key:m.key, name:m.name, weight:d.value.weights[m.key]}))
+  const weights = rows.map(m => m.weight).filter(Number.isFinite)
+  const maximum = weights.length ? Math.max(...weights) : null
+  const unique = maximum > 0 && rows.filter(m => m.weight === maximum).length === 1
+  return rows.map(m => ({...m, dominant:unique && m.weight === maximum}))
+})
 const imgUrl = computed(() => mediaUrl(d.value.image.url, 1200))
 
-const canSelectRecord = computed(() => replaySession ? typeof replaySession.seekRecognitionLayer === 'function' && !replaySession.loading : !stepper.running.value && !busy.value)
+const canSelectRecord = computed(() => replaySession ? typeof replaySession.seekRecognitionLayer === 'function' && !replaySession.loading : !busy.value)
 async function selectRecord(layer) {
   if (!canSelectRecord.value) return
   if (replaySession) await replaySession.seekRecognitionLayer(layer)
@@ -155,16 +142,6 @@ async function run(layer) {
   state.layer[state.device] = r.layer
   if (!layers.value.length) layers.value = (await call(() => api.layers(state.device, r.task.id))) || [r.layer]
   return true
-}
-function toggle(k) {
-  const m = state.recog.modalities
-  if (m.includes(k)) { if (m.length === 1) { report(new Error('至少选择一种输入模态')); return } state.recog.modalities = m.filter((x) => x !== k) }
-  else state.recog.modalities = ['vis', 'tq'].filter((x) => x === k || m.includes(x))
-  if (d.value) run(d.value.layer)
-}
-function toggleStep() {
-  if (stepper.running.value) stepper.stop()
-  else stepper.start(layers.value, d.value.layer, (L) => run(L))
 }
 function switchDevice(id) { selectDevice(id); d.value = null; layers.value = []; run() }
 onMounted(() => { if (!replaySession) run() })
@@ -193,6 +170,17 @@ const torqueOption = computed(() => {
 </script>
 
 <style scoped>
+.main-prob { align-items: center; gap: 10px; flex-wrap: wrap; }
+.c-res .main-prob b { font-size: 34px; color: var(--dev); }
+.c-res { border-top: 3px solid var(--dev); }
+.weight-row { margin-top: 10px; padding: 8px; border: 1px solid var(--border); }
+.weight-row.dominant { border-color: var(--dev); background: var(--dev-soft); }
+.weight-heading { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:13px; }
+.weight-heading b { margin-left:auto; }
+.dominant-label { color:var(--dev); font-weight:700; }
+.weight-track { height:8px; margin-top:8px; background:var(--track); }
+.weight-track > div { height:100%; background:var(--dev); }
+
 /* 长记录只在表格内滚动，表头固定；点击记录复用设备共享回放游标。 */
 .c-rec .table-scroll { max-height: 280px; overflow-y: auto; scrollbar-gutter: stable; }
 .c-rec thead { position: sticky; top: 0; z-index: 1; background: var(--card-bg); }
@@ -202,8 +190,6 @@ const torqueOption = computed(() => {
 .infrared-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 @media(max-width:600px) { .infrared-content { grid-template-columns: minmax(0, 1fr); } }
 .r-input { flex: 520 0 520px; }
-.r-param { flex: 396 1 396px; min-width: 0; }
-.r-op { flex: 250 0 250px; }
 .r-vis { flex: 1; }
 .grid { height: 100%; display: grid; grid-template-columns: minmax(0, 330fr) minmax(0, 300fr) minmax(0, 510fr); grid-template-rows: minmax(0, 300fr) minmax(0, 260fr); gap: 12px; }
 .img { width: 100%; flex: 1; min-height: 0; }
@@ -219,13 +205,6 @@ const torqueOption = computed(() => {
 .c-torque { grid-column: 1 / 3; }
 .m-sub { font-size: 17px; font-weight: 700; margin-top: 4px; }
 .m-sub.second { margin-top: 18px; }
-.m-hint { font-size: 14px; font-weight: 400; color: var(--text-2); margin-left: 10px; }
-.wbar { display: flex; height: 30px; border-radius: 6px; overflow: hidden; margin-top: 8px; background: var(--track); }
-.wseg { height: 100%; display: flex; align-items: center; padding-left: 12px; color: #fff; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; }
-.w-vis { background: var(--nav-bg); }
-.w-tq { background: var(--tq-weight); }
-.w-legend { display: flex; gap: 22px; font-size: 15px; color: var(--text-2); margin-top: 6px; }
-.sw { display: inline-block; width: 14px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 .single { display: grid; grid-template-columns: 140px 1fr 64px 58px; align-items: center; gap: 10px; margin-top: 10px; font-size: 16px; }
 .single.unused { opacity: .45; }
 .s-name { white-space: nowrap; }

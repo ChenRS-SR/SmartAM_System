@@ -293,3 +293,6 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
 
 /* 贡献图为双行图例与坐标名称预留高度，不挤压实际绘图区。 */
 .forming-root .trace-page .c-curve .chart { height: 300px; min-height: 300px; flex: none; }
+
+/* 识别页仅保留对象信息，采集操作统一由状态监测管理。 */
+.forming-root .recognition-page .row-top { grid-template-columns: minmax(0, 1fr); }
