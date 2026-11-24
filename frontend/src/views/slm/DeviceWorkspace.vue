@@ -1,16 +1,13 @@
 <template>
-  <!-- 案例设备使用独立只读数据流，不初始化硬件采集。 -->
-  <ReplayWorkspace v-if="caseConfig" :key="route.params.deviceId" :device-id="route.params.deviceId" />
-  <Dashboard v-else />
+  <!-- 所有设备共享相同模块结构，仅由数据适配器区分数据来源。 -->
+  <DeviceWorkspaceContent :key="route.params.deviceId" :device-id="route.params.deviceId" />
 </template>
 <script setup>
 import { useRoute } from 'vue-router'
-import { computed, watch } from 'vue'
-import Dashboard from './Dashboard.vue'
-import ReplayWorkspace from './replay/ReplayWorkspace.vue'
-import { REPLAY_CASES, replayCaseForDevice, useReplayStore } from '../../stores/replay'
+import { watch } from 'vue'
+import DeviceWorkspaceContent from './workspace/DeviceWorkspaceContent.vue'
+import { REPLAY_CASES, useReplayStore } from '../../stores/replay'
 const route = useRoute()
-const caseConfig = computed(() => replayCaseForDevice(route.params.deviceId))
 const sessions = REPLAY_CASES.map(item => ({ deviceId: item.deviceId, store: useReplayStore(item.id) }))
 watch([() => route.params.deviceId, ...sessions.map(s => () => s.store.playing)], ([id]) => {
   // 离开工作区时路由参数已清空，不能因此暂停设备群或系统设置中的播放。

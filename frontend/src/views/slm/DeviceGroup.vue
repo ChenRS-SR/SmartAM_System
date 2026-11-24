@@ -9,15 +9,47 @@
       </div>
       <div class="header-actions">
         <el-button :loading="syncingDatabase" @click="syncFileDatabase">
-          <el-icon><Refresh /></el-icon>
           同步文件数据库
         </el-button>
         <el-button type="primary" @click="openCreateDialog">
-          <el-icon><Plus /></el-icon>
           导入设备
         </el-button>
       </div>
     </div>
+
+    <!-- 装备群历史统计情况 -->
+    <section class="maintenance-statistics-panel">
+      <div class="panel-title">
+        装备群历史统计情况
+      </div>
+      <p v-if="statisticsError" role="alert">{{ statisticsError }}</p>
+      <div class="maintenance-statistics-grid">
+        <div class="maintenance-stat-card">
+          <div class="maintenance-stat-content">
+            <span class="maintenance-stat-label">累计发生故障任务</span>
+            <span class="maintenance-stat-value">
+              {{ maintenanceStats.totalFaults }}<span class="maintenance-stat-unit">次</span>
+            </span>
+          </div>
+        </div>
+        <div class="maintenance-stat-card">
+          <div class="maintenance-stat-content">
+            <span class="maintenance-stat-label">维护记录次数</span>
+            <span class="maintenance-stat-value">
+              {{ maintenanceStats.preventiveRepairs }}<span class="maintenance-stat-unit">次</span>
+            </span>
+          </div>
+        </div>
+        <div class="maintenance-stat-card">
+          <div class="maintenance-stat-content">
+            <span class="maintenance-stat-label">故障任务率</span>
+            <span class="maintenance-stat-value">
+              {{ maintenanceStats.rateText }}<span class="maintenance-stat-unit">%</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="source-bar">
       <span>使用单位</span>
@@ -64,6 +96,7 @@
       <article
         v-for="device in filteredDevices"
         :key="device.id"
+        :data-device-id="device.id"
         class="device-card"
         tabindex="0"
         :aria-label="`进入${device.name}`"
@@ -87,65 +120,24 @@
                 class="icon-btn"
                 @click.stop="openEditDialog(deviceStore.getDeviceById(device.id) || device)"
               >
-                <el-icon><EditPen /></el-icon>
+                编辑
               </el-button>
             </el-tooltip>
           </div>
           <div class="device-status-row">
             <span>设备状态</span>
-            <strong :class="statusClass(device)"><i></i>{{ statusText(device) }}</strong>
+            <strong :class="device.analysisStatus.equipment.state"><i></i>{{ device.analysisStatus.equipment.text }}</strong>
+          </div>
+          <div class="device-status-row print-status-row">
+            <span>打印状态</span>
+            <strong :class="device.analysisStatus.printing.state"><i></i>{{ device.analysisStatus.printing.text }}</strong>
           </div>
         </div>
       </article>
 
       <button class="add-device-tile" @click="openCreateDialog">
-        <el-icon><Plus /></el-icon>
         <span>导入设备</span>
       </button>
-    </section>
-
-    <!-- 装备群历史统计情况 -->
-    <section class="maintenance-statistics-panel">
-      <div class="panel-title">
-        <el-icon><TrendCharts /></el-icon>
-        装备群历史统计情况
-      </div>
-      <p v-if="statisticsError" role="alert">{{ statisticsError }}</p>
-      <div class="maintenance-statistics-grid">
-        <div class="maintenance-stat-card">
-          <div class="maintenance-stat-icon faults">
-            <el-icon><Warning /></el-icon>
-          </div>
-          <div class="maintenance-stat-content">
-            <span class="maintenance-stat-label">累计发生故障任务</span>
-            <span class="maintenance-stat-value">
-              {{ maintenanceStats.totalFaults }}<span class="maintenance-stat-unit">次</span>
-            </span>
-          </div>
-        </div>
-        <div class="maintenance-stat-card">
-          <div class="maintenance-stat-icon preventive">
-            <el-icon><FirstAidKit /></el-icon>
-          </div>
-          <div class="maintenance-stat-content">
-            <span class="maintenance-stat-label">维护记录次数</span>
-            <span class="maintenance-stat-value">
-              {{ maintenanceStats.preventiveRepairs }}<span class="maintenance-stat-unit">次</span>
-            </span>
-          </div>
-        </div>
-        <div class="maintenance-stat-card">
-          <div class="maintenance-stat-icon reduction">
-            <el-icon><CircleCheck /></el-icon>
-          </div>
-          <div class="maintenance-stat-content">
-            <span class="maintenance-stat-label">故障任务率</span>
-            <span class="maintenance-stat-value">
-              {{ maintenanceStats.rateText }}<span class="maintenance-stat-unit">%</span>
-            </span>
-          </div>
-        </div>
-      </div>
     </section>
 
     <el-dialog
@@ -198,7 +190,6 @@
               :on-change="handleThumbnailChange"
             >
               <el-button>
-                <el-icon><Upload /></el-icon>
                 上传图片
               </el-button>
             </el-upload>
@@ -214,12 +205,13 @@
 </template>
 
 <script setup>
+import { deviceAnalysisStatus } from '../../utils/deviceAnalysisStatus'
+import { compareFeaturedDevices } from '../../utils/devicePriority'
 import { useReplayStore, REPLAY_CASES } from '../../stores/replay'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMaintenanceStatistics } from '../../composables/useMaintenanceStatistics'
 import { ElMessage } from 'element-plus'
-import { EditPen, Plus, Refresh, Upload, TrendCharts, Warning, FirstAidKit, CircleCheck } from '@element-plus/icons-vue'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
 import { readSlmBenchSettings } from '../../utils/slmBenchSettings'
 import { buildMockCaseHealthData, buildMockCaseStatusText, checkMockCaseMedia, getDeviceMockCase } from '../../utils/slmMockCases'
@@ -386,29 +378,46 @@ const toMockDevice = (device) => {
 }
 
 const caseSessions = new Map(REPLAY_CASES.map(item => [item.id, useReplayStore(item.id)]))
+// 档案设备读取与内部工作区相同的快照；回放设备直接订阅共享时钟。
+const archiveFrames = ref({})
+let archiveController
+watch(() => deviceStore.devices.filter(d => !d.replayCase).map(d => d.id).join('|'), async () => {
+  archiveController?.abort()
+  const controller = new AbortController()
+  archiveController = controller
+  await Promise.all(deviceStore.devices.filter(d => !d.replayCase).map(async device => {
+    try {
+      const response = await fetch(`/api/slm/workspace/devices/${encodeURIComponent(device.id)}`, {signal:controller.signal})
+      if (!response.ok) return
+      const result = await response.json()
+      if (!controller.signal.aborted) archiveFrames.value[device.id] = result.snapshot
+    } catch (error) {
+      if (error.name !== 'AbortError') console.error('读取设备诊断状态失败', device.id, error)
+    }
+  }))
+}, {immediate:true})
 const displayDevices = computed(() => deviceStore.devices.map(device => {
-  // 此设备使用独立共享数据流，不被其他设备的数据模式改写。
   if (device.replayCase) {
     const replay = caseSessions.get(device.replayCase)
     const frame = replay.snapshot
-    // 状态卡沿用当前快照的异常判定；不展示内部数据来源和冗长告警。
-    const probability = frame?.recognition?.prob
-    const abnormal = probability && Math.max(probability.proc, probability.dev) >= .5
+    const analysisStatus = deviceAnalysisStatus(frame)
+    const health = analysisStatus.equipment.state
     const acquisitionStatus = replay.error ? '数据异常' : !frame ? '等待数据' : replay.playing ? '采集中' : '采集暂停'
-    return { ...device, name: device.name, dataTag: '', databaseTag: '', online: !!frame && !replay.error,
-      health: abnormal ? 'fault' : 'healthy', healthData: { status: abnormal ? 'fault' : 'healthy' }, statusText: acquisitionStatus,
+    return { ...device, dataTag: '', databaseTag: '', online: !!frame && !replay.error,
+      analysisStatus, health, healthData: {status:health}, statusText:acquisitionStatus,
       parameters: [
-        { id: 'current_layer', name: '当前层', value: frame?.layer ?? '—', unit: '层' },
-        { id: 'data_time', name: '采集时间', value: frame?.time ?? '等待数据', unit: '' },
-        { id: 'record_status', name: '状态参数', value: acquisitionStatus, unit: '' }
+        {id:'current_layer',name:'当前层',value:frame?.layer ?? '—',unit:'层'},
+        {id:'data_time',name:'采集时间',value:frame?.time ?? '等待数据',unit:''},
+        {id:'record_status',name:'状态参数',value:acquisitionStatus,unit:''},
       ] }
-
   }
-  return isMockMode.value ? toMockDevice(device) : toRealtimeDevice(device, realtimeSamples.value[device.id])
+  const displayed = isMockMode.value ? toMockDevice(device) : toRealtimeDevice(device, realtimeSamples.value[device.id])
+  const analysisStatus = deviceAnalysisStatus(archiveFrames.value[device.id])
+  return {...displayed, analysisStatus, health:analysisStatus.equipment.state}
 }))
 
 // 故障设备优先，随后完整案例；原始故障清单排序稳定，不随模拟波动跳动。
-const orderedDevices = computed(() => [...displayDevices.value].sort((a, b) => Number(deviceStore.getDeviceById(b.id)?.health === 'fault') - Number(deviceStore.getDeviceById(a.id)?.health === 'fault') || Number(Boolean(b.replayCase)) - Number(Boolean(a.replayCase))))
+const orderedDevices = computed(() => [...displayDevices.value].sort((a, b) => compareFeaturedDevices(a, b) || Number(deviceStore.getDeviceById(b.id)?.health === 'fault') - Number(deviceStore.getDeviceById(a.id)?.health === 'fault') || Number(Boolean(b.replayCase)) - Number(Boolean(a.replayCase))))
 const filteredDevices = computed(() => {
   if (selectedOrg.value === 'all') return orderedDevices.value
   return orderedDevices.value.filter((device) => {
@@ -443,16 +452,6 @@ const fleetStats = computed(() => ({
 
 // 统计使用已登记的任务与维护事件，不用固定示例数字。
 const {statistics:maintenanceStats, error:statisticsError} = useMaintenanceStatistics(() => [])
-
-const statusClass = (device) => {
-  if (!device.online) return 'offline'
-  return device.health === 'fault' ? 'fault' : 'healthy'
-}
-
-const statusText = (device) => {
-  if (!device.online) return '离线'
-  return device.health === 'fault' ? '异常' : '正常'
-}
 
 const resetForm = (device = null) => {
   editingDeviceId.value = device?.id || ''
@@ -656,6 +655,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  archiveController?.abort()
   stopRealtimePolling()
   window.removeEventListener('focus', refreshBenchSettings)
   window.removeEventListener('storage', refreshBenchSettings)
@@ -701,7 +701,11 @@ onUnmounted(() => {
 }
 
 .device-status-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--am-card-border); padding-top: 14px; margin-top: 14px; font-size: 14px; color: var(--am-text-2); }
-.device-status-row strong { display: flex; align-items: center; gap: 8px; }
+.device-status-row strong { display: flex; align-items: center; justify-content: flex-end; gap: 8px; text-align: right; overflow-wrap: anywhere; }
+.device-status-row > span { flex-shrink: 0; }
+.device-status-row i { flex-shrink: 0; }
+.print-status-row { margin-top: 8px; padding-top: 8px; }
+.device-status-row .warning { color: var(--am-prob-warning); }
 .device-status-row i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .device-status-row .healthy { color: var(--am-ok); }
 .device-status-row .fault { color: var(--am-danger); }
@@ -709,7 +713,7 @@ onUnmounted(() => {
 
 /* 装备群历史统计 */
 .maintenance-statistics-panel {
-  margin-top: 18px;
+  margin: 0 0 18px;
   padding: 18px;
   border: 1px solid var(--am-card-border);
   border-radius: 10px;
@@ -742,31 +746,9 @@ onUnmounted(() => {
   background: var(--am-card-bg);
 }
 
-.maintenance-stat-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-}
 
-.maintenance-stat-icon.faults {
-  background: color-mix(in srgb, var(--am-warn) 22%, transparent);
-  color: var(--am-warn);
-}
 
-.maintenance-stat-icon.preventive {
-  background: color-mix(in srgb, var(--am-accent) 22%, transparent);
-  color: var(--am-accent);
-}
 
-.maintenance-stat-icon.reduction {
-  background: color-mix(in srgb, var(--am-ok) 22%, transparent);
-  color: var(--am-ok);
-}
 
 .maintenance-stat-content {
   display: flex;

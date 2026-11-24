@@ -9,11 +9,9 @@
       </div>
       <div class="header-actions">
         <el-button :loading="syncingDatabase" @click="syncFileDatabase">
-          <el-icon><Refresh /></el-icon>
           同步文件数据库
         </el-button>
         <el-button type="primary" @click="openCreateDialog">
-          <el-icon><Plus /></el-icon>
           导入设备
         </el-button>
       </div>
@@ -76,7 +74,7 @@
                 class="icon-btn"
                 @click.stop="openEditDialog(device)"
               >
-                <el-icon><EditPen /></el-icon>
+                编辑
               </el-button>
             </el-tooltip>
           </div>
@@ -115,7 +113,6 @@
       </article>
 
       <button class="add-device-tile" @click="openCreateDialog">
-        <el-icon><Plus /></el-icon>
         <span>导入设备</span>
       </button>
     </section>
@@ -170,7 +167,6 @@
               :on-change="handleThumbnailChange"
             >
               <el-button>
-                <el-icon><Upload /></el-icon>
                 上传图片
               </el-button>
             </el-upload>
@@ -189,7 +185,6 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { EditPen, Plus, Refresh, Upload } from '@element-plus/icons-vue'
 import { useSlsDeviceStore } from '../../stores/slsDevices'
 
 const router = useRouter()

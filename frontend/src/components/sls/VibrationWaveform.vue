@@ -3,7 +3,6 @@
     <template #header>
       <div class="card-header">
         <span class="header-title">
-          <el-icon><Odometer /></el-icon>
           振动波形监测
         </span>
         <div class="header-stats" v-if="latestVibration">
@@ -14,10 +13,8 @@
         </div>
       </div>
     </template>
-    
     <div class="vibration-content">
       <div ref="chartRef" class="waveform-chart"></div>
-      
       <div class="vibration-stats">
         <div class="stat-item">
           <span class="stat-label">采样数:</span>
@@ -37,7 +34,6 @@
 <script setup>
 import { amVar } from '@/utils/themeColor'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { Odometer } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 
 const props = defineProps({
@@ -80,9 +76,7 @@ const amplitudeTagType = computed(() => {
 
 const initChart = () => {
   if (!chartRef.value) return
-  
   chart = echarts.init(chartRef.value)
-  
   const option = {
     backgroundColor: 'transparent',
     grid: {
@@ -137,20 +131,16 @@ const initChart = () => {
       top: 0
     }
   }
-  
   chart.setOption(option)
 }
 
 const updateChart = () => {
   if (!chart) return
-  
   const x = props.waveformData?.x || []
   const y = props.waveformData?.y || []
   const z = props.waveformData?.z || []
-  
   // 生成时间标签
   const labels = x.map((_, i) => i)
-  
   chart.setOption({
     xAxis: { data: labels },
     series: [
@@ -245,7 +235,6 @@ onUnmounted(() => {
   .header-stats {
     width: 100%;
   }
-  
   .waveform-chart {
     height: 200px;
   }

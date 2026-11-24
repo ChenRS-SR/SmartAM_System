@@ -19,6 +19,7 @@ from urllib.parse import quote, unquote
 
 SUPPORTED_THUMBNAIL_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".svg")
 SUPPORTED_MOCK_VIDEO_SUFFIXES = (".mp4", ".webm", ".ogg", ".mov", ".m4v")
+SUPPORTED_MONITOR_IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
 MOCK_VIDEO_CHANNELS = {
     "camera_ch1": "CH1",
     "camera_ch2": "CH2",
@@ -128,8 +129,10 @@ class SLMDeviceDataStore:
             }
 
         files = sorted(path for path in channel_dir.iterdir() if path.is_file())
-        supported_files = [path for path in files if path.suffix.lower() in SUPPORTED_MOCK_VIDEO_SUFFIXES]
-        unsupported_files = [path.name for path in files if path.suffix.lower() not in SUPPORTED_MOCK_VIDEO_SUFFIXES]
+        # 矫正目录兼容预处理后的单张图像，原始视频扫描契约保持不变。
+        suffixes = SUPPORTED_MOCK_VIDEO_SUFFIXES + (SUPPORTED_MONITOR_IMAGE_SUFFIXES if video_root.name == "mock_video_corrected" else ())
+        supported_files = [path for path in files if path.suffix.lower() in suffixes]
+        unsupported_files = [path.name for path in files if path.suffix.lower() not in suffixes]
 
         if not supported_files:
             reason = "未发现支持格式视频" if files else "通道目录为空"
@@ -142,12 +145,20 @@ class SLMDeviceDataStore:
             }
 
         video_file = supported_files[0]
+        sequence = None
+        frame_manifest = channel_dir / 'frames' / 'manifest.json'
+        if video_root.name == 'mock_video_corrected' and frame_manifest.is_file():
+            info = json.loads(frame_manifest.read_text(encoding='utf-8'))
+            if info['source'] == video_file.name and info['count'] > 0:
+                sequence = dict(baseUrl=self._public_file_path(channel_dir / 'frames'),
+                                count=info['count'], intervalMs=info['intervalMs'])
         return {
             "available": True,
             "channel": channel_folder,
             "filename": video_file.name,
             "url": self._public_file_path(video_file),
-            "media_type": "video",
+            "media_type": "video" if video_file.suffix.lower() in SUPPORTED_MOCK_VIDEO_SUFFIXES else "image",
+            "frameSequence": sequence,
             "unsupportedFiles": unsupported_files
         }
 

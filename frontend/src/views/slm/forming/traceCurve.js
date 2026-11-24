@@ -5,7 +5,7 @@ export function factorCurveRows(data) {
     proc: Number.isFinite(row.proc_part) && Number.isFinite(row.proc_powder)
       ? Math.max(row.proc_part, row.proc_powder) : null,
     dev: data.mode === 'dual'
-      ? Math.max(row.dev_part, row.dev_powder)
-      : Math.max(row.part, row.powder)
+      ? (Number.isFinite(row.dev_part) && Number.isFinite(row.dev_powder) ? Math.max(row.dev_part, row.dev_powder) : null)
+      : (Number.isFinite(row.part) && Number.isFinite(row.powder) ? Math.max(row.part, row.powder) : null)
   }))
 }

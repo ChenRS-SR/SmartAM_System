@@ -1,0 +1,34 @@
+/* 四台代表设备使用同一套工作区尺度；只调整呈现，不改变采集和分析数据。 */
+.replay-workspace { --workspace-gap: 16px; }
+.replay-workspace .forming-root .row-top,
+.replay-workspace .forming-root .grid,
+.replay-workspace .forming-root .vis-grid { gap: var(--workspace-gap); }
+.replay-workspace .forming-root .region,
+.replay-workspace .forming-root .card { border-radius: 4px; }
+.replay-workspace .forming-root .region-title { font-size: 18px; line-height: 1.5; margin-bottom: 12px; }
+.replay-workspace .forming-root .card-title { font-size: 18px; line-height: 1.5; margin-bottom: 10px; }
+.replay-workspace .forming-root .card-title .tm { font-size: 13px; font-weight: 400; line-height: 1.5; }
+.replay-workspace .forming-root .tbl { font-size: 14px; }
+.replay-workspace .forming-root .tbl th,
+.replay-workspace .forming-root .tbl td { padding: 9px 10px; line-height: 1.5; }
+.replay-workspace .forming-root .env-item { font-variant-numeric: tabular-nums; }
+.replay-workspace .region-panel > header h2 { font-size: 18px; line-height: 1.5; }
+.replay-workspace .region-control button:focus-visible,
+.replay-workspace .forming-root button:focus-visible,
+.replay-workspace .forming-root select:focus-visible { outline: 2px solid var(--am-accent); outline-offset: 3px; }
+.replay-workspace .region-control .export-button { min-height: 38px; }
+.replay-workspace .region-control .adaptive-heading input { width: 18px; height: 18px; }
+/* 回放元信息采用只读文本，完整换行显示任务名，不伪装成禁用选择器。 */
+.replay-workspace .trace-page .r-input .field { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: center; min-height: 36px; }
+.replay-workspace .trace-page .replay-metadata .r-param .field { display: grid; grid-template-columns: 144px minmax(0, 1fr); gap: 10px; align-items: center; min-height: 36px; }
+.replay-workspace .trace-page .replay-metadata .field-value { min-width: 0; white-space: normal; overflow-wrap: anywhere; font-size: 15px; line-height: 1.6; }
+.replay-workspace .trace-page .replay-metadata .k { font-size: 14px; white-space: normal; }
+.replay-workspace .trace-page .vis-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+.replay-workspace .maintenance-panel .stat-value,
+.replay-workspace .maintenance-panel .rel-value { font-variant-numeric: tabular-nums; }
+@container forming (max-width: 760px) {
+  .replay-workspace .trace-page .vis-grid { grid-template-columns: minmax(0, 1fr); }
+  .replay-workspace .trace-page .r-input .fields { grid-template-columns: minmax(0, 1fr); }
+  .replay-workspace .forming-root .region-title,
+  .replay-workspace .forming-root .card-title { font-size: 16px; }
+}

@@ -1,0 +1,103 @@
+"""统一设备工作区的数据隔离、缺失语义与部署契约。"""
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from fastapi import FastAPI, HTTPException
+from fastapi.testclient import TestClient
+from device_workspace import record_workspace, router, preview_records
+from core.slm_device_data import SLMDeviceDataStore
+from task4.service import devices, asset
+from replay.service import case_for_device
+
+
+class WorkspaceTests(unittest.TestCase):
+    def test_every_record_device_uses_same_contract_without_inference(self):
+        count = 0
+        for device in devices():
+            if case_for_device(device['id']):
+                continue
+            frame = record_workspace(device['id'])['snapshot']
+            count += 1
+            self.assertEqual(frame['caseId'], device['id'])
+            self.assertIn('parameters', frame)
+            for name in ('access', 'recognition', 'trace'):
+                self.assertEqual(frame[name]['device']['id'], device['id'])
+            self.assertFalse(frame['recognition']['available'])
+            self.assertIsNone(frame['recognition']['prob']['def'])
+            self.assertIsNone(frame['trace']['factors']['dev']['total'])
+            self.assertIsNone(frame['trace']['factors']['proc']['prob'])
+            self.assertLessEqual(len(frame['access']['torque']['t']), 50)
+            json.dumps(frame, allow_nan=False)
+        self.assertEqual(count, 27)
+        self.assertNotIn('torch', sys.modules)
+
+    def test_fault_diagnosis_and_regions_belong_to_device(self):
+        for key, fault in asset('fault-demos.json').items():
+            frame = record_workspace(key)['snapshot']
+            self.assertEqual(frame['trace']['recordDiagnosis']['conclusion'], fault['status'])
+            self.assertEqual(frame['trace']['recordDiagnosis']['source'], '设备档案')
+            self.assertEqual(frame['slice'], fault['slice'])
+            self.assertEqual(frame['controlSignal'], fault['control'])
+        normal = record_workspace('slm-b5')['snapshot']
+        self.assertIsNone(normal['slice'])
+        self.assertEqual(normal['trace']['recordDiagnosis']['state'], 'pending')
+        self.assertIsNone(record_workspace('huake-slm-01')['snapshot']['layer'])
+
+    def test_stage_demo_images_do_not_become_model_input(self):
+        from urllib.parse import unquote
+        from task4.service import ROOT
+        for device_id, stages in asset('monitor-stage-demos.json').items():
+            frame = record_workspace(device_id)['snapshot']
+            self.assertIsNone(frame['recognition']['image']['url'])
+            access = frame['access']
+            names = [c['name'] for c in access['channels']]
+            self.assertNotIn('可见光图像', names)
+            self.assertNotIn('红外图像', names)
+            for prefix, channel in [('', 'CH1'), ('ir_', 'CH3')]:
+                for stage, index in stages.items():
+                    image = access['images'][prefix + stage]
+                    self.assertTrue(image['url'].endswith(f'/{channel}/frames/{index:06d}.jpg'))
+                    self.assertEqual(image['sourceKind'], 'stage-demo')
+                    self.assertIsNone(image['layer'])
+                    self.assertTrue((ROOT / unquote(image['url']).lstrip('/')).is_file())
+
+    def test_missing_correction_never_uses_raw(self):
+        device = record_workspace('huake-slm-02')['device']
+        with patch('device_workspace.get_slm_device_data_store') as store:
+            store.return_value.get_device.return_value = device
+            device['mockVideo']['correctedChannels'] = {}
+            access = record_workspace('huake-slm-02')['snapshot']['access']
+            for key in ('before', 'after', 'ir_before', 'ir_after'):
+                self.assertIsNone(access['images'][key]['url'])
+
+    def test_corrected_media_scanner_accepts_still_images(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / 'slm_device_data' / 'SLM' / 'demo' / 'mock_video_corrected'
+            (folder / 'CH1').mkdir(parents=True)
+            (folder / 'CH1' / 'frame.png').write_bytes(b'')
+            result = SLMDeviceDataStore(project_root=root)._scan_channel_video(folder, 'CH1')
+            self.assertTrue(result['available'])
+            self.assertEqual(result['media_type'], 'image')
+            self.assertIn('/mock_video_corrected/CH1/frame.png', result['url'])
+
+    def test_missing_file_and_traversal_are_errors(self):
+        for path in ('../README.md', 'SLM/not-found.csv'):
+            with self.assertRaises(HTTPException) as cm:
+                preview_records({'realData':{'preview_csv':path}})
+            self.assertEqual(cm.exception.status_code, 409)
+
+    def test_endpoint_unknown_device_and_archive_routing(self):
+        app = FastAPI()
+        app.include_router(router, prefix='/api')
+        with TestClient(app) as client:
+            self.assertEqual(client.get('/api/slm/workspace/devices/missing').status_code, 404)
+            self.assertEqual(client.get('/api/slm/workspace/devices/slm-b44').status_code, 409)
+            response = client.get('/api/slm/workspace/devices/slm-b17')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()['manifest']['deviceId'], 'slm-b17')

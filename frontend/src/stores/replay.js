@@ -22,10 +22,12 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
   const speed = ref(1)
   const error = ref('')
   const loading = ref(false)
+  // 目标游标独立于快照；跳转请求期间控件不回零，也不读取旧层位置。
+  const cursor = ref(0)
   let timer, controller, revision = 0, anchorOffset = 0, anchorClock = 0, opening = null
   let restartPending = false
   let suspended = false
-  const position = () => Math.min(manifest.value.duration, anchorOffset + (playing.value ? (performance.now() - anchorClock) / 1000 * speed.value : 0))
+  const position = () => Math.min(manifest.value.duration, anchorOffset + (playing.value && !loading.value ? (performance.now() - anchorClock) / 1000 * speed.value : 0))
 
   async function read(path, signal) {
     const response = await fetch(`${BASE}/${path}`, { signal })
@@ -36,14 +38,14 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     localStorage.setItem(KEY, JSON.stringify({ realProcessing: realProcessing.value }))
   }
   // 只提交整份同游标快照；暂停、跳转后的旧请求不得覆盖新状态。
-  async function refresh(version = revision) {
+  async function refresh(version = revision, target = null) {
     const restarting = restartPending && playing.value
     if (restarting) {
       anchorOffset = manifest.value.defaultOffset
       anchorClock = performance.now()
       restartPending = false
     }
-    const requested = restarting ? manifest.value.defaultOffset : position()
+    const requested = target ?? (restarting ? manifest.value.defaultOffset : position())
     const request = new AbortController()
     controller = request
     try {
@@ -53,6 +55,11 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
         if (payload?.device) payload.device.name = standardDeviceName(payload.device.name)
       }
       snapshot.value = next
+      cursor.value = next.offset
+      if (target !== null) {
+        anchorOffset = next.offset
+        anchorClock = performance.now()
+      }
       if (next.processing && !next.processing.real) realProcessing.value = false
       error.value = ''
       if (playing.value && next.offset >= manifest.value.duration) {
@@ -73,20 +80,24 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     }
   }
   async function move(offset, run = playing.value, clear = true) {
+    if (!manifest.value || !Number.isFinite(Number(offset))) return
     revision += 1
     clearTimeout(timer)
     controller?.abort()
     restartPending = false
     anchorOffset = Math.max(0, Math.min(offset, manifest.value.duration))
+    cursor.value = anchorOffset
     anchorClock = performance.now()
     playing.value = run
     if (clear) snapshot.value = null
     loading.value = true
-    await refresh(revision)
+    await refresh(revision, anchorOffset)
   }
   async function open({ autoplay = false } = {}) {
     if (opening) return opening
     if (manifest.value) {
+      // 页面切换不得重新启动正在进行的定位请求。
+      if (loading.value) return
       if (!playing.value && (autoplay || suspended)) return play()
       return
     }
@@ -126,7 +137,19 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
     return move(snapshot.value?.offset >= manifest.value.duration ? manifest.value.defaultOffset : anchorOffset, true, false)
   }
   const seek = (offset) => move(Number(offset))
-  const seekLayer = (layer) => seek(manifest.value.layers.find(r => r.layer === Number(layer)).offset)
+  function seekLayer(layer) {
+    const row = manifest.value?.layers.find(r => r.layer === Number(layer))
+    if (!row) return
+    const offset = row.offset + (Number.isFinite(row.recognitionAt) ? row.recognitionAt - row.start : 0)
+    return seek(Math.max(manifest.value.defaultOffset, offset))
+  }
+  // 历史识别记录定位到结果到达时刻，从该层继续播放；不是层开始的空白时刻。
+  function seekRecognitionLayer(layer) {
+    const row = manifest.value.layers.find(r => r.layer === Number(layer))
+    if (!row) return
+    suspended = false
+    return move(row.offset + row.recognitionAt - row.start, true, false)
+  }
   function setSpeed(value) {
     const offset = position()
     speed.value = Number(value)
@@ -134,10 +157,10 @@ export function useReplayStore(caseId = REPLAY_CASE_ID) {
   }
   function step(direction) {
     const rows = manifest.value.layers
-    const i = rows.findIndex(r => r.layer === snapshot.value?.layer)
-    return seek(rows[Math.max(0, Math.min(rows.length - 1, i + direction))].offset)
+    const i = rows.findLastIndex(r => r.offset <= cursor.value)
+    return seekLayer(rows[Math.max(0, Math.min(rows.length - 1, i + direction))].layer)
   }
-  return { caseId, realProcessing, setRealProcessing, manifest, snapshot, playing, speed, error, loading, open, pause, suspend, play, seek, seekLayer, setSpeed, step }
+  return { caseId, realProcessing, setRealProcessing, manifest, snapshot, cursor, playing, speed, error, loading, open, pause, suspend, play, seek, seekLayer, seekRecognitionLayer, setSpeed, step }
 }))
   return definitions.get(caseId)()
 }

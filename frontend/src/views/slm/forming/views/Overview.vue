@@ -64,21 +64,21 @@ const running = computed(() => d.value.acquisition && d.value.acquisition.runnin
 // 运行状态文字随后端 modeLabel：显示为“在线”时设备显示在线，否则如实显示待机/结果回放
 const online = computed(() => !!state.status && state.status.modeLabel === '在线')
 const stateText = computed(() => (running.value ? '接入中' : online.value ? '在线' : d.value.acquisition ? '待机' : '结果回放'))
-const buttons = [{ key: 'access', name: '数据接入' }, { key: 'recognition', name: '缺陷识别' }, { key: 'trace', name: '异常溯源' }]
+const buttons = [{ key: 'access', name: '数据接入' }, { key: 'recognition', name: '异常识别' }, { key: 'trace', name: '故障诊断' }]
 const resCls = (l) => ({ '异常': 'r-dev', '由设备因素诱发': 'r-dev', '由工艺因素诱发': 'r-proc', '由二者共同诱发': 'r-both' }[l] || 'r-nor')
 
 async function load() {
   const r = await call(() => api.overview(state.device))
   if (r) {
     // 兼容已有事件类型，界面统一使用新名称，保留原始记录和识别接口。
-    d.value = { ...r, events: r.events.map(e => ({ ...e, type: e.type === '异常识别' ? '缺陷识别' : e.type })) }
+    d.value = { ...r, events: r.events.map(e => ({ ...e, type: e.type === '缺陷识别' ? '异常识别' : e.type })) }
   }
 }
 function switchTo(id) { selectDevice(id); d.value = null; load() }
 function go(key) { router.push(`${props.base}/${key}`) }
 function openEvent(e) {
   state.layer[state.device] = e.layer
-  go(e.type === '异常溯源' ? 'trace' : e.type === '缺陷识别' ? 'recognition' : 'access')
+  go(e.type === '异常溯源' ? 'trace' : e.type === '异常识别' ? 'recognition' : 'access')
 }
 onMounted(load)
 </script>
@@ -125,6 +125,6 @@ onMounted(load)
 .tbl.ev td { padding: 7px 8px; overflow: hidden; text-overflow: ellipsis; }
 .etag { font-size: 15px; border-radius: 10px; padding: 1px 10px; color: #fff; }
 .e-设备报警 { background: var(--alarm-tag); }
-.e-缺陷识别 { background: var(--warn); }
+.e-异常识别 { background: var(--warn); }
 .e-异常溯源 { background: var(--warn); }
 </style>

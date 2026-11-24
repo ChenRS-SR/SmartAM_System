@@ -28,11 +28,9 @@
           />
           <!-- 故障闪烁遮罩 -->
           <div v-if="isFaultStatus" class="fault-overlay">
-            <el-icon :size="48" color="#ef4444"><Warning /></el-icon>
             <span class="fault-text">{{ currentStatusConfig.label }}</span>
           </div>
         </div>
-        
         <!-- 当前状态指示器 -->
         <div class="current-status-bar" :style="{ background: currentStatusConfig.color + '20', borderColor: currentStatusConfig.color }">
           <div class="status-dot-large" :style="{ background: currentStatusConfig.color }"></div>
@@ -42,7 +40,6 @@
           </div>
         </div>
       </div>
-      
       <!-- 右侧：文字状态介绍 -->
       <div class="status-text-section">
         <!-- 主要状态描述 -->
@@ -86,17 +83,12 @@
             </span>
           </div>
         </div>
-        
         <!-- 子系统状态 -->
         <div class="subsystems-status">
           <h4 class="subsection-title">子系统状态</h4>
-          
           <!-- 光路与激光系统 -->
           <div class="subsystem-item" :class="{ fault: isLaserFault, disabled: !systemActive }">
             <div class="subsystem-header">
-              <div class="subsystem-icon" :class="{ fault: isLaserFault, disabled: !systemActive }">
-                <el-icon><Sunny /></el-icon>
-              </div>
               <div class="subsystem-info">
                 <span class="subsystem-name">光路与激光系统</span>
                 <span class="subsystem-status" :class="{ 'fault': isLaserFault }">
@@ -108,13 +100,9 @@
               </el-tag>
             </div>
           </div>
-          
           <!-- 铺粉运动系统 -->
           <div class="subsystem-item" :class="{ fault: isPowderFault, disabled: !systemActive }">
             <div class="subsystem-header">
-              <div class="subsystem-icon" :class="{ fault: isPowderFault, disabled: !systemActive }">
-                <el-icon><FirstAidKit /></el-icon>
-              </div>
               <div class="subsystem-info">
                 <span class="subsystem-name">铺粉运动系统</span>
                 <span class="subsystem-status" :class="{ 'fault': isPowderFault }">
@@ -126,13 +114,9 @@
               </el-tag>
             </div>
           </div>
-          
           <!-- 保护氛围系统 -->
           <div class="subsystem-item" :class="{ fault: isGasFault, disabled: !systemActive }">
             <div class="subsystem-header">
-              <div class="subsystem-icon" :class="{ fault: isGasFault, disabled: !systemActive }">
-                <el-icon><WindPower /></el-icon>
-              </div>
               <div class="subsystem-info">
                 <span class="subsystem-name">保护氛围系统</span>
                 <span class="subsystem-status" :class="{ 'fault': isGasFault }">
@@ -145,7 +129,6 @@
             </div>
           </div>
         </div>
-        
         <!-- 状态标签（仅在复合故障时显示） -->
         <div v-if="currentStatusConfig.statusLabels.length > 1" class="status-tags-section">
           <h4 class="subsection-title">复合故障标签</h4>
@@ -169,7 +152,6 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Warning, Sunny, FirstAidKit, WindPower } from '@element-plus/icons-vue'
 
 const props = defineProps({
   healthData: {
@@ -611,28 +593,8 @@ defineExpose({
   gap: 12px;
 }
 
-.subsystem-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  background: color-mix(in srgb, var(--am-ok) 22%, transparent);
-  color: var(--am-ok);
-  transition: all 0.3s ease;
-}
 
-.subsystem-icon.fault {
-  background: color-mix(in srgb, var(--am-danger) 22%, transparent);
-  color: var(--am-danger);
-}
 
-.subsystem-icon.disabled {
-  background: var(--am-card-bg-2);
-  color: var(--am-text-3);
-}
 
 .subsystem-info {
   flex: 1;
@@ -677,7 +639,6 @@ defineExpose({
   .health-content {
     grid-template-columns: 1fr;
   }
-  
   .status-image-container {
     max-width: 400px;
     margin: 0 auto;

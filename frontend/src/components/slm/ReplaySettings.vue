@@ -5,16 +5,17 @@
       <label class="processing-switch"><input type="checkbox" role="switch" aria-label="真实模型处理" :checked="replay.realProcessing" @change="replay.setRealProcessing($event.target.checked)" />真实模型处理</label>
       <div class="playback-row">
         <button class="primary" @click="replay.playing ? replay.pause() : replay.play()">{{ enabled && replay.playing ? '暂停回放' : '播放回放' }}</button>
-        <button :disabled="!frame" @click="replay.step(-1)">上一层</button>
-        <button :disabled="!frame" @click="replay.step(1)">下一层</button>
+        <button @click="replay.step(-1)">上一层</button>
+        <button @click="replay.step(1)">下一层</button>
         <label>倍速 <select :value="enabled ? replay.speed : 1" aria-label="回放倍速" @change="replay.setSpeed($event.target.value)"><option v-for="n in [1, 5, 10, 30, 60]" :key="n" :value="n">{{ n }}×</option></select></label>
-        <label>定位层 <select aria-label="定位层" :value="frame?.layer" @change="replay.seekLayer($event.target.value)"><option v-for="r in replay.manifest?.layers || []" :key="r.layer" :value="r.layer">{{ r.layer }}</option></select></label>
+        <label>定位层 <select aria-label="定位层" :value="targetLayer" @change="replay.seekLayer($event.target.value)"><option v-for="r in availableLayers" :key="r.layer" :value="r.layer">{{ r.layer }}</option></select></label>
         <span class="playback-time">{{ frame?.time || '—' }}</span>
-        <span v-if="frame">第 {{ frame.layer }} 层 · {{ frame.phase }}</span>
+        <span v-if="replay.loading" role="status">正在定位第 {{ targetLayer }} 层…</span>
+        <span v-else-if="frame">第 {{ frame.layer }} 层 · {{ frame.phase }}</span>
       </div>
-      <input class="timeline" aria-label="回放时间进度" type="range" min="0" :max="replay.manifest?.duration || 1" step="1" :value="frame?.offset ?? 0" @change="replay.seek($event.target.value)" />
+      <input class="timeline" aria-label="回放时间进度" type="range" :min="minimumOffset" :max="replay.manifest?.duration || 1" step="any" :value="draftOffset ?? replay.cursor" @input="draftOffset = Number($event.target.value)" @change="commitSeek($event.target.value)" />
       <div v-if="(replay.manifest?.segments.length || 0) <= 20" class="segment-row">
-        <button v-for="(s, i) in replay.manifest?.segments || []" :key="s.firstLayer" :class="{ selected: frame?.segment === i }" @click="replay.seek(s.offset)">{{ s.firstLayer }}–{{ s.lastLayer }} 层</button>
+        <button v-for="(s, i) in replay.manifest?.segments || []" :key="s.firstLayer" :class="{ selected: frame?.segment === i }" @click="commitSeek(s.offset)">{{ s.firstLayer }}–{{ s.lastLayer }} 层</button>
       </div>
     </fieldset>
     <template v-if="enabled">
@@ -25,14 +26,27 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useReplayStore, REPLAY_CASE_ID, replayCaseForDevice } from '../../stores/replay'
 const props = defineProps({ deviceId: { type: String, required: true } })
 const caseConfig = computed(() => replayCaseForDevice(props.deviceId))
 const replay = useReplayStore(caseConfig.value?.id || REPLAY_CASE_ID)
 const enabled = computed(() => !!caseConfig.value)
 const frame = computed(() => enabled.value ? replay.snapshot : null)
-const locked = computed(() => !enabled.value || !replay.manifest || replay.loading)
+const locked = computed(() => !enabled.value || !replay.manifest)
+const draftOffset = ref(null)
+const minimumOffset = computed(() => replay.manifest?.defaultOffset ?? 0)
+const targetLayer = computed(() => replay.manifest?.layers.findLast(row => row.offset <= replay.cursor)?.layer)
+const availableLayers = computed(() => {
+  const rows = replay.manifest?.layers || []
+  const first = rows.findLast(row => row.offset <= minimumOffset.value)?.layer
+  return rows.filter(row => row.layer >= first)
+})
+// 拖动期间保留用户位置，松手立即提交；加载中仍允许新的定位覆盖旧请求。
+function commitSeek(value) {
+  draftOffset.value = null
+  return replay.seek(Math.max(minimumOffset.value, Number(value)))
+}
 // 设置页沿用设备时间轴；普通设备不能启动回放，也不会为它加载案例。
 watch([enabled, () => replay.playing], ([active]) => {
   if (active) replay.open()

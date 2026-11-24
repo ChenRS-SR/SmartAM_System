@@ -134,7 +134,7 @@ class ReplayCase:
             recognition['image']['url'] = self.media_url(target, 'before')
             recognition['records'] = [
                 {'layer': r['layer'], 'p': self.layer_data(r['layer'])['recognition']['prob']['def'],
-                 'label': self.layer_data(r['layer'])['recognition']['label']} for r in recognized[-6:][::-1]]
+                 'label': self.layer_data(r['layer'])['recognition']['label']} for r in recognized[::-1]]
 
         traced = [r for r in rows if r['end'] <= at and self.layer_data(r['layer'])['trace'] is not None]
         trace = None

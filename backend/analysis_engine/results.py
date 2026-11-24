@@ -72,9 +72,11 @@ def attach(frame, results, rows):
     """仅使用当前时间已经到达的层，定位回退时不得泄漏未来分析结果。"""
     arrived=[r for r in rows if r['recognitionAt']<=frame['timestamp'] and str(r['layer']) in results]
     complete=[r for r in arrived if r['end']<=frame['timestamp'] and results[str(r['layer'])]['trace'] is not None]
-    if arrived:
-        recognition=copy.deepcopy(results[str(arrived[-1]['layer'])]['recognition'])
-        recognition['records']=[{'layer':r['layer'],'p':results[str(r['layer'])]['recognition']['prob']['def'],'label':results[str(r['layer'])]['recognition']['label']} for r in arrived[-6:][::-1]]
+    # B44 本次任务第2、3层为用户确认的启动稳定阶段，仅排除识别展示，保留原始模型输出。
+    recognition_rows = [r for r in arrived if not (frame.get('caseId') == 'b44-20250321-09-20' and r['layer'] in (2, 3))]
+    if recognition_rows:
+        recognition=copy.deepcopy(results[str(recognition_rows[-1]['layer'])]['recognition'])
+        recognition['records']=[{'layer':r['layer'],'p':results[str(r['layer'])]['recognition']['prob']['def'],'label':results[str(r['layer'])]['recognition']['label']} for r in recognition_rows[::-1]]
         frame['recognition']=recognition
     else: frame['recognition']=None
     if complete:

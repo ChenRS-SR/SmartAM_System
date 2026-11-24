@@ -18,3 +18,16 @@ describe('设备采集通道显示设置', () => {
     expect(restored.forDevice('replay:A')['加工平台扭矩']).toBe(false)
   })
 })
+
+it('默认显示两路可见光，勾选可立即启用其他通道', () => {
+  const store = useAccessChannels()
+  expect(store.isVisible('B44', '铺粉后图像')).toBe(true)
+  expect(store.isVisible('B44', '熔化后图像')).toBe(true)
+  expect(store.isVisible('B44', '铺粉后红外图像')).toBe(false)
+  expect(store.isVisible('B44', '熔化后红外图像')).toBe(false)
+  expect(store.isVisible('B44', '刮刀扭矩')).toBe(true)
+  store.setVisible('B44', ['铺粉后红外图像'], true)
+  expect(store.isVisible('B44', '铺粉后红外图像')).toBe(true)
+  store.setVisible('B44', ['铺粉后图像'], false)
+  expect(store.isVisible('B44', '铺粉后图像')).toBe(false)
+})

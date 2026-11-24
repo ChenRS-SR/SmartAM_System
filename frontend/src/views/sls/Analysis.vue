@@ -3,22 +3,18 @@
     <div class="page-header">
       <h1 class="page-title">SLS 数据分析</h1>
     </div>
-    
     <el-card class="analysis-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span>数据采集分析</span>
           <el-button type="primary" size="small" @click="refreshData">
-            <el-icon><Refresh /></el-icon>
             刷新
           </el-button>
         </div>
       </template>
-      
       <div class="analysis-content">
         <el-empty description="SLS数据分析功能开发中">
           <template #image>
-            <el-icon :size="60" color="#909399"><DataAnalysis /></el-icon>
           </template>
           <p class="empty-desc">
             该模块将提供SLS烧结过程的数据分析功能，包括：<br>
@@ -34,7 +30,6 @@
 </template>
 
 <script setup>
-import { Refresh, DataAnalysis } from '@element-plus/icons-vue'
 
 const refreshData = () => {
   console.log('[SLS Analysis] 刷新数据')

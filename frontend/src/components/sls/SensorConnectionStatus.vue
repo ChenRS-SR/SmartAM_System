@@ -5,19 +5,14 @@
         <span class="header-title">传感器连接状态</span>
         <div class="header-actions">
           <el-button type="primary" size="small" @click="handleRefresh">
-            <el-icon><Refresh /></el-icon>
             刷新
           </el-button>
         </div>
       </div>
     </template>
-    
     <div class="sensor-grid">
       <!-- CH1主摄像头 -->
       <div class="sensor-item" :class="{ 'disabled': !sensorStatus.camera_ch1?.enabled }">
-        <div class="sensor-icon" :class="getStatusClass(sensorStatus.camera_ch1)">
-          <el-icon><VideoCamera /></el-icon>
-        </div>
         <div class="sensor-info">
           <div class="sensor-name">CH1 主摄像头</div>
           <div class="sensor-status" :class="getStatusClass(sensorStatus.camera_ch1)">
@@ -30,12 +25,8 @@
           size="small"
         />
       </div>
-      
       <!-- CH2副摄像头 -->
       <div class="sensor-item" :class="{ 'disabled': !sensorStatus.camera_ch2?.enabled }">
-        <div class="sensor-icon" :class="getStatusClass(sensorStatus.camera_ch2)">
-          <el-icon><VideoCamera /></el-icon>
-        </div>
         <div class="sensor-info">
           <div class="sensor-name">CH2 副摄像头</div>
           <div class="sensor-status" :class="getStatusClass(sensorStatus.camera_ch2)">
@@ -48,12 +39,8 @@
           size="small"
         />
       </div>
-      
       <!-- 红外热像仪 (Fotric/IR8062) -->
       <div class="sensor-item" :class="{ 'disabled': !sensorStatus.thermal?.enabled }">
-        <div class="sensor-icon" :class="getStatusClass(sensorStatus.thermal)">
-          <el-icon><MostlyCloudy /></el-icon>
-        </div>
         <div class="sensor-info">
           <div class="sensor-name">
             红外热像仪
@@ -71,12 +58,8 @@
           size="small"
         />
       </div>
-      
       <!-- 振动传感器 -->
       <div class="sensor-item" :class="{ 'disabled': !sensorStatus.vibration?.enabled }">
-        <div class="sensor-icon" :class="getStatusClass(sensorStatus.vibration)">
-          <el-icon><Odometer /></el-icon>
-        </div>
         <div class="sensor-info">
           <div class="sensor-name">振动传感器</div>
           <div class="sensor-status" :class="getStatusClass(sensorStatus.vibration)">
@@ -108,12 +91,8 @@
           />
         </div>
       </div>
-      
       <!-- 舵机控制 (SLS特有) -->
       <div class="sensor-item" :class="{ 'disabled': !sensorStatus.servo?.enabled }">
-        <div class="sensor-icon" :class="getStatusClass(sensorStatus.servo)">
-          <el-icon><Switch /></el-icon>
-        </div>
         <div class="sensor-info">
           <div class="sensor-name">舵机控制</div>
           <div class="sensor-status" :class="getStatusClass(sensorStatus.servo)">
@@ -151,7 +130,6 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { Refresh, VideoCamera, MostlyCloudy, Odometer, Switch } from '@element-plus/icons-vue'
 
 const props = defineProps({
   sensorStatus: {
@@ -243,33 +221,9 @@ const handleRefresh = () => {
   opacity: 0.6;
 }
 
-.sensor-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  background: var(--am-card-bg-2);
-  color: var(--am-text-3);
-  transition: all 0.3s ease;
-}
 
-.sensor-icon.connected {
-  background: color-mix(in srgb, var(--am-ok) 22%, transparent);
-  color: var(--am-ok);
-}
 
-.sensor-icon.disconnected {
-  background: color-mix(in srgb, var(--am-danger) 22%, transparent);
-  color: var(--am-danger);
-}
 
-.sensor-icon.disabled {
-  background: var(--am-card-bg-2);
-  color: var(--am-text-3);
-}
 
 .sensor-info {
   flex: 1;
@@ -325,11 +279,9 @@ const handleRefresh = () => {
   .sensor-grid {
     grid-template-columns: 1fr;
   }
-  
   .sensor-item {
     flex-wrap: wrap;
   }
-  
   .sensor-actions {
     flex-direction: row;
     width: 100%;

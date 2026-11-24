@@ -6,7 +6,6 @@
     <el-card class="settings-card" shadow="never">
       <template #header>
         <div class="card-header">
-          <el-icon size="20"><Connection /></el-icon>
           <span>SLS 实验台连接设置</span>
           <el-tag :type="benchSettings.use_mock ? 'warning' : 'success'" size="small" effect="dark">
             {{ benchSettings.use_mock ? '模拟数据' : '真实硬件' }}
@@ -40,7 +39,6 @@
                 />
               </el-select>
               <el-button type="primary" @click="fetchComPorts" :loading="portsLoading">
-                <el-icon><Refresh /></el-icon>
                 刷新
               </el-button>
             </div>
@@ -82,7 +80,6 @@
 
           <el-form-item>
             <el-button type="primary" @click="saveBenchSettings">
-              <el-icon><Check /></el-icon>
               保存连接设置
             </el-button>
           </el-form-item>
@@ -94,7 +91,6 @@
     <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
       <template #header>
         <div class="card-header">
-          <el-icon size="20"><VideoCamera /></el-icon>
           <span>设备模拟视频扫描</span>
           <el-tag type="info" size="small">由设备文件数据库决定</el-tag>
         </div>
@@ -124,7 +120,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Check, Connection, Refresh, VideoCamera } from '@element-plus/icons-vue'
 import { useSlsDeviceStore } from '../../stores/slsDevices'
 import { getDeviceMockCase } from '../../utils/deviceMockMedia'
 import { readSlsBenchSettings, writeSlsBenchSettings } from '../../utils/slsBenchSettings'

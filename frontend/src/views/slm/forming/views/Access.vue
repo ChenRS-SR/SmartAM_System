@@ -12,55 +12,49 @@
           <div class="field"><span class="k">接入方式</span>
             <span class="field-value">{{ modeLabel }}</span></div>
           <div class="field"><span class="k">当前层</span>
-            <span v-if="replaySession" class="field-value">第 {{ d.layer }} 层</span>
+            <span v-if="replaySession" class="field-value">第 {{ d.layer ?? '—' }} 层</span>
             <select v-else class="sel" :value="d.layer" :disabled="acq.running" @change="load(+$event.target.value)">
               <option v-for="L in layers" :key="L" :value="L">第 {{ L }} 层</option></select></div>
         </div>
       </Region>
       <Region kind="param" title="采集通道" class="r-param">
-        <div class="chs">
-          <label v-for="c in d.channels" :key="c.name" class="ch" :title="`${c.spec} · ${c.rate}`">
-            <input type="checkbox" :checked="visible(c.name)" @change="setChannels([c.name], $event.target.checked)" />{{ c.name }}
-          </label>
+        <div v-for="group in channelGroups" :key="group.title" class="channel-group">
+          <div class="channel-group-title">{{ group.title }}</div>
+          <div class="chs">
+            <label v-for="c in group.channels" :key="c.name" class="ch" :title="`${c.spec} · ${c.rate}`">
+              <input type="checkbox" :checked="visible(c.name)" @change="setChannels([c.name], $event.target.checked)" /><span>{{ c.name }}</span>
+            </label>
+          </div>
         </div>
-        <div class="channel-actions"><button class="btn" @click="setChannels(d.channels.map(c => c.name), true)">全部显示</button><button class="btn" @click="setChannels(d.channels.map(c => c.name), false)">全部隐藏</button><span>勾选显示，不改变原始采集</span></div>
-      </Region>
-      <Region kind="op" title="操作" class="r-op">
-        <div v-if="replaySession" class="ops replay-ops">
-          <span>{{ replaySession.playing ? '采集中' : '采集暂停' }}</span>
-          <router-link :to="{ path: '/slm/settings', query: { device: replaySession.manifest.deviceId } }">系统设置</router-link>
-        </div>
-        <div v-else class="ops">
-          <span class="state" :class="{ idle: !acq.running }"><i class="led" :class="acq.running ? 'run' : ''"></i>{{ acq.running ? '接入中' : '已连接' }}</span>
-          <button class="btn primary" :disabled="acq.running || busy" @click="start">开始接入</button>
-          <button class="btn" :disabled="!acq.running" @click="stop">暂停</button>
-        </div>
+        <div class="channel-actions"><button class="btn" @click="setChannels(d.channels.map(c => c.name), true)">全部显示</button><button class="btn" @click="setChannels(d.channels.map(c => c.name), false)">全部隐藏</button></div>
       </Region>
     </div>
 
     <Region kind="vis" class="r-vis">
       <div class="grid" :class="{ 'grid--filtered': filtered }" :style="{ '--access-columns': topColumns, '--access-columns-narrow': Math.min(2, topColumns) }">
-        <div v-for="channel in activeImageChannels" :key="channel.key" class="card c-img" :data-channel="channel.key">
-          <div class="card-title">{{ channel.name }}<span class="tm"><template v-if="d.images[channel.key].layer">第 {{ d.images[channel.key].layer }} 层 · </template>{{ d.images[channel.key].time }}</span></div>
-          <img v-if="d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">图像尚未到达</div>
-        </div>
-        <div v-if="visible('设备状态参数')" class="card c-state">
+        <div class="card c-state">
           <div class="card-title">设备状态<span class="tm">{{ d.device.name }}</span></div>
+          
           <div class="progress">
-            <div class="pg-row"><span>成形进度</span><b>第 {{ d.progress.layer }} 层 / 共 {{ d.progress.total }} 层</b></div>
-            <div class="bar"><div class="fill" :style="{ width: (d.progress.layer / d.progress.total * 100) + '%' }"></div></div>
+            <div class="pg-row"><span>成形进度</span><b>第 {{ d.progress.layer ?? '—' }} 层 / 共 {{ d.progress.total ?? '—' }} 层</b></div>
+            <div class="bar"><div class="fill" :style="{ width: (d.progress.total > 0 ? Math.min(100, d.progress.layer / d.progress.total * 100) : 0) + '%' }"></div></div>
           </div>
           <div class="env">
             <div v-for="e in envList" :key="e.k" class="env-item"><span class="ek">{{ e.k }}</span><b>{{ e.v }}</b><span class="eu">{{ e.u }}</span></div>
           </div>
           <div class="alarm" v-if="d.alarms.length"><span class="al-tag">最近报警</span>{{ d.alarms[0].time.slice(5, 16) }}　{{ d.alarms[0].text }}</div>
+          
+        </div>
+        <div v-for="channel in activeImageChannels" :key="channel.key" class="card c-img" :data-channel="channel.key">
+          <div class="card-title">{{ channel.name }}<span class="tm"><template v-if="d.images[channel.key].layer">第 {{ d.images[channel.key].layer }} 层 · </template>{{ d.images[channel.key].time }}</span></div>
+          <img v-if="d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">数据暂未接入</div>
         </div>
         <div v-if="visible('刮刀扭矩') || visible('加工平台扭矩')" class="card c-torque">
-          <div class="card-title">{{ torqueTitle }}{{ replaySession ? ' · 连续采样' : '' }}</div>
-          <div class="chart-window-note">最近 50 个采样点 · 时间轴随采样滚动</div>
-          <EChart :option="torqueOption" class="chart" />
+          <div class="card-title">{{ torqueTitle }}{{ replaySession?.source !== 'device-record' ? ' · 连续采样' : '' }}</div>
+          <div class="chart-window-note">{{ replaySession?.source === 'device-record' ? '已接入采样记录 · 最近 50 点' : '最近 50 个采样点 · 时间轴随采样滚动' }}</div>
+          <EChart v-if="hasTorque" :option="torqueOption" class="chart" /><div v-else class="image-pending">数据暂未接入</div>
         </div>
-        <div v-if="allHidden" class="card channels-empty">当前通道均已隐藏，可在上方勾选需要显示的内容。</div>
+
         <div class="card c-rec">
           <div class="card-title">逐层接入记录</div>
           <!-- 窄屏下仅记录表局部滚动，保留所有字段。 -->
@@ -68,6 +62,7 @@
           <table class="tbl">
             <thead><tr><th>层号</th><th>层开始时间</th><th>铺粉用时/s</th><th>单层用时/s</th><th>扭矩采样点</th><th>图像</th><th>状态</th></tr></thead>
             <tbody>
+              <tr v-if="!d.records.length"><td colspan="7">暂无逐层接入记录</td></tr>
               <tr v-for="r in d.records.slice(0, 6)" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!replaySession && !acq.running && load(r.layer)">
                 <td>{{ r.layer }}</td><td>{{ r.start }}</td><td>{{ r.recoat == null ? '—' : r.recoat.toFixed(1) }}</td><td>{{ r.dur == null ? '—' : r.dur.toFixed(1) }}</td>
                 <td>{{ r.torqueN ?? '—' }}</td><td>{{ r.images }}/{{ r.imageTotal || 2 }}</td><td :class="r.complete ? 'ok' : r.state === '接入中' ? 'pending' : 'bad'">{{ r.state || (r.complete ? '完整' : '缺失') }}</td>
@@ -76,6 +71,7 @@
           </table>
           </div>
         </div>
+        <div class="card c-rec raw-records"><div class="card-title">原始采样记录</div><div v-if="d.rawRecords?.length" class="table-scroll" tabindex="0" role="region" aria-label="原始采样记录"><table class="tbl"><thead><tr><th v-for="key in Object.keys(d.rawRecords[0]).filter(k => k.trim())" :key="key">{{ key }}</th></tr></thead><tbody><tr v-for="(row, index) in d.rawRecords" :key="index"><td v-for="key in Object.keys(d.rawRecords[0]).filter(k => k.trim())" :key="key">{{ row[key] }}</td></tr></tbody></table></div><p v-else>数据暂未接入</p></div>
       </div>
     </Region>
   </div>
@@ -83,6 +79,7 @@
 </template>
 
 <script setup>
+import { monitoringAccess, monitoringImages } from '../../workspace/accessPresentation'
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Region from '../components/Region.vue'
 import EChart from '../components/EChart.vue'
@@ -95,24 +92,28 @@ import { useAccessChannels } from '../../../../stores/accessChannels'
 
 const embedded = inject('formingEmbedded', false)
 const replaySession = inject('formingReplay', null)
-const { busy, call } = useCall()
+const { call } = useCall()
 const d = ref(null)
 const channelStore = useAccessChannels()
 const channelKey = computed(() => replaySession ? `replay:${replaySession.caseId}` : state.device)
-const visible = name => d.value?.channels.some(c => c.name === name) && channelStore.forDevice(channelKey.value)[name] !== false
+const visible = name => d.value?.channels.some(c => c.name === name) && channelStore.isVisible(channelKey.value, name)
 const setChannels = (names, shown) => channelStore.setVisible(channelKey.value, names, shown)
-const filtered = computed(() => d.value.channels.length < 5 || d.value.channels.some(c => !visible(c.name)))
-const allHidden = computed(() => d.value.channels.every(c => !visible(c.name)))
-const imageChannels = [{ key:'before', name:'铺粉后图像' }, { key:'after', name:'熔化后图像' }, { key:'ir_before', name:'铺粉后红外图像' }, { key:'ir_after', name:'熔化后红外图像' }]
-const activeImageChannels = computed(() => imageChannels.filter(c => visible(c.name)))
-const topColumns = computed(() => activeImageChannels.value.length > 2 ? 2 : Math.max(1, activeImageChannels.value.length + Number(!!visible('设备状态参数'))))
-const torqueTitle = computed(() => ['刮刀扭矩', '加工平台扭矩'].filter(visible).join('与'))
+const filtered = true
+// 取消勾选时移除整张卡片，已勾选但未接入的通道保留缺省占位。
+const activeImageChannels = computed(() => monitoringImages.filter(channel => visible(channel.name)))
+const channelGroups = computed(() => [
+  { title: '可见光', channels: d.value.channels.filter(c => ['before', 'after'].includes(c.imageKey)) },
+  { title: '红外', channels: d.value.channels.filter(c => ['ir_before', 'ir_after'].includes(c.imageKey)) },
+  { title: '扭矩通道', channels: d.value.channels.filter(c => !c.imageKey) },
+])
+const topColumns = 2
+const torqueTitle = computed(() => '刮刀与加工平台扭矩')
 // 回放设备从工作区共享快照读取，跳转时清空旧结果，不再启动页面各自的计时器。
-if (replaySession) watch(() => replaySession.snapshot?.access, value => { d.value = value || null }, { immediate: true })
+if (replaySession) watch(() => replaySession.snapshot?.access, value => { d.value = monitoringAccess(value) }, { immediate: true })
 const layers = ref([])
 const acq = ref({ running: false })
 const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : devicesFor('access'))
-const modeLabel = computed(() => { if (replaySession) return '在线接入'; const m = (state.status && state.status.modeLabel) || '在线'; return m === '在线' ? '在线接入' : m })
+const modeLabel = computed(() => { if (replaySession) return replaySession.source === 'device-record' ? '设备档案' : '在线接入'; const m = (state.status && state.status.modeLabel) || '在线'; return m === '在线' ? '在线接入' : m })
 const img = (k) => mediaUrl(d.value.images[k].url, 1200)
 let poll = null
 
@@ -120,7 +121,7 @@ async function load(layer) {
   if (replaySession) return
   const r = await call(() => api.access(state.device, layer ?? state.layer[state.device]))
   if (!r) return
-  d.value = r
+  d.value = monitoringAccess(r)
   acq.value = r.acquisition
   state.layer[state.device] = r.layer
   if (!layers.value.length) layers.value = (await call(() => api.layers(state.device, r.task.id))) || [r.layer]
@@ -137,20 +138,16 @@ function watchAcq() {
     if (!s.running) clearInterval(poll)
   }, 1000)
 }
-async function start() {
-  const s = await call(() => api.acqStart(state.device, { from_layer: d.value.layer }))
-  if (s) { acq.value = s; watchAcq() }
-}
-async function stop() {
-  clearInterval(poll)
-  const s = await call(() => api.acqStop(state.device))
-  if (s) { acq.value = s; if (s.layer !== d.value.layer) load(s.layer) }
-}
 function switchDevice(id) { selectDevice(id); d.value = null; layers.value = []; load() }
 onMounted(() => { if (!replaySession) load() })
 onBeforeUnmount(() => clearInterval(poll))
 
 const envList = computed(() => {
+  // 合并原参数卡片，保留当前设备的全部参数与单位。
+  const parameters = replaySession?.snapshot?.parameters
+  if (parameters?.length) return parameters.map(p => ({
+    k: p.name, v: p.value == null || p.value === '--' ? '—' : typeof p.value === 'number' ? Number(p.value.toFixed(3)) : p.value, u: p.unit,
+  }))
   const e = d.value.env
   // 按设备原始通道命名，B44/B15 的气源压力不标成 B17 的氩气压力。
   const pressureLabel = replaySession?.manifest.gasPressureLabel || '氩气压力'
@@ -165,6 +162,10 @@ const envList = computed(() => {
     { k: '风机转速', v: f(e['风机转速'], 1), u: '%' },
     { k: '储粉桶物位', v: f(e['储粉桶物位计'], 0), u: 'mm' },
   ]
+})
+const hasTorque = computed(() => {
+  const t = replaySession?.snapshot?.liveTorque || d.value?.torque
+  return !!t?.t.length && ((visible('刮刀扭矩') && t.scraper.some(Number.isFinite)) || (visible('加工平台扭矩') && t.platform.some(Number.isFinite)))
 })
 const torqueOption = computed(() => {
   const P = pal.value
@@ -199,21 +200,22 @@ const torqueOption = computed(() => {
 </script>
 
 <style scoped>
+.raw-records { grid-column: 1 / -1; }
+.table-scroll { max-height: 280px; overflow-y: auto; }
 .r-input { flex: 470 0 470px; }
 .r-param { flex: 416 1 416px; min-width: 0; }
-.r-op { flex: 280 0 280px; }
 .r-vis { flex: 1; }
 .fields { gap: 6px 14px; }
-.chs { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 8px; font-size: 15px; justify-content: start; }
-.chs .ch { cursor: pointer; display: flex; align-items: center; gap: 6px; }
-.ch input { accent-color: var(--nav-bg); width: 15px; height: 15px; flex: none; cursor: pointer; }
-.channel-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
-.channel-actions .btn { padding: 4px 9px; font-size: 12px; }
-.channel-actions span { color: var(--text-2); font-size: 12px; }
+.channel-group + .channel-group { margin-top: 14px; }
+.channel-group-title { margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--text-2); }
+.r-param .chs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; font-size: 15px; }
+.r-param .chs .ch { box-sizing: border-box; min-height: 42px; min-width: 0; padding: 8px 10px; margin: 0; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 10px; white-space: normal; line-height: 1.5; }
+.r-param .chs .ch:has(input:checked) { border-color: var(--nav-bg); }
+.ch input { accent-color: var(--nav-bg); width: 18px; height: 18px; flex: none; cursor: pointer; }
+.channel-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.channel-actions .btn { box-sizing: border-box; width: 100%; min-height: 42px; padding: 9px 16px; font-size: 15px; line-height: 1.5; }
 .field-value { font-size: 15px; overflow-wrap: anywhere; }
 .channels-empty { color: var(--text-2); padding: 24px; }
-.state { font-size: 17px; white-space: nowrap; display: flex; align-items: center; gap: 6px; color: var(--ok); font-weight: 700; }
-.state .led { width: 12px; height: 12px; }
 .grid { height: 100%; display: grid; grid-template-columns: minmax(0, 300fr) minmax(0, 300fr) minmax(0, 540fr); grid-template-rows: minmax(0, 282fr) minmax(0, 278fr); gap: 12px; }
 .img { width: 100%; flex: 1; min-height: 0; object-fit: contain; background: var(--img-bg); border-radius: 4px; }
 .progress { margin-bottom: 8px; }
@@ -221,9 +223,9 @@ const torqueOption = computed(() => {
 .pg-row b { color: var(--text); }
 .bar { height: 10px; background: var(--track-2); border-radius: 5px; margin-top: 4px; overflow: hidden; }
 .fill { height: 100%; background: var(--nav-bg); transition: width .4s; }
-.env { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 18px; }
+.env { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px 24px; }
 .env-item { display: flex; align-items: baseline; gap: 6px; font-size: 16px; }
-.ek { color: var(--text-2); flex: 1; white-space: nowrap; }
+.ek { color: var(--text-2); flex: 1; overflow-wrap: anywhere; }
 .env-item b { font-size: 17px; }
 .eu { color: var(--text-2); font-size: 14px; width: 40px; }
 .alarm { margin-top: auto; font-size: 15px; background: var(--alarm-bg); border: 1px solid var(--alarm-border); border-radius: 5px; padding: 4px 8px;

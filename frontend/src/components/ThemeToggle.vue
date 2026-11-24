@@ -2,23 +2,17 @@
   <div class="theme-toggle">
     <el-dropdown trigger="click" @command="handleCommand">
       <el-button text class="theme-btn" aria-label="切换主题">
-        <el-icon size="20">
-          <Sunny v-if="themeStore.isLight" />
-          <Moon v-else />
-        </el-icon>
+        主题
       </el-button>
       <template #dropdown>
         <el-dropdown-menu>
           <el-dropdown-item command="light" :class="{ active: themeStore.themeMode === 'light' }">
-            <el-icon><Sunny /></el-icon>
             <span>浅色主题</span>
           </el-dropdown-item>
           <el-dropdown-item command="dark" :class="{ active: themeStore.themeMode === 'dark' }">
-            <el-icon><Moon /></el-icon>
             <span>深色主题</span>
           </el-dropdown-item>
           <el-dropdown-item command="auto" :class="{ active: themeStore.themeMode === 'auto' }">
-            <el-icon><Monitor /></el-icon>
             <span>跟随系统</span>
           </el-dropdown-item>
         </el-dropdown-menu>

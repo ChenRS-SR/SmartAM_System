@@ -23,7 +23,6 @@
           />
         </el-select>
         <el-button @click="goToDeviceGroup">
-          <el-icon><ArrowLeft /></el-icon>
           设备总览
         </el-button>
         <!-- 模式指示器 -->
@@ -167,7 +166,6 @@
 <script setup>
 import { computed, ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import { resolveBackendWebSocketUrl } from '../../utils/backendBase'
@@ -816,7 +814,6 @@ const fetchStatus = async () => {
           }
         }
       }
-      
       // 模拟模式使用当前设备绑定的用例；真实模式直接读取SLS状态接口。
       if (settings.use_mock) {
         applySelectedMockHealth()
@@ -830,7 +827,6 @@ const fetchStatus = async () => {
       } else if (!settings.use_mock && !realtimeState.hasData) {
         resetHealthToWaiting(selectedDeviceOnline.value ? '等待实时数据' : '离线')
       }
-      
       // 如果采集刚停止（wasRunning && !isRunning），立即重置健康状态为未开机
       if (wasRunning && !isRunning.value) {
         console.log('[Dashboard] 刷新状态：采集已停止，重置健康状态为未开机')
@@ -876,12 +872,10 @@ const activateRunningView = async () => {
 // 开始/停止采集
 const toggleAcquisition = async () => {
   console.log(`[Dashboard] toggleAcquisition 调用, isRunning=${isRunning.value}, starting=${starting.value}`)
-  
   if (starting.value) {
     console.log('[Dashboard] 正在处理中，忽略点击')
     return
   }
-  
   if (isRunning.value) {
     // 停止
     console.log('[Dashboard] 停止采集...')
@@ -893,14 +887,11 @@ const toggleAcquisition = async () => {
       streamKey.value = Date.now()
       closeWebSocket()
       resetRealtimeState()
-      
       await new Promise(resolve => setTimeout(resolve, 1500))
-      
       // 重置传感器状态为未连接
       Object.keys(sensorStatus).forEach(key => {
         if (sensorStatus[key]) sensorStatus[key].connected = false
       })
-      
       // 重置健康状态为未开机（状态码-1）
       healthData.status = 'power_off'
       healthData.status_code = -1
@@ -909,7 +900,6 @@ const toggleAcquisition = async () => {
       healthData.powder_system = { status: 'unknown', message: '未检测' }
       healthData.temp_system = { status: 'unknown', message: '未检测' }
       syncHealthDataToDevice()
-      
       ElMessage.success('采集已停止')
     } catch (error) {
       console.error('[Dashboard] 停止失败:', error)
@@ -939,7 +929,6 @@ const toggleAcquisition = async () => {
         }
       })
       console.log('[Dashboard] 启动响应:', response.data)
-      
       if (response.data.success) {
         await activateRunningView()
         const modeText = settings.use_mock ? '模拟模式' : '真实硬件模式'
@@ -964,15 +953,12 @@ const toggleAcquisition = async () => {
 // 连接WebSocket
 const connectWebSocket = () => {
   const wsUrl = resolveBackendWebSocketUrl('/api/sls/ws/data')
-  
   try {
     ws = new WebSocket(wsUrl)
-    
     ws.onopen = () => {
       console.log('WebSocket已连接')
       wsConnected.value = true
     }
-    
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
@@ -981,16 +967,13 @@ const connectWebSocket = () => {
         console.error('解析WebSocket数据失败:', error)
       }
     }
-    
     ws.onerror = (error) => {
       console.error('WebSocket错误:', error)
       wsConnected.value = false
     }
-    
     ws.onclose = () => {
       console.log('WebSocket已关闭')
       wsConnected.value = false
-      
       // 尝试重连
       if (isRunning.value && selectedDeviceOnline.value) {
         reconnectTimer = setTimeout(() => {
@@ -1084,7 +1067,6 @@ const refreshStatus = async () => {
   if (settings.use_mock) {
     await refreshSelectedMockCase()
   }
-  
   // 强制刷新视频流（更新streamKey使URL变化，防止缓存）
   streamKey.value = Date.now()
   applySelectedMockMedia()
@@ -1098,12 +1080,10 @@ const refreshStatus = async () => {
 // 处理诊断结果
 const handleDiagnosisComplete = (result) => {
   console.log('[Dashboard] 诊断结果:', result)
-  
   // 更新健康状态
   healthData.status_code = result.status_code
   healthData.status = getStatusFromCode(result.status_code)
   healthData.status_labels = [result.status_label]
-  
   // 更新子系统状态
   if (result.status_code === 0) {
     healthData.laser_system = { status: 'healthy', message: '健康' }
@@ -1127,7 +1107,6 @@ const handleDiagnosisComplete = (result) => {
     healthData.temp_system = { status: 'fault', message: '需检查' }
   }
   syncHealthDataToDevice()
-  
   ElMessage.success(`诊断完成: ${result.status_label}`)
 }
 
@@ -1234,11 +1213,9 @@ onMounted(async () => {
   }
 
   fetchStatus()
-  
   if (isRunning.value && !settings.use_mock && selectedDeviceOnline.value) {
     connectWebSocket()
   }
-  
   window.addEventListener('focus', refreshBenchSettings)
   window.addEventListener('storage', refreshBenchSettings)
 })
@@ -1507,16 +1484,13 @@ onUnmounted(() => {
   .sls-dashboard {
     padding: 12px;
   }
-  
   .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
   }
-  
   .page-title {
     font-size: 20px;
   }
-  
   .header-actions {
     width: 100%;
     flex-wrap: wrap;
