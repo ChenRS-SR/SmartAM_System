@@ -34,9 +34,27 @@ export function maintenanceMeasurements(records, task, key) {
     history: history.map(item => item.systems.find(system => system.key === key)) }
 }
 export function riskPosition(system, value) {
-  const values = [system.w, system.wl, system.wr, system.wu].filter(Number.isFinite)
+  const values = [system.w, system.wl, maintenanceLimit(system)].filter(Number.isFinite)
   if (!Number.isFinite(value) || !values.length) return 0
   const low = Math.min(...values), high = Math.max(...values)
   // W 可为负值，按实际值域定位，不能直接换算成百分比风险。
   return high === low ? 50 : 5 + 90 * (value - low) / (high - low)
+}
+
+// 两项上限按每个任务取较小值；任一缺失时不伪造合并阈值。
+export function maintenanceLimit(system) {
+  return Number.isFinite(system?.wr) && Number.isFinite(system?.wu) ? Math.min(system.wr, system.wu) : null
+}
+
+export function maintenanceChartSeries(measurements) {
+  const definitions = measurements?.model === 'PLP'
+    ? [['reliability', '可靠性 R', '#4686b8'], ['rmin', '可靠性下限 Rmin', '#dc4545']]
+    : [['w', '风险指标 W', '#7189ba'], ['wl', '经济阈值 WL', '#4686b8'], ['limit', '维护阈值 min(WR, WU)', '#dc4545']]
+  return definitions.map(([key, name, color], index) => ({
+    name, type: 'line',
+    data: (measurements?.history || []).map(row => key === 'limit' ? maintenanceLimit(row) : row[key] ?? null),
+    connectNulls: false, symbol: 'circle', symbolSize: 7, showSymbol: true, showAllSymbol: true,
+    // 长划—短点交替表示指标，阈值用等长虚线；图例继承同一线型。
+    lineStyle: {color, width: 2, type: index ? 'dashed' : [10, 4, 2, 4]}, itemStyle: {color}
+  }))
 }

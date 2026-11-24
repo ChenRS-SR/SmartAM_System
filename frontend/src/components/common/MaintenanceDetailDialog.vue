@@ -12,6 +12,7 @@
   </el-dialog>
 </template>
 <script setup>
+import { maintenanceLimit, maintenanceChartSeries } from '../../utils/maintenanceAssessment'
 import { amVar } from '@/utils/themeColor'
 import { onBeforeUnmount, computed, nextTick, ref, watch } from 'vue'
 const props = defineProps({
@@ -33,14 +34,11 @@ const percent = value => Number.isFinite(value) ? `${(value * 100).toFixed(2)}%`
 const metrics = computed(() => {
   const data = props.measurements
   if (!data) return []
-  const risk = isPLP.value ? [] : [['风险指标 W', data.w], ['经济阈值 WL', data.wl], ['可靠性阈值 WR', data.wr], ['维修阈值上限 WU', data.wu]].map(([label, value]) => ({label, value: fmt(value)}))
+  const risk = isPLP.value ? [] : [['风险指标 W', data.w], ['经济阈值 WL', data.wl], ['维护阈值 min(WR, WU)', maintenanceLimit(data)]].map(([label, value]) => ({label, value: fmt(value)}))
   return [...risk, {label: '可靠性 R', value: percent(data.reliability)}, {label: '可靠性下限 Rmin', value: percent(data.rmin)}, {label: `役龄（${data.unit}）`, value: fmt(data.age)}]
 })
 const buildChartOption = () => {
   const data = props.measurements
-  const definitions = isPLP.value
-    ? [['reliability', '可靠性 R', '#4686b8'], ['rmin', '可靠性下限 Rmin', '#dc4545']]
-    : [['w', '风险指标 W', '#7189ba'], ['wl', '经济阈值 WL', '#4686b8'], ['wr', '可靠性阈值 WR', '#18a2a4'], ['wu', '维修阈值上限 WU', '#dc4545']]
   return {
     backgroundColor: 'transparent',
     tooltip: {trigger: 'axis', confine: true, backgroundColor: amVar('--am-card-bg'), textStyle: {color: amVar('--am-text')}, valueFormatter: value => value == null ? '—' : Number(value).toFixed(4)},
@@ -49,8 +47,7 @@ const buildChartOption = () => {
     xAxis: {type: 'category', data: data?.duration || [], axisLabel: {color: amVar('--am-text-2'), formatter: value => `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}`}},
     yAxis: {type: 'value', name: isPLP.value ? '可靠性 R' : '风险指标 W', ...(isPLP.value ? {min:0, max:1} : {}), nameTextStyle: {color: amVar('--am-text-2')}, axisLabel: {color: amVar('--am-text-2')}, splitLine: {lineStyle: {color: amVar('--am-card-border')}}},
     dataZoom: [{type: 'inside'}, {type: 'slider', bottom: 8, height: 22, textStyle: {color: amVar('--am-text-2')}}],
-    // 曲线始终绘制每个任务的数据点，与图例的圆点线段保持一致。
-    series: definitions.map(([key, name, color], index) => ({name, type: 'line', data: (data?.history || []).map(row => row[key] ?? null), connectNulls: false, symbol: 'circle', symbolSize: 7, showSymbol: true, showAllSymbol: true, lineStyle: {color, width: 2, type: index ? 'dashed' : 'solid'}, itemStyle: {color}}))
+    series: maintenanceChartSeries(data)
   }
 }
 const initChart = async () => {

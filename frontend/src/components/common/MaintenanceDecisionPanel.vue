@@ -12,10 +12,10 @@
         <div class="system-title"><strong>{{ system.name }}</strong><span>{{ system.model || '—' }}</span></div>
         <template v-if="system.model === 'PHM'">
           <div class="risk-track">
-            <i v-for="field in ['wl', 'wr', 'wu'].filter(key => Number.isFinite(system[key]))" :key="field" :class="field" :style="{ left: riskPosition(system, system[field]) + '%' }" :title="`${field.toUpperCase()} ${fmt(system[field])}`"></i>
+            <i v-for="field in ['wl', 'limit'].filter(key => Number.isFinite(key === 'limit' ? maintenanceLimit(system) : system[key]))" :key="field" :class="field" :style="{ left: riskPosition(system, field === 'limit' ? maintenanceLimit(system) : system[field]) + '%' }" :title="`${field === 'limit' ? 'min(WR, WU)' : 'WL'} ${fmt(field === 'limit' ? maintenanceLimit(system) : system[field])}`"></i>
             <b v-if="Number.isFinite(system.w)" class="risk-point" :style="{ left: riskPosition(system, system.w) + '%' }" :title="`W ${fmt(system.w)}`"></b>
           </div>
-          <div class="metric-grid"><span>风险 W <b>{{ fmt(system.w) }}</b></span><span>经济 WL <b>{{ fmt(system.wl) }}</b></span><span>可靠性 WR <b>{{ fmt(system.wr) }}</b></span><span>维修 WU <b>{{ fmt(system.wu) }}</b></span></div>
+          <div class="metric-grid"><span>风险 W <b>{{ fmt(system.w) }}</b></span><span>经济 WL <b>{{ fmt(system.wl) }}</b></span><span class="combined-limit">维护阈值 min(WR, WU) <b>{{ fmt(maintenanceLimit(system)) }}</b></span></div>
         </template>
         <div class="reliability-row"><span>可靠性 R</span><strong>{{ percent(system.reliability) }}</strong></div>
         <div class="reliability-track"><div :style="{width: `${(system.reliability || 0) * 100}%`, background: reliabilityColor(system)}"></div></div>
@@ -34,7 +34,7 @@
 import { computed, ref, watch } from 'vue'
 import MaintenanceDetailDialog from './MaintenanceDetailDialog.vue'
 import { useMaintenanceStatistics } from '../../composables/useMaintenanceStatistics'
-import { maintenanceSystems, maintenanceRecords, initialMaintenanceTask, maintenanceStatus, maintenanceMeasurements, riskPosition } from '../../utils/maintenanceAssessment'
+import { maintenanceLimit, maintenanceSystems, maintenanceRecords, initialMaintenanceTask, maintenanceStatus, maintenanceMeasurements, riskPosition } from '../../utils/maintenanceAssessment'
 const props = defineProps({ deviceId: {type: String, default: ''}, deviceName: {type: String, default: ''}, organizationLabel: {type: String, default: ''} })
 const records = computed(() => maintenanceRecords(props.deviceId))
 const selectedTask = ref('')
@@ -82,7 +82,8 @@ const { statistics, error: statisticsError } = useMaintenanceStatistics(() => pr
 .compact .system-title>span {display:none}
 .risk-track {position:relative;height:20px;margin:6px 0;background:linear-gradient(transparent 8px,var(--am-card-border) 8px,var(--am-card-border) 12px,transparent 12px)}
 .risk-track i {position:absolute;height:20px;border-left:2px dashed;transform:translateX(-50%)}
-.wl {color:#4686b8}.wr {color:#18a2a4}.wu {color:#dc4545}
+.wl {color:#4686b8}.limit {color:#dc4545}
+.combined-limit {grid-column:1 / -1}
 .risk-point {position:absolute;top:5px;width:10px;height:10px;background:var(--am-text);border:1px solid var(--am-card-bg);transform:translateX(-50%)}
 .metric-grid {display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:12px}.metric-grid span {display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
 .reliability-row {font-size:13px}.reliability-row strong {font-size:20px}
