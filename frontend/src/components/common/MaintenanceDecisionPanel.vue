@@ -38,7 +38,7 @@
               ></div>
             </div>
             <div
-              class="risk-threshold-mark"
+              v-if="Number.isFinite(system.thresholdPercent)" class="risk-threshold-mark"
               :style="{ left: Math.min(system.thresholdPercent, 100) + '%' }"
             >
               <div class="threshold-line"></div>
@@ -47,9 +47,9 @@
           </div>
           <div class="risk-labels">
             <span class="risk-current" :style="{ color: getRiskColor(system.riskPercent) }">
-              当前: {{ system.riskValue.toFixed(2) }}
+              当前: {{ fmt(system.riskValue) }}
             </span>
-            <span class="risk-threshold">阈值: {{ system.thresholdValue.toFixed(2) }}</span>
+            <span class="risk-threshold">阈值: {{ fmt(system.thresholdValue) }}</span>
           </div>
         </div>
         <div class="system-status">
@@ -79,7 +79,7 @@
               color: getReliabilityColor(system.reliability)
             }"
           >
-            <el-icon><CircleCheck v-if="system.reliability >= 0.7" /><Warning v-else /></el-icon>
+            <el-icon><CircleCheck v-if="system.reliability >= 0.7" /><Warning v-else-if="Number.isFinite(system.reliability)" /></el-icon>
           </div>
           <div class="rel-content">
             <span class="rel-name">{{ system.name }}</span>
@@ -87,7 +87,7 @@
               class="rel-value"
               :style="{ color: getReliabilityColor(system.reliability) }"
             >
-              {{ (system.reliability * 100).toFixed(1) }}%
+              {{ Number.isFinite(system.reliability) ? (system.reliability * 100).toFixed(1) + '%' : '—' }}
             </span>
           </div>
           <div class="rel-bar-bg">
@@ -115,7 +115,7 @@
             {{ line.text }}
           </p>
           <p v-if="adviceLines.length === 0" class="advice-empty">
-            当前各系统运行正常，暂无维修建议。建议继续保持定期巡检。
+            暂无已接入的维修建议。
           </p>
         </div>
       </div>
@@ -182,29 +182,24 @@ const handleSystemClick = (system) => {
   emit('system-click', { key: system.key, name: system.name })
 }
 
-// 默认6个系统数据
-const defaultSystems = [
-  { key: 'filter', name: '高效滤芯', riskValue: 0.32, thresholdValue: 0.80, riskPercent: 40, thresholdPercent: 80, reliability: 0.92 },
-  { key: 'argon', name: '氩气循环系统', riskValue: 0.65, thresholdValue: 0.75, riskPercent: 87, thresholdPercent: 75, reliability: 0.58 },
-  { key: 'powder', name: '铺粉成型系统（刮刀）', riskValue: 0.45, thresholdValue: 0.70, riskPercent: 64, thresholdPercent: 70, reliability: 0.78 },
-  { key: 'feeder', name: '落粉轴系统', riskValue: 0.28, thresholdValue: 0.60, riskPercent: 47, thresholdPercent: 60, reliability: 0.85 },
-  { key: 'laser', name: '激光器', riskValue: 0.15, thresholdValue: 0.55, riskPercent: 27, thresholdPercent: 55, reliability: 0.95 },
-  { key: 'fan', name: '风机', riskValue: 0.52, thresholdValue: 0.65, riskPercent: 80, thresholdPercent: 65, reliability: 0.65 }
+// 只固定系统结构，风险与可靠性必须来自该设备的计算结果。
+const systemDefinitions = [
+  ['filter', '高效滤芯'], ['argon', '氩气循环系统'], ['powder', '铺粉成型系统（刮刀）'],
+  ['feeder', '落粉轴系统'], ['laser', '激光器'], ['fan', '风机']
 ]
+const fmt = value => Number.isFinite(value) ? value.toFixed(2) : '—'
 
 const {statistics:apiStats, error:statisticsError} = useMaintenanceStatistics(() => props.deviceId ? [props.deviceId] : null)
 
-const defaultAdvice = [
-  { priority: '高', type: 'danger', text: '氩气循环系统风险指标已超过阈值（87%），建议立即检查气体密封性及循环泵状态，防止氧含量超标影响打印质量。' },
-  { priority: '中', type: 'warning', text: '风机当前可靠性仅为65%，振动噪声有增大趋势，建议下次停机时进行动平衡检测与轴承润滑保养。' },
-  { priority: '低', type: 'info', text: '高效滤芯压差正常，但已运行480小时，建议预留备件并在下次维护周期更换。' }
-]
-
-const displaySystems = computed(() => props.systems.length > 0 ? props.systems : defaultSystems)
+const displaySystems = computed(() => systemDefinitions.map(([key, name]) => ({
+  key, name, riskValue: null, thresholdValue: null, riskPercent: null, thresholdPercent: null, reliability: null,
+  ...props.systems.find(system => system.key === key)
+})))
 const displayStats = computed(() => ({ ...apiStats.value, ...props.statistics }))
-const adviceLines = computed(() => props.advice.length > 0 ? props.advice : defaultAdvice)
+const adviceLines = computed(() => props.advice)
 
 const overallStatus = computed(() => {
+  if (displaySystems.value.some(s => !Number.isFinite(s.riskPercent))) return {type:'info', label:'评估数据未齐备'}
   const maxRisk = Math.max(...displaySystems.value.map(s => s.riskPercent))
   if (maxRisk > 80) return { type: 'danger', label: '高风险' }
   if (maxRisk > 50) return { type: 'warning', label: '中风险' }
@@ -212,24 +207,28 @@ const overallStatus = computed(() => {
 })
 
 const getRiskColor = (percent) => {
+  if (!Number.isFinite(percent)) return '#87919d'
   if (percent > 80) return '#ef4444'
   if (percent > 50) return '#f59e0b'
   return '#22c55e'
 }
 
 const getRiskTagType = (percent) => {
+  if (!Number.isFinite(percent)) return 'info'
   if (percent > 80) return 'danger'
   if (percent > 50) return 'warning'
   return 'success'
 }
 
 const getRiskLabel = (percent) => {
+  if (!Number.isFinite(percent)) return '未接入'
   if (percent > 80) return '超阈值'
   if (percent > 50) return '预警'
   return '正常'
 }
 
 const getReliabilityColor = (value) => {
+  if (!Number.isFinite(value)) return '#87919d'
   if (value >= 0.85) return '#22c55e'
   if (value >= 0.60) return '#f59e0b'
   return '#ef4444'

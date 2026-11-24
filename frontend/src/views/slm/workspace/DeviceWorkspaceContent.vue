@@ -1,39 +1,38 @@
 <template>
   <div class="replay-workspace">
     <header class="workspace-heading">
-      <div><h1>{{ caseConfig.name }}</h1><p>{{ replay.manifest?.task.name }}</p></div>
+      <div><h1>{{ device.name }}</h1><p>{{ replay.manifest?.task.name }}</p></div>
       <router-link to="/slm/dashboard">返回设备总览</router-link>
     </header>
     <div v-if="frame" class="replay-summary">
-      <span>{{ replay.playing ? '采集中' : '采集暂停' }}</span>
-      <span class="playback-time">{{ frame.time }}</span><span>第 {{ frame.layer }} 层 · {{ frame.phase }}</span>
+      <button v-if="!caseConfig" class="retry-button" :disabled="replay.loading" @click="replay.open()">刷新数据</button>
+      <span>{{ replay.statusLabel || (replay.playing ? '采集中' : '采集暂停') }}</span>
+      <span class="playback-time">{{ frame.time }}</span><span>第 {{ frame.layer ?? '—' }} 层 · {{ frame.phase }}</span>
       <router-link :to="{ path: '/slm/settings', query: { device: deviceId } }">系统设置</router-link>
     </div>
-    <div v-if="replay.error" class="replay-error" role="alert">{{ replay.error }} <router-link :to="{ path: '/slm/settings', query: { device: deviceId } }">前往系统设置重试</router-link></div>
-    <div v-if="!replay.manifest && !replay.error" class="waiting">正在接入设备数据…</div>
+    <div v-if="replay.error" class="replay-error" role="alert">{{ replay.error }} <button class="retry-button" :disabled="replay.loading" @click="replay.open({ autoplay: true })">重新加载</button></div>
+    <div v-if="!frame && !replay.error" class="waiting">正在接入设备数据…</div>
     <nav class="workspace-tabs" aria-label="设备功能页面">
       <router-link v-for="item in tabs" :key="item.key" :to="{ path: route.path, query: { tab: item.key } }" :class="{ active: tab === item.key }" :aria-current="tab === item.key ? 'page' : undefined">{{ item.label }}</router-link>
     </nav>
-    <template v-if="tab === 'status'">
+    <template v-if="frame && tab === 'status'">
       <section class="replay-card">
         <h2>设备状态参数 <small>{{ frame?.time }}</small></h2>
         <div v-if="frame" class="parameter-grid">
           <div v-for="p in frame.parameters" :key="p.name"><span>{{ p.name }}</span><strong>{{ format(p.value) }} <small>{{ p.unit }}</small></strong></div>
         </div>
-        <p class="data-note">按时间取最近已到达的原始采样，零值保留原值。</p>
         <div v-if="frame" class="sample-times"><span v-for="(sample, key) in frame.samples" :key="key">{{ channelNames[key] }}：{{ sample ? `${sample.time}（${sample.age} 秒前更新）` : '暂无采样' }}</span></div>
       </section>
       <div class="status-details">
         <section class="replay-card">
-          <h2>异常溯源分析</h2>
-          <template v-if="frame?.trace"><p>第 {{ frame.trace.layer }} 层：{{ frame.trace.conclusion }}</p><p>{{ frame.trace.actions.join('；') || '暂无处置建议' }}</p></template>
+          <h2>故障诊断</h2>
+          <template v-if="frame?.trace"><p>{{ frame.trace.recordDiagnosis ? '设备档案：' : `第 ${frame.trace.layer} 层：` }}{{ frame.trace.conclusion }}</p><p>{{ frame.trace.actions.join('；') || '暂无处置建议' }}</p></template>
           <p v-else>当前时刻尚无可用溯源结果。</p>
-          <p class="data-note">装备健康评级暂无数据。</p>
-        </section>
+          </section>
         <section class="replay-card">
           <h2>报警记录</h2>
           <div v-if="frame?.access.alarms.length" class="alarm-list"><div v-for="a in frame.access.alarms" :key="a.time + a.text"><time>{{ a.time }}</time><span>{{ a.text }}</span></div></div>
-          <p v-else>当前暂无报警记录。</p>
+          <p v-else>暂无已接入的报警记录。</p>
         </section>
       </div>
       <!-- 每台设备均提供维护面板，详情按当前设备与所属单位展示。 -->
@@ -42,37 +41,32 @@
         v-model="maintenanceVisible"
         :system-key="maintenanceSystem.key"
         :system-name="maintenanceSystem.name"
-        :device-name="caseConfig.name"
-        :organization-label="caseConfig.owner === '华科' ? '华科' : '7103（铂力特）'"
+        :device-name="device.name"
+        :organization-label="device.owner === '华科' ? '华科' : '7103（铂力特）'"
       />
     </template>
-    <template v-else-if="tab === 'control'">
-      <RegionControlPanel v-if="currentSlice" :frame="frame" :slice="currentSlice" />
-      <template v-else-if="frame">
-        <section class="replay-card"><h2>当前切片区域</h2><p>当前设备任务尚未接入第 {{ frame.layer }} 层的切片区域图。</p></section>
-        <SlmControlPanel historical :replay-context="frame" />
-      </template>
+    <template v-else-if="frame && tab === 'control'">
+      <RegionControlPanel :frame="frame" :slice="currentSlice" :blocked="!!replay.error" />
     </template>
-    <template v-else>
+    <template v-else-if="frame">
       <div v-if="frame" class="analysis-time">
-        <span>当前采集：第 {{ frame.layer }} 层</span>
-        <span v-if="tab !== 'access'">当前可用结果：{{ frame[tab] ? `第 ${frame[tab].layer} 层` : '尚未到达' }}</span>
+        <span>{{ replay.source === 'device-record' ? '档案采样' : '当前采集' }}：第 {{ frame.layer ?? '—' }} 层</span>
+        <span v-if="tab !== 'access'">当前可用结果：{{ frame[tab]?.available === false ? '未接入' : frame[tab] ? `第 ${frame[tab].layer} 层` : '尚未到达' }}</span>
       </div>
-      <section v-if="replay.manifest && !replay.manifest.capabilities[tab]" class="replay-card"><h2>{{ tab === 'recognition' ? '缺陷识别' : '异常溯源' }}</h2><p>该设备尚未接入{{ tab === 'recognition' ? '识别' : '溯源' }}结果，采集数据可在数据接入页查看。</p></section>
-      <div v-else class="forming-root forming-replay"><component :is="views[tab]" /></div>
+      <div class="forming-root forming-replay"><component :is="views[tab]" /></div>
     </template>
   </div>
 </template>
 <script setup>
 import { slmTabs, slmTab } from '../../../utils/slmNavigation'
-import { computed, onMounted, provide, ref } from 'vue'
+import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useReplayStore, replayCaseForDevice } from '../../../stores/replay'
 import { useSlmDeviceStore } from '../../../stores/slmDevices'
 import Access from '../forming/views/Access.vue'
 import Recognition from '../forming/views/Recognition.vue'
 import Trace from '../forming/views/Trace.vue'
-import SlmControlPanel from '../../../components/slm/SlmControlPanel.vue'
+import { createRecordSession } from './recordSession'
 import RegionControlPanel from '../../../components/slm/RegionControlPanel.vue'
 import { regionSlice } from '../../../components/slm/regionControl'
 import MaintenanceDecisionPanel from '../../../components/common/MaintenanceDecisionPanel.vue'
@@ -80,7 +74,9 @@ import MaintenanceDetailDialog from '../../../components/common/MaintenanceDetai
 import '../forming/forming.css'
 const props = defineProps({ deviceId: { type: String, required: true } })
 const caseConfig = replayCaseForDevice(props.deviceId)
-const replay = useReplayStore(caseConfig.id)
+const replay = caseConfig ? useReplayStore(caseConfig.id) : createRecordSession(props.deviceId)
+const device = computed(() => caseConfig || replay.device || { name: props.deviceId, owner: '' })
+onUnmounted(() => { if (!caseConfig) replay.dispose() })
 const maintenanceVisible = ref(false)
 const maintenanceSystem = ref({ key: 'filter', name: '高效滤芯' })
 function openMaintenanceDetail(system) {
@@ -93,15 +89,15 @@ const tabs = slmTabs
 const tab = computed(() => slmTab(route.query.tab).key)
 const views = { access: Access, recognition: Recognition, trace: Trace }
 const frame = computed(() => replay.snapshot)
-const currentSlice = computed(() => regionSlice(frame.value))
+const currentSlice = computed(() => frame.value?.slice || regionSlice(frame.value))
 const channelNames = { torque: '扭矩', env_a: '温度与压力', env_b: '氧含量与物位', env_c: '气体流量与风机' }
-const format = value => value == null ? '—' : Number.isInteger(value) ? value : Number(value.toFixed(3))
+const format = value => value == null || value === '--' ? '—' : typeof value === 'number' ? Number(value.toFixed(3)) : value
 provide('formingEmbedded', true)
 provide('formingReplay', replay)
 onMounted(() => {
   localStorage.setItem('slmSelectedDeviceId', props.deviceId)
   replay.open()
-  if (!devices.getDeviceById(props.deviceId)) devices.loadDevicesFromBackend().catch(e => { replay.error = e.message })
+  if (!devices.getDeviceById(props.deviceId)) devices.loadDevicesFromBackend().catch(() => { /* 目录错误由设备目录展示，不覆盖已成功加载的工作区。 */ })
 })
 </script>
 <style scoped>
@@ -122,7 +118,7 @@ a { color: var(--am-accent); }
 .parameter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .parameter-grid > div { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: var(--am-card-bg-2); border: 1px solid var(--am-card-border-2); }
 .parameter-grid span { color: var(--am-text-2); font-size: 13px; }
-.parameter-grid strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.parameter-grid strong { overflow-wrap: anywhere; font-size: 22px; font-variant-numeric: tabular-nums; }
 small, .data-note, .sample-times { font-size: 12px; font-weight: 400; color: var(--am-text-2); }
 .sample-times { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .alarm-list > div { display: flex; flex-wrap: wrap; gap: 10px 20px; padding: 12px 0; border-bottom: 1px solid var(--am-card-border-2); font-size: 14px; }
@@ -142,4 +138,8 @@ small, .data-note, .sample-times { font-size: 12px; font-weight: 400; color: var
   .status-details, .control-context dl { grid-template-columns: minmax(0, 1fr); }
   .workspace-heading { flex-wrap: wrap; }
 }
+</style>
+
+<style scoped>
+.retry-button { margin-left: 12px; padding: 5px 12px; background: var(--am-card-bg); border: 1px solid currentColor; color: inherit; cursor: pointer; }
 </style>

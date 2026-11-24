@@ -118,6 +118,11 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
+  // 空设备入口返回总览，不请求 undefined 设备或借用上一台设备。
+  if (to.name === 'SLMDeviceDashboard' && !to.params.deviceId) {
+    next({ path: '/slm/dashboard', replace: true })
+    return
+  }
   // 原设备健康书签统一进入状态监测，保留设备编号和其他查询参数。
   if (to.name === 'SLMDeviceDashboard' && to.query.tab === 'health') {
     next({ path: to.path, query: { ...to.query, tab: 'status' }, hash: to.hash, replace: true })

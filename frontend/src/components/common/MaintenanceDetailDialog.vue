@@ -69,32 +69,32 @@
           当前监测与决策参数
         </h3>
         <el-tag type="info" size="small" effect="plain" class="backend-tag">
-          后端计算预留接口
+          {{ measurements ? '评估参数' : '未接入' }}
         </el-tag>
       </div>
       <div class="detail-info-grid">
         <div class="detail-info-card">
           <div class="detail-info-label">当前风险指标 W</div>
           <div class="detail-info-value" style="color: #c026d3;">
-            {{ chartData.currentW.toFixed(2) }}
+            {{ fmt(chartData.currentW) }}
           </div>
         </div>
         <div class="detail-info-card">
           <div class="detail-info-label">经济阈值 WL</div>
           <div class="detail-info-value" style="color: #3b82f6;">
-            {{ chartData.currentWL.toFixed(2) }}
+            {{ fmt(chartData.currentWL) }}
           </div>
         </div>
         <div class="detail-info-card">
           <div class="detail-info-label">可靠性阈值 WR</div>
           <div class="detail-info-value" style="color: #06b6d4;">
-            {{ chartData.currentWR.toFixed(2) }}
+            {{ fmt(chartData.currentWR) }}
           </div>
         </div>
         <div class="detail-info-card">
           <div class="detail-info-label">维修阈值上限 WU</div>
           <div class="detail-info-value" style="color: #ef4444;">
-            {{ chartData.currentWU.toFixed(2) }}
+            {{ fmt(chartData.currentWU) }}
           </div>
         </div>
       </div>
@@ -108,6 +108,7 @@ import { onBeforeUnmount, computed, nextTick, ref, watch } from 'vue'
 import { ArrowLeft, ArrowRight, TrendCharts, Cpu } from '@element-plus/icons-vue'
 
 const props = defineProps({
+  measurements: {type:Object, default:null},
   modelValue: {
     type: Boolean,
     default: false
@@ -145,54 +146,16 @@ let resizeObserver = null
 
 const dialogTitle = computed(() => `${props.systemName} - 监测融合指标与阈值关系`)
 
-/**
- * 生成系统级阈值关系模拟数据
- * 与 F:\课题4\课题4界面设计\index.html 中的 generateSystemThresholdData 保持一致
- */
-const generateSystemThresholdData = (systemKey) => {
-  const points = 25
-  const duration = []
-  const wValues = []
-  const wlValues = []
-  const wrValues = []
-  const wuValues = []
-
-  const factor = {
-    filter: 1.0,
-    argon: 1.15,
-    powder: 0.9,
-    feeder: 0.85,
-    laser: 0.7,
-    fan: 1.05
-  }[systemKey] || 1.0
-
-  for (let i = 0; i < points; i++) {
-    const x = i * 3.5
-    duration.push(+x.toFixed(1))
-
-    wValues.push(+(Math.sin(i * 0.35) * 0.12 - 0.42 + (Math.random() - 0.5) * 0.08).toFixed(2))
-    wlValues.push(+(0.10 - 0.036 * i * factor).toFixed(2))
-    wrValues.push(+(2.8 * Math.exp(-0.075 * i * factor) - 0.25).toFixed(2))
-    wuValues.push(+(0.40 - 0.025 * i * factor).toFixed(2))
-  }
-
-  return {
-    duration,
-    wValues,
-    wlValues,
-    wrValues,
-    wuValues,
-    currentW: wValues[wValues.length - 1],
-    currentWL: wlValues[wlValues.length - 1],
-    currentWR: wrValues[wrValues.length - 1],
-    currentWU: wuValues[wuValues.length - 1]
-  }
-}
-
-const chartData = computed(() => generateSystemThresholdData(props.systemKey))
+// 未绑定该设备的运维模型时显示空图，不生成随机风险曲线。
+const chartData = computed(() => props.measurements || {
+  duration: [], wValues: [], wlValues: [], wrValues: [], wuValues: [],
+  currentW: null, currentWL: null, currentWR: null, currentWU: null
+})
+const fmt = value => Number.isFinite(value) ? value.toFixed(2) : '—'
 
 const statusTag = computed(() => {
   const { currentW, currentWL, currentWU } = chartData.value
+  if (![currentW, currentWL, currentWU].every(Number.isFinite)) return {type: 'info', label: '评估数据未接入'}
   if (currentW >= currentWU) {
     return { type: 'danger', label: '超维修阈值' }
   }
@@ -324,7 +287,7 @@ const disposeChart = () => {
 watch(() => props.modelValue, value => { if (!value) disposeChart() })
 onBeforeUnmount(disposeChart)
 
-watch(() => [props.systemKey, props.systemName, props.deviceName], () => {
+watch(() => [props.systemKey, props.systemName, props.deviceName, props.measurements], () => {
   if (visible.value && chartInstance) {
     chartInstance.setOption(buildChartOption(), true)
   }

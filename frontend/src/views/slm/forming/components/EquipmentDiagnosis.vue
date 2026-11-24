@@ -1,6 +1,6 @@
 <template>
   <figure class="equipment-diagnosis" :class="diagnosis.state" aria-label="设备故障诊断图">
-    <div class="diagram-heading"><strong>{{ diagnosis.title }}</strong><span>{{ trace ? `诊断层：${trace.layer}` : '等待诊断证据' }}</span></div>
+    <div class="diagram-heading"><strong>{{ diagnosis.title }}</strong><span>{{ diagnosis.source || (trace?.available === false ? '等待诊断证据' : trace ? `诊断层：${trace.layer}` : '等待诊断证据') }}</span></div>
     <div class="diagnosis-visual">
       <img :src="`/state_picture/${diagnosis.image}`" :alt="diagnosis.title" />
       <!-- 结论与诊断图共用一个画布，底部预留标注空间，不遮挡设备结构。 -->
@@ -12,7 +12,7 @@
     <figcaption>
       <span>铺粉与供粉机构：<b>{{ diagnosis.powder }}</b></span>
       <span>工艺输入：<b>{{ diagnosis.process }}</b></span>
-      <span>光路、气氛等其他系统：<b>暂无独立诊断证据</b></span>
+      <span>光路、气氛等其他系统：<b>{{ diagnosis.other || '暂无独立诊断证据' }}</b></span>
     </figcaption>
   </figure>
 </template>

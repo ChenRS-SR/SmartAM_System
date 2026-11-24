@@ -25,6 +25,18 @@ describe('区域调控通过开放接口统一生成方案',()=>{
   expect(w.get('[aria-label="自适应激光功率"]').element.value).toBe('180')
   w.unmount()
  })
+ it('同层采样刷新和等价切片对象不重复请求调控方案',async()=>{
+  task4Api.mockResolvedValue(output(180))
+  const w=await setup()
+  const calls=task4Api.mock.calls.length
+  for(let i=0;i<5;i++){
+   await w.setProps({slice:structuredClone(slice),frame:{caseId:'b44-20250321-09-20',layer:8,offset:1001+i,recognition:{layer:8}}})
+   await flushPromises()
+  }
+  expect(task4Api.mock.calls.length).toBe(calls)
+  expect(w.get('[aria-label="自适应激光功率"]').element.value).toBe('180')
+  w.unmount()
+ })
  it('按钮先保存再模拟，传递选定区域且不调用 execute',async()=>{
   task4Api.mockResolvedValue(output(180))
   const w=await setup()

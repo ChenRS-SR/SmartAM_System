@@ -12,7 +12,7 @@
           <div class="field"><span class="k">接入方式</span>
             <span class="field-value">{{ modeLabel }}</span></div>
           <div class="field"><span class="k">当前层</span>
-            <span v-if="replaySession" class="field-value">第 {{ d.layer }} 层</span>
+            <span v-if="replaySession" class="field-value">第 {{ d.layer ?? '—' }} 层</span>
             <select v-else class="sel" :value="d.layer" :disabled="acq.running" @change="load(+$event.target.value)">
               <option v-for="L in layers" :key="L" :value="L">第 {{ L }} 层</option></select></div>
         </div>
@@ -27,7 +27,7 @@
       </Region>
       <Region kind="op" title="操作" class="r-op">
         <div v-if="replaySession" class="ops replay-ops">
-          <span>{{ replaySession.playing ? '采集中' : '采集暂停' }}</span>
+          <span>{{ replaySession.statusLabel || (replaySession.playing ? '采集中' : '采集暂停') }}</span>
           <router-link :to="{ path: '/slm/settings', query: { device: replaySession.manifest.deviceId } }">系统设置</router-link>
         </div>
         <div v-else class="ops">
@@ -42,13 +42,14 @@
       <div class="grid" :class="{ 'grid--filtered': filtered }" :style="{ '--access-columns': topColumns, '--access-columns-narrow': Math.min(2, topColumns) }">
         <div v-for="channel in activeImageChannels" :key="channel.key" class="card c-img" :data-channel="channel.key">
           <div class="card-title">{{ channel.name }}<span class="tm"><template v-if="d.images[channel.key].layer">第 {{ d.images[channel.key].layer }} 层 · </template>{{ d.images[channel.key].time }}</span></div>
-          <img v-if="d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">图像尚未到达</div>
+          <video v-if="d.images[channel.key].videoUrl" :src="d.images[channel.key].videoUrl" class="img" controls muted loop playsinline preload="metadata" />
+          <img v-else-if="d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">图像尚未到达</div>
         </div>
         <div v-if="visible('设备状态参数')" class="card c-state">
           <div class="card-title">设备状态<span class="tm">{{ d.device.name }}</span></div>
           <div class="progress">
-            <div class="pg-row"><span>成形进度</span><b>第 {{ d.progress.layer }} 层 / 共 {{ d.progress.total }} 层</b></div>
-            <div class="bar"><div class="fill" :style="{ width: (d.progress.layer / d.progress.total * 100) + '%' }"></div></div>
+            <div class="pg-row"><span>成形进度</span><b>第 {{ d.progress.layer ?? '—' }} 层 / 共 {{ d.progress.total ?? '—' }} 层</b></div>
+            <div class="bar"><div class="fill" :style="{ width: (d.progress.total > 0 ? Math.min(100, d.progress.layer / d.progress.total * 100) : 0) + '%' }"></div></div>
           </div>
           <div class="env">
             <div v-for="e in envList" :key="e.k" class="env-item"><span class="ek">{{ e.k }}</span><b>{{ e.v }}</b><span class="eu">{{ e.u }}</span></div>
@@ -56,8 +57,8 @@
           <div class="alarm" v-if="d.alarms.length"><span class="al-tag">最近报警</span>{{ d.alarms[0].time.slice(5, 16) }}　{{ d.alarms[0].text }}</div>
         </div>
         <div v-if="visible('刮刀扭矩') || visible('加工平台扭矩')" class="card c-torque">
-          <div class="card-title">{{ torqueTitle }}{{ replaySession ? ' · 连续采样' : '' }}</div>
-          <div class="chart-window-note">最近 50 个采样点 · 时间轴随采样滚动</div>
+          <div class="card-title">{{ torqueTitle }}{{ replaySession?.source !== 'device-record' ? ' · 连续采样' : '' }}</div>
+          <div class="chart-window-note">{{ replaySession?.source === 'device-record' ? '已接入采样记录 · 最近 50 点' : '最近 50 个采样点 · 时间轴随采样滚动' }}</div>
           <EChart :option="torqueOption" class="chart" />
         </div>
         <div v-if="allHidden" class="card channels-empty">当前通道均已隐藏，可在上方勾选需要显示的内容。</div>
@@ -68,6 +69,7 @@
           <table class="tbl">
             <thead><tr><th>层号</th><th>层开始时间</th><th>铺粉用时/s</th><th>单层用时/s</th><th>扭矩采样点</th><th>图像</th><th>状态</th></tr></thead>
             <tbody>
+              <tr v-if="!d.records.length"><td colspan="7">暂无逐层接入记录</td></tr>
               <tr v-for="r in d.records.slice(0, 6)" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!replaySession && !acq.running && load(r.layer)">
                 <td>{{ r.layer }}</td><td>{{ r.start }}</td><td>{{ r.recoat == null ? '—' : r.recoat.toFixed(1) }}</td><td>{{ r.dur == null ? '—' : r.dur.toFixed(1) }}</td>
                 <td>{{ r.torqueN ?? '—' }}</td><td>{{ r.images }}/{{ r.imageTotal || 2 }}</td><td :class="r.complete ? 'ok' : r.state === '接入中' ? 'pending' : 'bad'">{{ r.state || (r.complete ? '完整' : '缺失') }}</td>
@@ -76,6 +78,7 @@
           </table>
           </div>
         </div>
+        <div v-if="d.rawRecords?.length" class="card c-rec raw-records"><div class="card-title">原始采样记录</div><div class="table-scroll" tabindex="0" role="region" aria-label="原始采样记录"><table class="tbl"><thead><tr><th v-for="key in Object.keys(d.rawRecords[0]).filter(k => k.trim())" :key="key">{{ key }}</th></tr></thead><tbody><tr v-for="(row, index) in d.rawRecords" :key="index"><td v-for="key in Object.keys(d.rawRecords[0]).filter(k => k.trim())" :key="key">{{ row[key] }}</td></tr></tbody></table></div></div>
       </div>
     </Region>
   </div>
@@ -104,7 +107,7 @@ const setChannels = (names, shown) => channelStore.setVisible(channelKey.value, 
 const filtered = computed(() => d.value.channels.length < 5 || d.value.channels.some(c => !visible(c.name)))
 const allHidden = computed(() => d.value.channels.every(c => !visible(c.name)))
 const imageChannels = [{ key:'before', name:'铺粉后图像' }, { key:'after', name:'熔化后图像' }, { key:'ir_before', name:'铺粉后红外图像' }, { key:'ir_after', name:'熔化后红外图像' }]
-const activeImageChannels = computed(() => imageChannels.filter(c => visible(c.name)))
+const activeImageChannels = computed(() => [...imageChannels, ...d.value.channels.filter(c => c.imageKey && !imageChannels.some(i => i.key === c.imageKey)).map(c => ({key:c.imageKey, name:c.name}))].filter(c => visible(c.name)))
 const topColumns = computed(() => activeImageChannels.value.length > 2 ? 2 : Math.max(1, activeImageChannels.value.length + Number(!!visible('设备状态参数'))))
 const torqueTitle = computed(() => ['刮刀扭矩', '加工平台扭矩'].filter(visible).join('与'))
 // 回放设备从工作区共享快照读取，跳转时清空旧结果，不再启动页面各自的计时器。
@@ -112,7 +115,7 @@ if (replaySession) watch(() => replaySession.snapshot?.access, value => { d.valu
 const layers = ref([])
 const acq = ref({ running: false })
 const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : devicesFor('access'))
-const modeLabel = computed(() => { if (replaySession) return '在线接入'; const m = (state.status && state.status.modeLabel) || '在线'; return m === '在线' ? '在线接入' : m })
+const modeLabel = computed(() => { if (replaySession) return replaySession.source === 'device-record' ? '设备档案' : '在线接入'; const m = (state.status && state.status.modeLabel) || '在线'; return m === '在线' ? '在线接入' : m })
 const img = (k) => mediaUrl(d.value.images[k].url, 1200)
 let poll = null
 
@@ -199,6 +202,7 @@ const torqueOption = computed(() => {
 </script>
 
 <style scoped>
+.raw-records { grid-column: 1 / -1; }
 .r-input { flex: 470 0 470px; }
 .r-param { flex: 416 1 416px; min-width: 0; }
 .r-op { flex: 280 0 280px; }

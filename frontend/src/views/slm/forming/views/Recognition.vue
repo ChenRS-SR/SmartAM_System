@@ -10,21 +10,21 @@
           <div class="field"><span class="k">识别模型</span><select class="sel" disabled><option>{{ d.model.name }}</option></select></div>
           <div class="field"><span class="k">成形层</span>
             <select class="sel" :value="d.layer" :disabled="!!replaySession || stepper.running.value" @change="run(+$event.target.value)">
-              <option v-if="replaySession" :value="d.layer">第 {{ d.layer }} 层</option>
+              <option v-if="replaySession" :value="d.layer">第 {{ d.layer ?? '—' }} 层</option>
               <option v-for="L in layers" :key="L" :value="L">第 {{ L }} 层</option></select></div>
         </div>
       </Region>
       <Region kind="param" title="识别参数" class="r-param">
         <div class="fields">
           <div class="field wide"><span class="k">判定阈值</span>
-            <input v-if="replaySession" class="inp" type="number" :value="d.params.threshold * 100" disabled /><input v-else class="inp" type="number" min="1" max="99" step="1" v-model.number="state.recog.threshold" @change="run(d.layer)" /><span class="k">%</span></div>
+            <input v-if="replaySession" class="inp" type="number" :value="(d.params.threshold == null ? '' : d.params.threshold * 100)" disabled /><input v-else class="inp" type="number" min="1" max="99" step="1" v-model.number="state.recog.threshold" @change="run(d.layer)" /><span class="k">%</span></div>
           <div class="field wide"><span class="k">输入模态</span>
             <span v-for="m in (d.infrared ? MODS.filter(m => m.key === 'vis') : MODS)" :key="m.key" class="ch" @click="!replaySession && toggle(m.key)"><i class="ck" :class="{ off: !(replaySession ? d.params.modalities : state.recog.modalities).includes(m.key) }">✓</i>{{ m.label }}</span><span v-if="d.infrared" class="ch"><i class="ck">✓</i>红外（独立识别）</span></div>
         </div>
       </Region>
       <Region kind="op" title="操作" class="r-op">
         <div v-if="replaySession" class="ops replay-ops">
-          <span>{{ replaySession.playing ? '采集中' : '采集暂停' }}</span><span>随采集数据更新</span>
+          <span>{{ replaySession.statusLabel || (replaySession.playing ? '采集中' : '采集暂停') }}</span><span>{{ d.available === false ? '暂无模型输出' : '随采集数据更新' }}</span>
         </div>
         <div v-else class="ops">
           <button class="btn primary" :disabled="busy || stepper.running.value" @click="run(d.layer)">单层识别</button>
@@ -36,21 +36,21 @@
     <Region kind="vis" class="r-vis">
       <div class="grid">
         <div class="card c-img">
-          <div class="card-title">铺粉后图像<span class="tm">虚线框为成形区</span></div>
-          <svg class="img" :viewBox="`0 0 ${d.image.w} ${d.image.h}`" preserveAspectRatio="xMidYMid meet">
+          <div class="card-title">铺粉后图像<span class="tm">{{ d.image.box ? '虚线框为成形区' : '' }}</span></div>
+          <svg v-if="d.image.url" class="img" :viewBox="`0 0 ${d.image.w} ${d.image.h}`" preserveAspectRatio="xMidYMid meet">
             <image :href="imgUrl" x="0" y="0" :width="d.image.w" :height="d.image.h" />
-            <rect :x="d.image.box[0]" :y="d.image.box[1]" :width="d.image.box[2] - d.image.box[0]" :height="d.image.box[3] - d.image.box[1]"
+            <rect v-if="d.image.box" :x="d.image.box[0]" :y="d.image.box[1]" :width="d.image.box[2] - d.image.box[0]" :height="d.image.box[3] - d.image.box[1]"
               fill="none" stroke="#f4b942" stroke-width="14" stroke-dasharray="48 28" />
-          </svg>
+          </svg><div v-else class="image-pending">铺粉后图像未接入</div>
         </div>
 
         <div class="card c-res">
-          <div class="card-title">{{ d.infrared ? '可见光识别结果' : '识别结果' }}<span class="tm">第 {{ d.layer }} 层</span></div>
+          <div class="card-title">{{ d.infrared ? '可见光识别结果' : '识别结果' }}<span class="tm">第 {{ d.layer ?? '—' }} 层</span></div>
           <div class="vc">
-            <div class="verdict" :class="{ nor: d.label !== '异常' }">{{ d.label }}</div>
+            <div class="verdict" :class="{ nor: d.label === '正常', pending: d.available === false }">{{ d.label }}</div>
             <div class="prob-row"><span>异常概率</span><b>{{ fmtPct(d.prob.def) }}</b></div>
             <div class="pbar"><div class="pfill" :style="{ width: d.prob.def * 100 + '%' }"></div><i class="th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
-            <div class="prob-row"><span>正常概率</span><b>{{ fmtPct(1 - d.prob.def) }}</b></div>
+            <div class="prob-row"><span>正常概率</span><b>{{ fmtPct(Number.isFinite(d.prob.def) ? 1 - d.prob.def : null) }}</b></div>
           </div>
         </div>
 
@@ -60,30 +60,30 @@
             <template v-if="!d.infrared">
             <div class="m-sub">模态权重<span class="m-hint">融合时各模态所占比重</span></div>
             <div class="wbar">
-              <div class="wseg w-vis" :style="{ width: d.weights.vis * 100 + '%' }"><span v-if="d.weights.vis > 0.3">铺粉后图像 {{ (d.weights.vis * 100).toFixed(1) }}%</span></div>
-              <div class="wseg w-tq" :style="{ width: d.weights.tq * 100 + '%' }"><span v-if="d.weights.tq > 0.3">刮刀与平台扭矩 {{ (d.weights.tq * 100).toFixed(1) }}%</span></div>
+              <div class="wseg w-vis" :style="{ width: d.weights.vis * 100 + '%' }"><span v-if="d.weights.vis > 0.3">铺粉后图像 {{ fmtPct(d.weights.vis) }}</span></div>
+              <div class="wseg w-tq" :style="{ width: d.weights.tq * 100 + '%' }"><span v-if="d.weights.tq > 0.3">刮刀与平台扭矩 {{ fmtPct(d.weights.tq) }}</span></div>
             </div>
-            <div class="w-legend"><span><i class="sw w-vis"></i>铺粉后图像 {{ (d.weights.vis * 100).toFixed(1) }}%</span>
-              <span v-if="d.params.modalities.includes('tq')"><i class="sw w-tq"></i>刮刀与平台扭矩 {{ (d.weights.tq * 100).toFixed(1) }}%</span></div>
+            <div class="w-legend"><span><i class="sw w-vis"></i>铺粉后图像 {{ fmtPct(d.weights.vis) }}</span>
+              <span v-if="d.params.modalities.includes('tq')"><i class="sw w-tq"></i>刮刀与平台扭矩 {{ fmtPct(d.weights.tq) }}</span></div>
             </template>
             <div class="m-sub second">单模态判断<span class="m-hint">只用该模态时的异常概率</span></div>
             <div class="single" v-for="m in modalityResults" :key="m.key" :class="{ unused: !m.used }">
               <span class="s-name">{{ m.name }}</span>
               <div class="s-track"><div class="s-fill" :style="{ width: m.p * 100 + '%' }"></div><i class="s-th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
-              <span class="s-p">{{ (m.p * 100).toFixed(1) }}%</span>
+              <span class="s-p">{{ fmtPct(m.p) }}</span>
               <span class="tag" :class="m.label === '异常' ? 't-def' : 't-nor'">{{ m.label }}</span>
             </div>
           </div>
         </div>
 
-        <div v-if="d.params.modalities.includes('tq')" class="card c-torque">
-          <div class="card-title">{{ replaySession ? `实时采样扭矩 · 第 ${replaySession.snapshot.layer} 层` : '当前层铺粉段扭矩' }}</div>
-          <div class="chart-window-note">{{ replaySession ? '最近 50 个采样点 · 时间轴随采样滚动；识别结果使用完整铺粉段输入' : '最近 50 个采样点' }}</div>
+        <div v-if="!d.infrared" class="card c-torque">
+          <div class="card-title">{{ replaySession?.source === 'device-record' ? '已接入扭矩采样片段' : replaySession ? `实时采样扭矩 · 第 ${replaySession.snapshot.layer} 层` : '当前层铺粉段扭矩' }}</div>
+          <div class="chart-window-note">{{ replaySession && replaySession.source !== 'device-record' ? '最近 50 个采样点 · 时间轴随采样滚动；识别结果使用完整铺粉段输入' : '最近 50 个采样点' }}</div>
           <EChart :option="torqueOption" class="chart" />
         </div>
 
         <div v-if="d.infrared" class="card c-torque c-infrared">
-          <div class="card-title">铺粉后红外识别<span class="tm">第 {{ d.layer }} 层 · {{ d.infrared.image.time }}</span></div>
+          <div class="card-title">铺粉后红外识别<span class="tm">第 {{ d.layer ?? '—' }} 层 · {{ d.infrared.image.time }}</span></div>
           <div class="infrared-content"><img class="img" :src="mediaUrl(d.infrared.image.url)" alt="铺粉后红外图像" />
             <div><div class="prob-row"><span>识别类别</span><b>{{ d.infrared.label }}</b></div>
               <div class="prob-row"><span>类别置信度</span><b>{{ fmtPct(d.infrared.confidence) }}</b></div>
@@ -98,6 +98,7 @@
           <table class="tbl">
             <thead><tr><th>层号</th><th>{{ d.infrared ? '可见光异常概率' : '异常概率' }}</th><th>识别结果</th></tr></thead>
             <tbody>
+              <tr v-if="!d.records.length"><td colspan="3">暂无逐层识别结果</td></tr>
               <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!replaySession && !stepper.running.value && run(r.layer)">
                 <td>{{ r.layer }}</td><td>{{ fmtPct(r.p) }}</td>
                 <td><span class="tag" :class="r.label === '异常' ? 't-def' : 't-nor'">{{ r.label }}</span></td>
@@ -113,6 +114,7 @@
 </template>
 
 <script setup>
+import { pendingAnalysis } from '../../workspace/analysisPresentation'
 import { computed, inject, onMounted, ref, watch } from 'vue'
 import Region from '../components/Region.vue'
 import EChart from '../components/EChart.vue'
@@ -129,7 +131,7 @@ const { busy, call, report } = useCall()
 const stepper = useStepper(1200)
 const d = ref(null)
 // 回放设备从工作区共享快照读取，跳转时清空旧结果，不再启动页面各自的计时器。
-if (replaySession) watch(() => replaySession.snapshot?.recognition, value => { d.value = value || null }, { immediate: true })
+if (replaySession) watch(() => replaySession.snapshot, frame => { d.value = frame?.recognition || pendingAnalysis(frame, 'recognition') }, { immediate: true })
 const layers = ref([])
 const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : devicesFor('recognition'))
 const modalityResults = computed(() => d.value?.infrared ? [...d.value.singles, { key:'ir', name:'铺粉后红外', p:d.value.infrared.anomalyProbability, label:d.value.infrared.anomalyProbability >= .5 ? '异常' : '正常', used:true }] : d.value?.singles || [])
@@ -194,6 +196,7 @@ const torqueOption = computed(() => {
 .img { width: 100%; flex: 1; min-height: 0; }
 .vc { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-bottom: 14px; }
 .verdict { font-size: 30px; font-weight: 800; color: #fff; background: var(--warn); border-radius: 6px; padding: 8px 10px; text-align: center; margin-bottom: 16px; }
+.verdict.pending { background: var(--track); color: var(--text-2); }
 .verdict.nor { background: var(--ok); }
 .prob-row { display: flex; justify-content: space-between; font-size: 17px; margin-top: 10px; }
 .prob-row b { font-size: 18px; }

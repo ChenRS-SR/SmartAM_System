@@ -267,3 +267,10 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
 @container forming (max-width: 760px) {
   .forming-root .access-page .grid.grid--filtered { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* 缺失状态不撑大卡片，等待图像与有效图像使用同一画布尺寸。 */
+.forming-root .analysis-page .image-pending {
+  height: clamp(220px, 20cqi, 300px);
+  max-height: clamp(220px, 20cqi, 300px);
+  min-height: 220px;
+}

@@ -1,37 +1,42 @@
 <template>
   <div class="region-control">
     <section class="region-panel" aria-label="当前切片区域总览">
-      <header><h2>当前切片区域</h2><span>第 {{ frame.layer }} 层</span><button v-if="isReplay" class="export-button" :disabled="exporting || !config" @click="exportCurrent">{{ exporting ? '正在导出…' : '导出当前接口数据' }}</button></header>
+      <header><h2>当前切片区域</h2><span>第 {{ frame.layer ?? '—' }} 层</span><button v-if="isReplay" class="export-button" :disabled="exporting || !config" @click="exportCurrent">{{ exporting ? '正在导出…' : '导出当前接口数据' }}</button></header>
       <div class="region-overview">
-        <img class="slice-illustration" :src="slice.annotatedImage" :alt="`第${frame.layer}层切片区域引线标注图，共${slice.regions.length}个区域`" />
+        <img v-if="slice?.annotatedImage" class="slice-illustration" :src="slice.annotatedImage" :alt="`第${frame.layer}层切片区域引线标注图，共${slice.regions.length}个区域`" />
+        <p v-else class="unavailable" role="status">当前任务未登记切片区域，区域调控不可用。</p>
         <div class="region-list">
-          <button v-for="(region, i) in slice.regions" :key="region.id" :class="{selected: selectedId === region.id}" @click="selectedId = region.id" :aria-pressed="selectedId === region.id">
+          <button v-for="region in (slice?.regions || [])" :key="region.id" :class="{selected: selectedId === region.id}" @click="selectedId = region.id" :aria-pressed="selectedId === region.id">
             <strong><i :style="{background:region.color}"></i>{{ region.name }}</strong>
-            <span class="region-strategy" v-if="plans[i]">策略{{ controlStrategies[plans[i].strategy].number }} · {{ controlStrategies[plans[i].strategy].name }}</span>
-            <span>{{ plans[i]?.status || '读取参数配置…' }}</span>
-            <small v-if="plans[i]?.strategy === 'adjust'">功率 {{ plans[i].parameters.fill_power }} W · 速度 {{ plans[i].parameters.fill_speed }} mm/s · 层间等待 {{ plans[i].parameters.layer_wait_time }} s</small>
+            <span class="region-strategy" v-if="planFor(region.id)">策略{{ controlStrategies[planFor(region.id).strategy].number }} · {{ controlStrategies[planFor(region.id).strategy].name }}</span>
+            <span>{{ planFor(region.id)?.status || '读取参数配置…' }}</span>
+            <small v-if="planFor(region.id)?.strategy === 'adjust'">功率 {{ planFor(region.id).parameters.fill_power }} W · 速度 {{ planFor(region.id).parameters.fill_speed }} mm/s · 层间等待 {{ planFor(region.id).parameters.layer_wait_time }} s</small>
           </button>
         </div>
       </div>
     </section>
     <section class="region-panel" aria-label="层间调控策略1">
-      <header><h2>层间调控策略1</h2><RegionBadge :name="selectedRegion.name" :color="selectedRegion.color" /></header>
-      <p v-if="error" class="config-error" role="alert">{{ error }}</p>
+      <header><h2>层间调控策略1</h2><RegionBadge v-if="selectedRegion" :name="selectedRegion?.name" :color="selectedRegion?.color" /></header>
+      <p v-if="error" class="config-error" role="alert">{{ error }} <button :disabled="submitting || refreshing" @click="config ? refreshPlans() : loadConfig()">重试</button></p>
       <div v-else-if="activePlan" class="region-parameters">
         <section aria-label="当前工艺参数"><h3>当前工艺参数</h3>
           <label v-for="key in paramKeys" :key="key">{{ paramDefs[key].label }} / {{ paramDefs[key].unit }}<input :value="activePlan.baseline[key]" readonly :aria-label="`当前${paramDefs[key].label}`" /></label>
         </section>
-        <section class="adaptive-form" :class="{replaced:activePlan.strategy !== 'adjust'}" aria-label="自适应调整"><div class="adaptive-heading"><h3>自适应调整</h3><input :checked="activePlan.automatic" :disabled="submitting" @change="submitStrategy('adjust', $event.target.checked)" type="checkbox" role="switch" aria-label="区域自适应调整" /></div>
+        <section class="adaptive-form" :class="{replaced:activePlan.strategy !== 'adjust'}" aria-label="自适应调整"><div class="adaptive-heading"><h3>自适应调整</h3><input :checked="activePlan.automatic" :disabled="submitting || refreshing || blocked" @change="submitStrategy('adjust', $event.target.checked)" type="checkbox" role="switch" aria-label="区域自适应调整" /></div>
           <template v-if="activePlan.strategy === 'adjust'">
           <label v-for="key in paramKeys" :key="key" :class="{changed:activePlan.parameters[key] !== activePlan.baseline[key]}">{{ paramDefs[key].label }} / {{ paramDefs[key].unit }}<input :value="activePlan.parameters[key]" readonly :aria-label="`自适应${paramDefs[key].label}`" /></label>
           </template>
           <div v-else class="strategy-replacement"><strong>层间调控策略{{ controlStrategies[activePlan.strategy].number }} · {{ controlStrategies[activePlan.strategy].name }}</strong><span>当前区域已切换策略，自适应参数调整已停用</span></div>
         </section>
-        <p class="plan-status" aria-live="polite">{{ selectedRegion.name }} · {{ activePlan.status }} · 第 {{ frame.layer }} 层</p>
+        <p class="plan-status" aria-live="polite">{{ selectedRegion?.name }} · {{ activePlan.status }} · 第 {{ frame.layer ?? '—' }} 层</p>
       </div>
-      <p v-else class="note">正在读取工艺基准…</p>
+      <div v-else class="region-parameters unavailable-parameters">
+        <section><h3>当前工艺参数</h3><label v-for="key in paramKeys" :key="key">{{ paramDefs[key].label }} / {{ paramDefs[key].unit }}<input disabled value="—" /></label></section>
+        <section><div class="adaptive-heading"><h3>自适应调整</h3><input type="checkbox" role="switch" aria-label="区域自适应调整" disabled /></div><label v-for="key in paramKeys" :key="key">{{ paramDefs[key].label }} / {{ paramDefs[key].unit }}<input disabled value="—" /></label></section>
+        <p class="note" role="status">{{ blocked ? '设备数据读取失败，调控已禁用' : !slice ? '未登记切片区域' : '正在读取工艺基准…' }}</p>
+      </div>
     </section>
-    <LayerStrategyPlaceholders :region-name="selectedRegion.name" :region-color="selectedRegion.color" :enabled="!!activePlan && !submitting" :active-strategy="activePlan?.strategy" :pending-strategy="pendingRegion === '*' || pendingRegion === selectedId ? pendingStrategy : ''" @strategy="submitStrategy" />
+    <LayerStrategyPlaceholders :region-name="selectedRegion?.name" :region-color="selectedRegion?.color" :enabled="!!activePlan && !submitting && !refreshing && !error && !blocked" :active-strategy="activePlan?.strategy" :pending-strategy="pendingRegion === '*' || pendingRegion === selectedId ? pendingStrategy : ''" @strategy="submitStrategy" />
   </div>
 </template>
 <script setup>
@@ -44,20 +49,23 @@ import { controlStrategies } from './controlStrategies'
 import { ElMessage } from 'element-plus'
 import LayerStrategyPlaceholders from './LayerStrategyPlaceholders.vue'
 import RegionBadge from './RegionBadge.vue'
-const props = defineProps({ frame: { type: Object, required: true }, slice: { type: Object, required: true } })
-const selectedId = ref(props.slice.regions[0].id)
+const props = defineProps({ frame: { type: Object, required: true }, slice: { type: Object, default: null }, blocked: { type: Boolean, default: false } })
+const selectedId = ref(props.slice?.regions[0]?.id || '')
 const config = ref(null)
 const error = ref('')
 // 跨层保留所选颜色区域；区域消失时选当前层首个真实区域，不保留旧层参数。
 watch(() => props.slice, slice => {
-  if (!slice.regions.some(r => r.id === selectedId.value)) selectedId.value = slice.regions[0].id
+  if (!slice?.regions.some(r => r.id === selectedId.value)) selectedId.value = slice?.regions[0]?.id || ''
 })
-const selectedRegion = computed(() => props.slice.regions.find(r => r.id === selectedId.value))
+const selectedRegion = computed(() => props.slice?.regions.find(r => r.id === selectedId.value))
 const plans = ref([])
+const planFor = id => plans.value.find(plan => plan.regionId === id)
 const submitting = ref(false)
+const refreshing = ref(false)
 const pendingRegion = ref(''), pendingStrategy = ref('')
 let disposed = false
 const exporting = ref(false)
+const configController = new AbortController()
 const isReplay = computed(() => REPLAY_CASES.some(c => c.id === props.frame.caseId))
 async function exportCurrent() {
   exporting.value = true
@@ -86,20 +94,23 @@ function selection() {
 const fields = p => ({fill_power:p.laserPower, fill_speed:p.fillSpeed, layer_wait_time:p.layerWaitTime})
 async function refreshPlans() {
   previewController?.abort()
-  if (!config.value || disposed || submitting.value) return
+  if (!config.value || disposed || submitting.value || !props.slice || props.blocked) { plans.value = []; return }
   const controller = new AbortController()
   previewController = controller
+  refreshing.value = true
+  plans.value = []
   try {
     const data = await task4Api('quality-control', selection(), controller.signal)
     if (controller.signal.aborted || disposed) return
     plans.value = data.regions.map(r => ({...r, baseline:fields(r.currentParameters), parameters:fields(r.controlParameters)}))
     error.value = ''
-  } catch (e) { if (e.name !== 'AbortError') error.value = e.message }
+  } catch (e) { if (e.name !== 'AbortError' && !controller.signal.aborted && !disposed) error.value = e.message }
+  finally { if (previewController === controller) refreshing.value = false }
 }
 watch([() => props.frame.caseId, () => props.frame.layer, () => props.frame.recognition?.layer,
-  () => props.frame.processing?.real, config], refreshPlans, { immediate:true })
+  () => props.frame.processing?.real, () => props.slice?.regions.map(r => r.id).join('|'), () => props.blocked, config], refreshPlans, { immediate:true })
 async function submitStrategy(strategy, automatic = true) {
-  if (submitting.value || !config.value) return
+  if (submitting.value || refreshing.value || !activePlan.value || !config.value || !props.slice || props.blocked) return
   submitting.value = true
   error.value = ''
   previewController?.abort()
@@ -123,15 +134,17 @@ async function submitStrategy(strategy, automatic = true) {
   // 从持久化状态重读全部区域，旧的预览请求不得把已切换策略覆盖回策略1。
   if (!error.value && !disposed) await refreshPlans()
 }
-onUnmounted(() => { disposed = true; previewController?.abort(); actionController?.abort() })
+onUnmounted(() => { disposed = true; configController.abort(); previewController?.abort(); actionController?.abort() })
 const activePlan = computed(() => plans.value.find(p => p.regionId === selectedId.value))
-onMounted(async () => {
+async function loadConfig() {
   try {
-    const response = await fetch('/api/slm/control/config')
+    const response = await fetch('/api/slm/control/config', {signal: configController.signal})
     if (!response.ok) throw new Error(`参数配置读取失败（${response.status}）`)
-    config.value = await response.json()
-  } catch (e) { error.value = e.message }
-})
+    const next = await response.json()
+    if (!disposed) config.value = next
+  } catch (e) { if (!disposed && e.name !== 'AbortError') error.value = e.message }
+}
+onMounted(loadConfig)
 </script>
 <style scoped>
 .export-button { margin-left:auto; padding:6px 10px; border:1px solid var(--am-card-border); background:var(--am-card-bg); color:var(--am-text); cursor:pointer; }
@@ -160,6 +173,7 @@ header label { margin-left: auto; display: flex; gap: 8px; align-items: center; 
 .region-parameters label { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; font-size: 13px; color: var(--am-text-2); }
 .region-parameters input:not([type="checkbox"]) { width: 100%; box-sizing: border-box; border: 1px solid var(--am-card-border); background: var(--am-card-bg-2); padding: 9px; color: var(--am-text); font: inherit; }
 .region-parameters .changed input { color: var(--am-accent); font-weight: 700; border-color: var(--am-accent); }
+.unavailable { display: grid; place-items: center; min-height: 240px; color: var(--am-text-2); margin: 0; }
 .note { font-size: 12px; line-height: 1.8; color: var(--am-text-2); margin: 8px 0; }
 .region-parameters > p { grid-column: 1 / -1; margin: 0; }
 .plan-status { color: var(--am-accent); font-size: 14px; }

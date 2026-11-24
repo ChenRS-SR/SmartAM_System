@@ -4,6 +4,7 @@ export function traceDiagnosis(trace, recognition) {
     image: 'power_off.png', state: 'pending', title: recognition?.label === '异常' ? '已识别缺陷，等待故障诊断' : '等待故障诊断',
     conclusion: '诊断证据尚未齐备', powder: '待诊断', process: '待诊断',
   }
+  if (trace.recordDiagnosis) return trace.recordDiagnosis
   const dev = ['由设备因素诱发', '由二者共同诱发'].includes(trace.conclusion)
   const proc = ['由工艺因素诱发', '由二者共同诱发'].includes(trace.conclusion)
   const normal = trace.conclusion === '未见异常'
