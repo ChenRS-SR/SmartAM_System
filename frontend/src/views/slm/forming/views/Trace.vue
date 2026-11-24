@@ -149,12 +149,12 @@ const hasProcessCurve = computed(() => visibleFactors.value.some(r => r.proc !==
 const curveOption = computed(() => {
   const P = pal.value
   const C = P
-  const axisFont = { fontSize: 16, color: P.axis }
+  const axisFont = { fontSize: 13, color: P.axis }
   const cv = d.value.curve
   const lo = curveStart.value
   const hi = d.value.layer ?? TRACE_WINDOW_SIZE
   const cur = { silent: true, symbol: 'none', data: [{ xAxis: d.value.layer, lineStyle: { color: P.ink, width: 1.4 },
-    label: { show: true, color: P.text, formatter: '当前层', fontSize: 15, position: 'end', distance: 2 } }] }
+    label: { show: true, color: P.text, formatter: '当前层', fontSize: 12, position: 'insideEndTop', distance: 6 } }] }
   const lim = (name, v, color, type) => ({ name, type: 'line', symbol: 'none', z: 5, lineStyle: { width: 1.8, color, type }, itemStyle: { color },
     data: [[lo, v], [hi, v]] })
   const factors = visibleFactors.value
@@ -168,8 +168,11 @@ const curveOption = computed(() => {
       ]
   return {
     animation: false,
-    grid: { left: 50, right: 24, top: 52, bottom: 46 },
-    legend: { top: 0, left: 'center', itemWidth: 26, itemHeight: 10, textStyle: { fontSize: 16, color: P.text } },
+    // 图例固定分成曲线/上限两行，单独预留空间，避免窄列自动换行压住坐标轴。
+    grid: { left: 8, right: 16, top: 88, bottom: 42, containLabel: true },
+    legend: { top: 4, left: 'center', itemWidth: 18, itemHeight: 8, itemGap: 12,
+      data: ['工艺侧', '设备侧', '', ...series.slice(2).map(s => s.name)],
+      textStyle: { fontSize: 13, color: P.text } },
     xAxis: { type: 'value', min: lo === hi ? lo - 1 : lo, max: hi, name: '层号', nameLocation: 'middle', nameGap: 26,
       minInterval: 1, nameTextStyle: axisFont, axisLabel: { ...axisFont, hideOverlap: true, formatter: (v) => String(v) }, splitLine: { show: false } },
     yAxis: { type: 'value', name: '贡献', nameTextStyle: { ...axisFont, align: 'left' }, nameGap: 10, axisLabel: axisFont, splitNumber: 4,
