@@ -52,7 +52,7 @@
 
         <div class="card c-res" :class="{ dense: d.mode === 'dual' }">
           <div class="card-title">故障诊断</div>
-          <EquipmentDiagnosis :trace="d" :recognition="replaySession?.snapshot?.recognition" />
+          <EquipmentDiagnosis :frame="replaySession?.snapshot" :trace="d" :recognition="replaySession?.snapshot?.recognition" />
           <div class="diagnosis-details">
           <div class="prob" v-for="p in probs" :key="p.name">
             <div class="p-head"><span>{{ p.name }}</span><b :style="{color:probabilityColor(p.v)}">{{ fmtPct(p.v) }}</b></div>

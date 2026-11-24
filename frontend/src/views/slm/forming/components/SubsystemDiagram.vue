@@ -26,7 +26,7 @@
         <p v-if="system.details.length">{{ system.details.join('、') }}</p>
       </div>
     </div>
-    <div class="diagram-legend"><span class="normal">正常</span><span class="fault">异常</span><span class="unknown">未接入</span></div>
+    <div class="diagram-legend"><span class="normal">正常</span><span class="fault">异常</span><span v-if="systems.some(s=>s.state==='connected')" class="connected">已接入</span><span v-if="systems.some(s=>s.state==='unknown')" class="unknown">未接入</span></div>
   </div>
 </template>
 <script setup>
@@ -54,6 +54,7 @@ const positions=[
 svg { display:block; width:100%; height:auto; }
 .system-part { stroke-width:3; transition:fill .2s,stroke .2s; }
 .system-part.unknown { fill:#dce2e8; stroke:#8393a3; }
+.system-part.connected { fill:#dce9f5; stroke:#3b6ba5; }
 .system-part.normal { fill:#cce7db; stroke:#27825e; }
 .system-part.fault { fill:#efb7b3; stroke:#bd423b; }
 .system-callout { stroke-width:2; }
@@ -64,6 +65,7 @@ svg { display:block; width:100%; height:auto; }
 .system-callout.fault .leader { stroke-width:2px; }
 .system-callout rect { fill:var(--card-bg,#fff); }
 .system-callout.unknown { stroke:#8795a3; fill:#8795a3; }
+.system-callout.connected { stroke:#3b6ba5; fill:#3b6ba5; }
 .system-callout.normal { stroke:#27825e; fill:#27825e; }
 .system-callout.fault { stroke:#bd423b; fill:#bd423b; }
 text { stroke:none; font-family:inherit; }
@@ -73,6 +75,7 @@ text { stroke:none; font-family:inherit; }
 .machine-caption { font-size:20px; fill:var(--text-2,#52677d); }
 .diagram-legend { display:flex; justify-content:center; gap:20px; font-size:12px; padding:8px; }
 .diagram-legend span::before { content:''; display:inline-block; width:9px; height:9px; margin-right:5px; background:currentColor; }
+.connected { color:#3b6ba5; }
 .normal { color:#27825e; }.fault { color:#bd423b; }.unknown { color:#8795a3; }
 .health-list { display:none; }
 @media(max-width:767px) {

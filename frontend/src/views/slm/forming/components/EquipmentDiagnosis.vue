@@ -18,9 +18,9 @@ import { computed } from 'vue'
 import SubsystemDiagram from './SubsystemDiagram.vue'
 import { subsystemHealth } from '../subsystemHealth'
 import { traceDiagnosis } from '../traceDiagnosis'
-const props = defineProps({ trace: Object, recognition: Object })
+const props = defineProps({ trace: Object, recognition: Object, frame: Object })
 const diagnosis = computed(() => traceDiagnosis(props.trace, props.recognition))
-const systems = computed(() => subsystemHealth(diagnosis.value, props.trace))
+const systems = computed(() => subsystemHealth(diagnosis.value, props.trace, props.frame))
 </script>
 <style scoped>
 .fault-gallery { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; }

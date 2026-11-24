@@ -19,3 +19,10 @@ describe('子系统健康图',()=>{
   expect(subsystemHealth(traceDiagnosis(null),null)[0].details).toEqual([])
  })
 })
+
+it('完整案例的真实采集参数关联子系统接入状态，故障优先', () => {
+  const trace={device:{id:'slm-b44'},task:{id:'B44-20250321-09-20'},faultTypes:['scraper']}
+  const frame={access:{device:trace.device,images:{before:{url:'/before'},after:{url:'/after'}}},parameters:[{name:'刮刀扭矩',value:0},{name:'气源压力',value:4},{name:'成形室温度',value:35}]}
+  expect(subsystemHealth(traceDiagnosis(trace),trace,frame).map(s=>s.state)).toEqual(['fault','connected','connected','connected'])
+  expect(subsystemHealth(traceDiagnosis(trace),trace,{...frame,access:{...frame.access,device:{id:'other'}}}).map(s=>s.state)).toEqual(['fault','unknown','unknown','unknown'])
+})

@@ -13,5 +13,7 @@ export function traceDiagnosis(trace) {
   if (proc) return {image:'power_off.png',state:'process',title:'工艺问题',conclusion:'工艺问题引发异常',faults:[],source:trace?.recordDiagnosis ? '设备档案' : null}
   if (dev) return {state:'unclassified',title:'设备问题',conclusion:'设备问题',faults:[]}
   if (trace?.conclusion === '未见异常') return {image:'health.png',state:'normal',title:'正常',conclusion:'未见异常',faults:[]}
+  // 完整案例已有结果时显示参考偏离，不把已接入误写成无结果。
+  if (rule && trace.available !== false && trace.conclusion === '贡献超限，待复核') return {state:'reference',title:'故障诊断',conclusion:'贡献偏离正常样本参考水平',faults:[]}
   return {state:'pending',title:'故障诊断',conclusion:'—',faults:[]}
 }

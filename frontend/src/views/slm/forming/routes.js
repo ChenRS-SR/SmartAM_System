@@ -8,7 +8,7 @@ import Trace from './views/Trace.vue'
 export const FORMING_MODULES = [
   { key: 'overview', name: '设备总览', component: Overview },
   { key: 'access', name: '数据接入', component: Access },
-  { key: 'recognition', name: '缺陷识别', component: Recognition },
+  { key: 'recognition', name: '异常识别', component: Recognition },
   { key: 'trace', name: '故障诊断', component: Trace },
 ]
 
