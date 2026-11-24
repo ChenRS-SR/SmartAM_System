@@ -18,7 +18,7 @@
             aria-controls="primary-sidebar"
             @click="isCollapsed = !isCollapsed"
           >
-            <el-icon size="20"><Fold v-if="!isCollapsed" /><Expand v-else /></el-icon>
+            {{ isCollapsed ? '展开导航' : '收起导航' }}
           </el-button>
           <span class="page-title">{{ currentPageTitle }}</span>
         </div>
@@ -27,25 +27,22 @@
           <ThemeToggle />
           <el-tooltip content="全屏" placement="bottom">
             <el-button text aria-label="全屏显示" @click="toggleFullscreen">
-              <el-icon size="20"><FullScreen /></el-icon>
+              全屏
             </el-button>
           </el-tooltip>
 
         </div>
       </header>
-      
       <div class="page-container" :class="{ 'no-padding': !showSidebar }">
         <router-view />
       </div>
     </main>
-    
     <!-- 移动端遮罩层 -->
     <div 
       v-if="showSidebar && isMobile && !isCollapsed" 
       class="mobile-overlay"
       @click="isCollapsed = true"
     ></div>
-    
     <!-- 告警通知 -->
     <AlertList v-if="store.alerts.length > 0" :alerts="store.alerts" />
   </div>
@@ -103,7 +100,6 @@ const toggleFullscreen = async () => {
 onMounted(() => {
   // 连接 WebSocket 数据流（仅用于基础状态）
   store.connectWebSocket()
-  
   // 工作区切换仅负责导航，硬件连接与采集由设备页显式触发。
 })
 </script>
@@ -192,7 +188,6 @@ onMounted(() => {
   .page-container {
     padding: 16px;
   }
-  
 
 }
 </style>

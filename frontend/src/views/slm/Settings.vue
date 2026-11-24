@@ -7,7 +7,6 @@
     <el-card class="settings-card" shadow="never">
       <template #header>
         <div class="card-header">
-          <el-icon size="20"><VideoCamera /></el-icon>
           <span>华科实验台连接设置</span>
           <el-tag :type="benchSettings.use_mock ? 'warning' : 'success'" size="small" effect="dark">
             {{ benchSettings.use_mock ? '模拟数据' : '真实硬件' }}
@@ -40,7 +39,6 @@
                 <el-option v-if="camerasLoading" label="正在检测..." :value="-1" disabled />
               </el-select>
               <el-button type="primary" @click="fetchCameras" :loading="camerasLoading">
-                <el-icon><Refresh /></el-icon>
                 刷新
               </el-button>
             </div>
@@ -103,24 +101,20 @@
 
           <el-form-item>
             <el-button type="primary" @click="saveBenchSettings">
-              <el-icon><Check /></el-icon>
               保存连接设置
             </el-button>
           </el-form-item>
         </el-form>
       </div>
     </el-card>
-    
     <!-- 数据源列表与设备群和工作区保持一致。 -->
     <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
       <template #header>
         <div class="card-header">
-          <el-icon size="20"><VideoCamera /></el-icon>
           <span>设备数据源</span>
           <el-button size="small" :loading="slmDeviceStore.loading" @click="refreshDeviceSources">刷新列表</el-button>
         </div>
       </template>
-      
       <div class="settings-content">
         <el-table :data="deviceSourceRows" row-key="id" border size="small" v-loading="slmDeviceStore.loading">
           <el-table-column prop="name" label="设备" min-width="180">
@@ -141,12 +135,10 @@
         </el-table>
       </div>
     </el-card>
-    
     <!-- 畸变矫正信息 -->
     <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
       <template #header>
         <div class="card-header">
-          <el-icon size="20"><Crop /></el-icon>
           <span>畸变矫正信息</span>
           <el-button 
             type="primary" 
@@ -158,7 +150,6 @@
           </el-button>
         </div>
       </template>
-      
       <div class="correction-info">
         <!-- 标定文件路径 -->
         <el-form label-width="150px" size="small" style="margin-bottom: 15px;">
@@ -178,7 +169,6 @@
             </div>
           </el-form-item>
         </el-form>
-        
         <el-descriptions :column="2" border>
           <el-descriptions-item label="标定文件">
             {{ correctionInfo.calibration_file ? '已加载' : '未加载' }}
@@ -196,7 +186,6 @@
             <span v-if="calibratedChannels.length === 0">无</span>
           </el-descriptions-item>
         </el-descriptions>
-        
         <div v-if="calibratedChannels.length > 0" class="channel-details">
           <h4>通道详情</h4>
           <el-table :data="channelDetails" border size="small">
@@ -212,7 +201,6 @@
             <el-table-column prop="output_size" label="输出尺寸" width="120" />
           </el-table>
         </div>
-        
         <el-alert
           v-else
           title="未找到标定数据"
@@ -224,17 +212,14 @@
         />
       </div>
     </el-card>
-    
     <!-- ROI区域配置 -->
     <el-card class="settings-card" shadow="never" style="margin-top: 20px;">
       <template #header>
         <div class="card-header">
-          <el-icon size="20"><Crop /></el-icon>
           <span>ROI区域配置</span>
           <el-tag v-if="roiConfigured" type="success" size="small" effect="dark">已配置</el-tag>
         </div>
       </template>
-      
       <ROIConfigPanel 
         @config-loaded="onROIConfigLoaded"
         @config-cleared="onROIConfigCleared"
@@ -246,7 +231,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { VideoCamera, Check, Refresh, Crop } from '@element-plus/icons-vue'
 import ROIConfigPanel from '../../components/slm/ROIConfigPanel.vue'
 import { readSlmBenchSettings, writeSlmBenchSettings } from '../../utils/slmBenchSettings'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
@@ -386,7 +370,6 @@ async function loadCorrectionInfo() {
   try {
     const response = await fetch(`${API_BASE}/capture/correction_info`)
     const result = await response.json()
-    
     if (result.success) {
       Object.assign(correctionInfo, result)
     }
@@ -401,7 +384,6 @@ async function setCalibrationPath() {
     ElMessage.warning('请输入标定文件路径')
     return
   }
-  
   try {
     const response = await fetch(`${API_BASE}/capture/correction/set_path`, {
       method: 'POST',
@@ -412,9 +394,7 @@ async function setCalibrationPath() {
         path: calibrationFilePath.value
       })
     })
-    
     const result = await response.json()
-    
     if (result.success) {
       ElMessage.success('标定文件路径已设置')
       await loadCorrectionInfo()
@@ -430,14 +410,11 @@ async function setCalibrationPath() {
 // 重新加载标定数据
 async function reloadCalibration() {
   reloadingCalibration.value = true
-  
   try {
     const response = await fetch(`${API_BASE}/capture/correction/reload`, {
       method: 'POST'
     })
-    
     const result = await response.json()
-    
     if (result.success) {
       ElMessage.success('标定数据已重新加载')
       await loadCorrectionInfo()

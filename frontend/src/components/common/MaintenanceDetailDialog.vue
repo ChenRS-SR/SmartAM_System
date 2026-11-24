@@ -13,7 +13,6 @@
     <template #header>
       <div class="detail-header">
         <el-button size="small" @click="visible = false">
-          <el-icon><ArrowLeft /></el-icon>
           返回
         </el-button>
         <div>
@@ -22,9 +21,9 @@
           </h2>
           <div class="detail-breadcrumb">
             <span>{{ organizationLabel }}</span>
-            <el-icon><ArrowRight /></el-icon>
+            <span aria-hidden="true">/</span>
             <span>{{ deviceName }}</span>
-            <el-icon><ArrowRight /></el-icon>
+            <span aria-hidden="true">/</span>
             <span>{{ systemName }}</span>
           </div>
         </div>
@@ -34,7 +33,6 @@
     <div class="detail-panel">
       <div class="detail-panel-header">
         <h3>
-          <el-icon><TrendCharts /></el-icon>
           风险指标 W 与阈值关系
         </h3>
         <el-tag :type="statusTag.type" size="small" effect="dark">
@@ -65,7 +63,6 @@
     <div class="detail-panel">
       <div class="detail-panel-header">
         <h3>
-          <el-icon><Cpu /></el-icon>
           当前监测与决策参数
         </h3>
         <el-tag type="info" size="small" effect="plain" class="backend-tag">
@@ -105,7 +102,6 @@
 <script setup>
 import { amVar } from '@/utils/themeColor'
 import { onBeforeUnmount, computed, nextTick, ref, watch } from 'vue'
-import { ArrowLeft, ArrowRight, TrendCharts, Cpu } from '@element-plus/icons-vue'
 
 const props = defineProps({
   measurements: {type:Object, default:null},
@@ -366,10 +362,6 @@ defineExpose({
   color: var(--am-text-2);
 }
 
-.detail-breadcrumb .el-icon {
-  font-size: 12px;
-  color: var(--am-text-3);
-}
 
 .detail-panel {
   background: var(--am-card-bg);
@@ -404,9 +396,6 @@ defineExpose({
   color: var(--am-text);
 }
 
-.detail-panel-header h3 .el-icon {
-  color: var(--am-accent);
-}
 
 .detail-chart-container {
   width: 100%;

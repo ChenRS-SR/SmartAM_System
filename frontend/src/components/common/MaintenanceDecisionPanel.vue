@@ -3,7 +3,6 @@
     <template #header>
       <div class="card-header">
         <span class="header-title">
-          <el-icon><FirstAidKit /></el-icon>
           视情维护可视化
         </span>
         <div class="header-tags">
@@ -63,7 +62,6 @@
     <!-- 可靠性计算值区域 -->
     <div class="reliability-section">
       <div class="section-header">
-        <el-icon><Odometer /></el-icon>
         <span class="section-label">各系统当前可靠性计算值</span>
       </div>
       <div class="reliability-grid">
@@ -72,15 +70,6 @@
           :key="'rel-' + system.key"
           class="reliability-card"
         >
-          <div
-            class="rel-icon"
-            :style="{
-              background: getReliabilityColor(system.reliability) + '20',
-              color: getReliabilityColor(system.reliability)
-            }"
-          >
-            <el-icon><CircleCheck v-if="system.reliability >= 0.7" /><Warning v-else-if="Number.isFinite(system.reliability)" /></el-icon>
-          </div>
           <div class="rel-content">
             <span class="rel-name">{{ system.name }}</span>
             <span
@@ -125,27 +114,18 @@
     <p v-if="statisticsError" role="alert">{{ statisticsError }}</p>
     <div class="statistics-section">
       <div class="stat-card">
-        <div class="stat-icon">
-          <el-icon><Warning /></el-icon>
-        </div>
         <div class="stat-content">
           <span class="stat-label">累计发生故障任务</span>
           <span class="stat-value">{{ displayStats.totalFaults }}</span>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background: var(--am-accent-soft); color: var(--am-accent);">
-          <el-icon><FirstAidKit /></el-icon>
-        </div>
         <div class="stat-content">
           <span class="stat-label">维护记录次数</span>
           <span class="stat-value">{{ displayStats.preventiveRepairs }}</span>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background: var(--am-ok-soft); color: var(--am-ok);">
-          <el-icon><CircleCheck /></el-icon>
-        </div>
         <div class="stat-content">
           <span class="stat-label">故障任务率</span>
           <span class="stat-value">{{ displayStats.rateText }}%</span>
@@ -158,7 +138,6 @@
 <script setup>
 import { computed } from 'vue'
 import { useMaintenanceStatistics } from '../../composables/useMaintenanceStatistics'
-import { FirstAidKit, Odometer, Warning, CircleCheck } from '@element-plus/icons-vue'
 
 const props = defineProps({
   deviceId: {type:String,default:''},
@@ -452,15 +431,6 @@ const getReliabilityColor = (value) => {
   text-align: center;
 }
 
-.rel-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-}
 
 .rel-content {
   display: flex;
@@ -568,18 +538,6 @@ const getReliabilityColor = (value) => {
   border: 1px solid var(--am-card-border-2);
 }
 
-.stat-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  background: color-mix(in srgb, var(--am-warn) 22%, transparent);
-  color: var(--am-warn);
-  flex-shrink: 0;
-}
 
 .stat-content {
   display: flex;

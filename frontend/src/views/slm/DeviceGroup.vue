@@ -9,15 +9,47 @@
       </div>
       <div class="header-actions">
         <el-button :loading="syncingDatabase" @click="syncFileDatabase">
-          <el-icon><Refresh /></el-icon>
           同步文件数据库
         </el-button>
         <el-button type="primary" @click="openCreateDialog">
-          <el-icon><Plus /></el-icon>
           导入设备
         </el-button>
       </div>
     </div>
+
+    <!-- 装备群历史统计情况 -->
+    <section class="maintenance-statistics-panel">
+      <div class="panel-title">
+        装备群历史统计情况
+      </div>
+      <p v-if="statisticsError" role="alert">{{ statisticsError }}</p>
+      <div class="maintenance-statistics-grid">
+        <div class="maintenance-stat-card">
+          <div class="maintenance-stat-content">
+            <span class="maintenance-stat-label">累计发生故障任务</span>
+            <span class="maintenance-stat-value">
+              {{ maintenanceStats.totalFaults }}<span class="maintenance-stat-unit">次</span>
+            </span>
+          </div>
+        </div>
+        <div class="maintenance-stat-card">
+          <div class="maintenance-stat-content">
+            <span class="maintenance-stat-label">维护记录次数</span>
+            <span class="maintenance-stat-value">
+              {{ maintenanceStats.preventiveRepairs }}<span class="maintenance-stat-unit">次</span>
+            </span>
+          </div>
+        </div>
+        <div class="maintenance-stat-card">
+          <div class="maintenance-stat-content">
+            <span class="maintenance-stat-label">故障任务率</span>
+            <span class="maintenance-stat-value">
+              {{ maintenanceStats.rateText }}<span class="maintenance-stat-unit">%</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="source-bar">
       <span>使用单位</span>
@@ -88,7 +120,7 @@
                 class="icon-btn"
                 @click.stop="openEditDialog(deviceStore.getDeviceById(device.id) || device)"
               >
-                <el-icon><EditPen /></el-icon>
+                编辑
               </el-button>
             </el-tooltip>
           </div>
@@ -104,53 +136,8 @@
       </article>
 
       <button class="add-device-tile" @click="openCreateDialog">
-        <el-icon><Plus /></el-icon>
         <span>导入设备</span>
       </button>
-    </section>
-
-    <!-- 装备群历史统计情况 -->
-    <section class="maintenance-statistics-panel">
-      <div class="panel-title">
-        <el-icon><TrendCharts /></el-icon>
-        装备群历史统计情况
-      </div>
-      <p v-if="statisticsError" role="alert">{{ statisticsError }}</p>
-      <div class="maintenance-statistics-grid">
-        <div class="maintenance-stat-card">
-          <div class="maintenance-stat-icon faults">
-            <el-icon><Warning /></el-icon>
-          </div>
-          <div class="maintenance-stat-content">
-            <span class="maintenance-stat-label">累计发生故障任务</span>
-            <span class="maintenance-stat-value">
-              {{ maintenanceStats.totalFaults }}<span class="maintenance-stat-unit">次</span>
-            </span>
-          </div>
-        </div>
-        <div class="maintenance-stat-card">
-          <div class="maintenance-stat-icon preventive">
-            <el-icon><FirstAidKit /></el-icon>
-          </div>
-          <div class="maintenance-stat-content">
-            <span class="maintenance-stat-label">维护记录次数</span>
-            <span class="maintenance-stat-value">
-              {{ maintenanceStats.preventiveRepairs }}<span class="maintenance-stat-unit">次</span>
-            </span>
-          </div>
-        </div>
-        <div class="maintenance-stat-card">
-          <div class="maintenance-stat-icon reduction">
-            <el-icon><CircleCheck /></el-icon>
-          </div>
-          <div class="maintenance-stat-content">
-            <span class="maintenance-stat-label">故障任务率</span>
-            <span class="maintenance-stat-value">
-              {{ maintenanceStats.rateText }}<span class="maintenance-stat-unit">%</span>
-            </span>
-          </div>
-        </div>
-      </div>
     </section>
 
     <el-dialog
@@ -203,7 +190,6 @@
               :on-change="handleThumbnailChange"
             >
               <el-button>
-                <el-icon><Upload /></el-icon>
                 上传图片
               </el-button>
             </el-upload>
@@ -226,7 +212,6 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMaintenanceStatistics } from '../../composables/useMaintenanceStatistics'
 import { ElMessage } from 'element-plus'
-import { EditPen, Plus, Refresh, Upload, TrendCharts, Warning, FirstAidKit, CircleCheck } from '@element-plus/icons-vue'
 import { useSlmDeviceStore } from '../../stores/slmDevices'
 import { readSlmBenchSettings } from '../../utils/slmBenchSettings'
 import { buildMockCaseHealthData, buildMockCaseStatusText, checkMockCaseMedia, getDeviceMockCase } from '../../utils/slmMockCases'
@@ -728,7 +713,7 @@ onUnmounted(() => {
 
 /* 装备群历史统计 */
 .maintenance-statistics-panel {
-  margin-top: 18px;
+  margin: 0 0 18px;
   padding: 18px;
   border: 1px solid var(--am-card-border);
   border-radius: 10px;
@@ -761,31 +746,9 @@ onUnmounted(() => {
   background: var(--am-card-bg);
 }
 
-.maintenance-stat-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-}
 
-.maintenance-stat-icon.faults {
-  background: color-mix(in srgb, var(--am-warn) 22%, transparent);
-  color: var(--am-warn);
-}
 
-.maintenance-stat-icon.preventive {
-  background: color-mix(in srgb, var(--am-accent) 22%, transparent);
-  color: var(--am-accent);
-}
 
-.maintenance-stat-icon.reduction {
-  background: color-mix(in srgb, var(--am-ok) 22%, transparent);
-  color: var(--am-ok);
-}
 
 .maintenance-stat-content {
   display: flex;

@@ -3,7 +3,6 @@
     <div class="page-header">
       <h1 class="page-title">SLS 系统控制</h1>
     </div>
-    
     <el-row :gutter="20">
       <!-- 舵机控制 -->
       <el-col :xs="24" :lg="12">
@@ -11,12 +10,10 @@
           <template #header>
             <div class="card-header">
               <span>
-                <el-icon><Switch /></el-icon>
                 舵机控制
               </span>
             </div>
           </template>
-          
           <div class="control-content">
             <div class="servo-status">
               <div class="status-item">
@@ -30,20 +27,15 @@
                 </el-tag>
               </div>
             </div>
-            
             <div class="control-buttons">
               <el-button type="danger" @click="closeServo">
-                <el-icon><CircleClose /></el-icon>
                 关闭挡板
               </el-button>
               <el-button type="success" @click="openServo">
-                <el-icon><CircleCheck /></el-icon>
                 开启挡板
               </el-button>
             </div>
-            
             <el-divider />
-            
             <div class="fine-control">
               <span class="label">精细控制:</span>
               <el-slider v-model="targetPosition" :min="1500" :max="2500" :step="10" />
@@ -52,19 +44,16 @@
           </div>
         </el-card>
       </el-col>
-      
       <!-- 系统参数 -->
       <el-col :xs="24" :lg="12">
         <el-card class="control-card" shadow="never">
           <template #header>
             <div class="card-header">
               <span>
-                <el-icon><Setting /></el-icon>
                 烧结参数
               </span>
             </div>
           </template>
-          
           <div class="control-content">
             <el-form :model="processParams" label-width="100px">
               <el-form-item label="层厚">
@@ -91,28 +80,19 @@
         </el-card>
       </el-col>
     </el-row>
-    
     <!-- 设备状态 -->
     <el-card class="status-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span>设备状态</span>
           <el-button type="primary" size="small" @click="refreshStatus">
-            <el-icon><Refresh /></el-icon>
             刷新
           </el-button>
         </div>
       </template>
-      
       <div class="device-status">
         <div class="status-grid">
           <div class="status-item" v-for="(status, name) in deviceStatus" :key="name">
-            <div class="status-icon" :class="status.connected ? 'connected' : 'disconnected'">
-              <el-icon v-if="name === 'camera'"><VideoCamera /></el-icon>
-              <el-icon v-else-if="name === 'thermal'"><MostlyCloudy /></el-icon>
-              <el-icon v-else-if="name === 'vibration'"><Odometer /></el-icon>
-              <el-icon v-else-if="name === 'servo'"><Switch /></el-icon>
-            </div>
             <div class="status-info">
               <span class="name">{{ status.name }}</span>
               <el-tag :type="status.connected ? 'success' : 'danger'" size="small">
@@ -128,10 +108,6 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { 
-  Switch, Setting, CircleClose, CircleCheck, 
-  Refresh, VideoCamera, MostlyCloudy, Odometer 
-} from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
@@ -292,25 +268,8 @@ const refreshStatus = () => {
   border-radius: 8px;
 }
 
-.status-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
 
-.status-icon.connected {
-  background: color-mix(in srgb, var(--am-ok) 22%, transparent);
-  color: var(--am-ok);
-}
 
-.status-icon.disconnected {
-  background: color-mix(in srgb, var(--am-danger) 22%, transparent);
-  color: var(--am-danger);
-}
 
 .status-info {
   display: flex;
@@ -328,11 +287,9 @@ const refreshStatus = () => {
     flex-direction: column;
     gap: 10px;
   }
-  
   .control-buttons {
     flex-direction: column;
   }
-  
   .fine-control {
     flex-direction: column;
     align-items: stretch;

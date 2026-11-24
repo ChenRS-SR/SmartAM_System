@@ -2,7 +2,6 @@
   <div class="lang-switch">
     <el-dropdown trigger="click" @command="handleCommand">
       <el-button text class="lang-btn">
-        <el-icon size="20"><Operation /></el-icon>
         <span class="lang-text">{{ currentLangLabel }}</span>
       </el-button>
       <template #dropdown>
@@ -13,7 +12,6 @@
             :command="lang.value"
             :class="{ active: currentLang === lang.value }"
           >
-            <span class="lang-flag">{{ lang.flag }}</span>
             <span>{{ lang.label }}</span>
           </el-dropdown-item>
         </el-dropdown-menu>
@@ -26,19 +24,18 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { setLocale } from '../i18n'
-import { Operation } from '@element-plus/icons-vue'
 
 const { locale } = useI18n()
 
 const languages = [
-  { value: 'zh-CN', label: '简体中文', flag: '🇨🇳' },
-  { value: 'en-US', label: 'English', flag: '🇺🇸' }
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'en-US', label: 'English' }
 ]
 
 const currentLang = computed(() => locale.value)
 const currentLangLabel = computed(() => {
   const lang = languages.find(l => l.value === locale.value)
-  return lang?.flag || '🌐'
+  return lang?.label || '简体中文'
 })
 
 const handleCommand = (command) => {
@@ -74,7 +71,4 @@ const handleCommand = (command) => {
   background: color-mix(in srgb, var(--am-accent) 13%, transparent);
 }
 
-.lang-flag {
-  font-size: 16px;
-}
 </style>
