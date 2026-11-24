@@ -2,7 +2,7 @@
 export const slmTabs = [
   { key: 'status', label: '状态监测', shortName: '监测' },
   { key: 'recognition', label: '缺陷识别', shortName: '识别' },
-  { key: 'trace', label: '异常溯源', shortName: '溯源' },
+  { key: 'trace', label: '故障诊断', shortName: '诊断' },
   { key: 'control', label: '闭环调控', shortName: '调控' }
 ]
 export const slmTab = value => slmTabs.find(item => item.key === value) || slmTabs[0]

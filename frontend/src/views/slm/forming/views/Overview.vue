@@ -64,7 +64,7 @@ const running = computed(() => d.value.acquisition && d.value.acquisition.runnin
 // 运行状态文字随后端 modeLabel：显示为“在线”时设备显示在线，否则如实显示待机/结果回放
 const online = computed(() => !!state.status && state.status.modeLabel === '在线')
 const stateText = computed(() => (running.value ? '接入中' : online.value ? '在线' : d.value.acquisition ? '待机' : '结果回放'))
-const buttons = [{ key: 'access', name: '数据接入' }, { key: 'recognition', name: '缺陷识别' }, { key: 'trace', name: '异常溯源' }]
+const buttons = [{ key: 'access', name: '数据接入' }, { key: 'recognition', name: '缺陷识别' }, { key: 'trace', name: '故障诊断' }]
 const resCls = (l) => ({ '异常': 'r-dev', '由设备因素诱发': 'r-dev', '由工艺因素诱发': 'r-proc', '由二者共同诱发': 'r-both' }[l] || 'r-nor')
 
 async function load() {
