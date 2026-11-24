@@ -23,37 +23,37 @@
           <svg v-if="d.image.url" class="img" :viewBox="`0 0 ${d.image.w} ${d.image.h}`" preserveAspectRatio="xMidYMid meet">
             <image :href="imgUrl" x="0" y="0" :width="d.image.w" :height="d.image.h" />
             <rect v-if="d.image.box" :x="d.image.box[0]" :y="d.image.box[1]" :width="d.image.box[2] - d.image.box[0]" :height="d.image.box[3] - d.image.box[1]"
-              fill="none" stroke="#f4b942" stroke-width="14" stroke-dasharray="48 28" />
+              fill="none" stroke="#7b8794" stroke-width="14" stroke-dasharray="48 28" />
           </svg><div v-else class="image-pending">铺粉后图像未接入</div>
         </div>
 
         <div class="card c-res">
           <div class="card-title">异常识别<span class="tm">第 {{ d.layer ?? '—' }} 层</span></div>
           <div class="vc">
-            <div class="verdict" :class="{ nor: d.label === '正常', pending: d.available === false }">{{ d.label }}</div>
-            <div class="prob-row main-prob"><span>模型异常识别概率</span><b>{{ fmtPct(d.prob.def) }}</b></div>
-            <div class="pbar"><div class="pfill" :style="{ width: d.prob.def * 100 + '%' }"></div><i class="th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
+            <div class="verdict" :style="{background: probabilityColor(d.prob.def)}">{{ d.label }}</div>
+            <div class="prob-row main-prob"><span>模型异常识别概率</span><b :style="{color: probabilityColor(d.prob.def)}">{{ fmtPct(d.prob.def) }}</b></div>
+            <div class="pbar"><div class="pfill" :style="{ width: d.prob.def * 100 + '%', background: probabilityColor(d.prob.def) }"></div><i class="th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
             <div class="prob-row"><span>正常概率</span><b>{{ fmtPct(Number.isFinite(d.prob.def) ? 1 - d.prob.def : null) }}</b></div>
           </div>
         </div>
 
         <div class="card c-mod">
-          <div class="card-title">辅助模态分析</div>
+          <div class="card-title">多模态数据接入分析</div>
           <div class="vc">
+            <div class="m-sub">各模态识别概率</div>
+            <div class="single" v-for="m in modalityResults" :key="m.key" :class="{ unused: !m.used }">
+              <span class="s-name">{{ m.name }}</span>
+              <div class="s-track"><div class="s-fill" :style="{ width: m.p * 100 + '%', background: probabilityColor(m.p) }"></div><i class="s-th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
+              <span class="s-p">{{ fmtPct(m.p) }}</span>
+              <span class="tag" :style="{color:probabilityColor(m.p)}">{{ m.label }}</span>
+            </div>
             <template v-if="!d.infrared">
-              <div class="m-sub">融合权重</div>
+              <div class="m-sub second">融合权重</div>
               <div v-for="m in weightedModalities" :key="m.key" class="weight-row" :class="{ dominant:m.dominant }">
                 <div class="weight-heading"><span>{{ m.name }}</span><b>{{ fmtPct(m.weight) }}</b><span v-if="m.dominant" class="dominant-label">主导模态</span></div>
                 <div class="weight-track"><div :style="{width: (m.weight ?? 0) * 100 + '%'}"></div></div>
               </div>
             </template>
-            <div class="m-sub second">单一模态异常识别概率</div>
-            <div class="single" v-for="m in modalityResults" :key="m.key" :class="{ unused: !m.used }">
-              <span class="s-name">{{ m.name }}</span>
-              <div class="s-track"><div class="s-fill" :style="{ width: m.p * 100 + '%' }"></div><i class="s-th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
-              <span class="s-p">{{ fmtPct(m.p) }}</span>
-              <span class="tag" :class="m.label === '异常' ? 't-def' : 't-nor'">{{ m.label }}</span>
-            </div>
           </div>
         </div>
 
@@ -68,7 +68,7 @@
           <div class="infrared-content"><img class="img" :src="mediaUrl(d.infrared.image.url)" alt="铺粉后红外图像" />
             <div><div class="prob-row"><span>识别类别</span><b>{{ d.infrared.label }}</b></div>
               <div class="prob-row"><span>类别置信度</span><b>{{ fmtPct(d.infrared.confidence) }}</b></div>
-              <div class="prob-row"><span>异常概率</span><b>{{ fmtPct(d.infrared.anomalyProbability) }}</b></div></div>
+              <div class="prob-row"><span>异常概率</span><b :style="{color:probabilityColor(d.infrared.anomalyProbability)}">{{ fmtPct(d.infrared.anomalyProbability) }}</b></div></div>
           </div>
         </div>
 
@@ -82,7 +82,7 @@
               <tr v-if="!d.records.length"><td colspan="3">暂无逐层识别结果</td></tr>
               <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer, selectable: canSelectRecord }" :tabindex="canSelectRecord ? 0 : undefined" :aria-label="`查看第 ${r.layer} 层识别结果`" :aria-current="r.layer === d.layer ? 'true' : undefined" @click="selectRecord(r.layer)" @keydown.enter.prevent="selectRecord(r.layer)" @keydown.space.prevent="selectRecord(r.layer)">
                 <td>{{ r.layer }}</td><td>{{ fmtPct(r.p) }}</td>
-                <td><span class="tag" :class="r.label === '异常' ? 't-def' : 't-nor'">{{ r.label }}</span></td>
+                <td><span class="tag" :style="{color:probabilityColor(r.p)}">{{ r.label }}</span></td>
               </tr>
             </tbody>
           </table>
@@ -95,6 +95,7 @@
 </template>
 
 <script setup>
+import { probabilityColor } from '../../../../utils/probabilityStyle'
 import { pendingAnalysis } from '../../workspace/analysisPresentation'
 import { computed, inject, onMounted, ref, watch } from 'vue'
 import Region from '../components/Region.vue'
@@ -170,6 +171,13 @@ const torqueOption = computed(() => {
 </script>
 
 <style scoped>
+.c-rec .tbl { width: 100%; table-layout: fixed; }
+.c-rec .tbl th:first-child { width: 22%; }
+.c-rec .tbl th:last-child { width: 28%; }
+.c-rec .tbl th:last-child, .c-rec .tbl td:last-child { text-align: right; }
+.c-rec .tbl th, .c-rec .tbl td { padding: 8px 10px; }
+.single .tag, .c-rec .tag { background: var(--card-bg); border: 1px solid currentColor; }
+
 .main-prob { align-items: center; gap: 10px; flex-wrap: wrap; }
 .c-res .main-prob b { font-size: 34px; color: var(--dev); }
 .c-res { border-top: 3px solid var(--dev); }
@@ -194,13 +202,13 @@ const torqueOption = computed(() => {
 .grid { height: 100%; display: grid; grid-template-columns: minmax(0, 330fr) minmax(0, 300fr) minmax(0, 510fr); grid-template-rows: minmax(0, 300fr) minmax(0, 260fr); gap: 12px; }
 .img { width: 100%; flex: 1; min-height: 0; }
 .vc { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-bottom: 14px; }
-.verdict { font-size: 30px; font-weight: 800; color: #fff; background: var(--warn); border-radius: 6px; padding: 8px 10px; text-align: center; margin-bottom: 16px; }
+.verdict { font-size: 30px; font-weight: 800; color: #fff; background: var(--am-text-3); border-radius: 6px; padding: 8px 10px; text-align: center; margin-bottom: 16px; }
 .verdict.pending { background: var(--track); color: var(--text-2); }
 .verdict.nor { background: var(--ok); }
 .prob-row { display: flex; justify-content: space-between; font-size: 17px; margin-top: 10px; }
 .prob-row b { font-size: 18px; }
 .pbar { position: relative; height: 12px; background: var(--track-2); border-radius: 6px; margin: 4px 0 8px; }
-.pfill { height: 100%; background: var(--warn); border-radius: 6px; }
+.pfill { height: 100%; background: var(--am-text-3); border-radius: 6px; }
 .th { position: absolute; top: -4px; width: 2px; height: 20px; background: var(--ink); }
 .c-torque { grid-column: 1 / 3; }
 .m-sub { font-size: 17px; font-weight: 700; margin-top: 4px; }
@@ -209,7 +217,7 @@ const torqueOption = computed(() => {
 .single.unused { opacity: .45; }
 .s-name { white-space: nowrap; }
 .s-track { position: relative; height: 12px; background: var(--track); border-radius: 6px; }
-.s-fill { height: 100%; background: var(--warn); border-radius: 6px; }
+.s-fill { height: 100%; background: var(--am-text-3); border-radius: 6px; }
 .s-th { position: absolute; top: -4px; width: 2px; height: 20px; background: var(--ink); }
 .s-p { text-align: right; font-weight: 700; }
 .tag { text-align: center; }

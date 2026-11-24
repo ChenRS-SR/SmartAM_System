@@ -55,8 +55,8 @@
           <EquipmentDiagnosis :trace="d" :recognition="replaySession?.snapshot?.recognition" />
           <div class="diagnosis-details">
           <div class="prob" v-for="p in probs" :key="p.name">
-            <div class="p-head"><span>{{ p.name }}</span><b>{{ fmtPct(p.v) }}</b></div>
-            <div class="track"><div class="fill" :style="{ width: p.v * 100 + '%', background: p.color }"></div></div>
+            <div class="p-head"><span>{{ p.name }}</span><b :style="{color:probabilityColor(p.v)}">{{ fmtPct(p.v) }}</b></div>
+            <div class="track"><div class="fill" :style="{ width: p.v * 100 + '%', background: probabilityColor(p.v) }"></div></div>
           </div>
           <div v-if="checkAdvice.length" class="check-advice">
             <span>检查建议</span>
@@ -77,6 +77,7 @@
 </template>
 
 <script setup>
+import { probabilityColor } from '../../../../utils/probabilityStyle'
 import { pendingAnalysis } from '../../workspace/analysisPresentation'
 import { computed, inject, onMounted, ref, watch } from 'vue'
 import Region from '../components/Region.vue'
@@ -141,8 +142,8 @@ const band = computed(() => toPts(d.value.bandContours, d.value.image.width, d.v
 // 历史封存结果也统一移除泛化复核提示，仅展示具体检查建议。
 const checkAdvice = computed(() => d.value.actions.filter(action => action.trim() !== '复核超限区域与识别结果'))
 const probs = computed(() => [
-  ...(d.value.factors.proc ? [{ name: '工艺问题', v: d.value.factors.proc.prob, color: 'var(--proc)' }] : []),
-  { name: '设备问题', v: d.value.factors.dev.prob, color: 'var(--dev)' },
+  ...(d.value.factors.proc ? [{ name: '工艺问题', v: d.value.factors.proc.prob }] : []),
+  { name: '设备问题', v: d.value.factors.dev.prob },
 ])
 const visibleFactors = computed(() => layerWindow(factorCurveRows(d.value), d.value.layer))
 const curveStart = computed(() => visibleFactors.value[0]?.layer ?? Math.max(1, (d.value.layer ?? TRACE_WINDOW_SIZE) - TRACE_WINDOW_SIZE + 1))

@@ -720,7 +720,7 @@ onUnmounted(() => {
 .device-status-row > span { flex-shrink: 0; }
 .device-status-row i { flex-shrink: 0; }
 .print-status-row { margin-top: 8px; padding-top: 8px; }
-.device-status-row .warning { color: var(--am-warn); }
+.device-status-row .warning { color: var(--am-prob-warning); }
 .device-status-row i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .device-status-row .healthy { color: var(--am-ok); }
 .device-status-row .fault { color: var(--am-danger); }
