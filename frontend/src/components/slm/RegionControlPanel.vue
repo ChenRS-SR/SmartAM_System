@@ -154,10 +154,11 @@ header { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding
 h2,h3 { margin: 0; font-size: 16px; color: var(--am-text); }
 header span, header label { font-size: 13px; color: var(--am-text-2); }
 header label { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-.region-overview { display: flex; flex-direction: column; gap: 16px; padding: 18px; min-width: 0; }
-.slice-illustration { display: block; width: 100%; height: auto; object-fit: contain; object-position: center; margin: 0 auto; box-sizing: border-box; border: 1px solid var(--am-card-border); background: white; }
-.region-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,200px),1fr)); gap: 12px; min-width: 0; }
-.region-list button { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; width: 100%; padding: 16px; margin-bottom: 0; text-align: left; border: 1px solid var(--am-card-border); border-radius: 3px; background: var(--am-card-bg); color: var(--am-text); cursor: pointer; }
+/* 左图右选区，限制总览高度，完整保留切片及引线。 */
+.region-overview { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); align-items: center; gap: 16px; padding: 14px; min-width: 0; }
+.slice-illustration { display: block; width: 100%; height: clamp(240px, 28vw, 340px); object-fit: contain; object-position: center; margin: 0 auto; box-sizing: border-box; border: 1px solid var(--am-card-border); background: white; }
+.region-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-content: center; gap: 10px; min-width: 0; }
+.region-list button { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%; min-width: 0; padding: 12px; overflow-wrap: anywhere; margin-bottom: 0; text-align: left; border: 1px solid var(--am-card-border); border-radius: 3px; background: var(--am-card-bg); color: var(--am-text); cursor: pointer; }
 .region-list button.selected { border-color: var(--am-accent); background: var(--am-card-bg-2); }
 .region-list i { width: 12px; height: 12px; display: inline-block; margin-right: 8px; border: 1px solid var(--am-card-border); }
 .region-list small,.region-list span { font-size: 13px; }
@@ -178,5 +179,10 @@ header label { margin-left: auto; display: flex; gap: 8px; align-items: center; 
 .region-parameters > p { grid-column: 1 / -1; margin: 0; }
 .plan-status { color: var(--am-accent); font-size: 14px; }
 .config-error { color: var(--am-danger); padding: 16px; }
+@media(max-width:900px) {
+  .region-overview { grid-template-columns: minmax(0,1fr); }
+  .slice-illustration { height: auto; max-height: 320px; }
+}
+@media(max-width:420px) { .region-list { grid-template-columns: minmax(0,1fr); } }
 @media(max-width:600px) { .region-parameters { grid-template-columns: minmax(0,1fr); } }
 </style>
