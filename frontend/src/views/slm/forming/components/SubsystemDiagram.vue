@@ -8,7 +8,8 @@
         <circle :cx="positions[index].anchor[0]" :cy="positions[index].anchor[1]" r="9" />
       </g>
       <g v-for="(system,index) in systems" :key="system.key" :class="['system-callout',system.state]">
-        <polyline :points="positions[index].line"/>
+        <polyline class="leader-halo" :points="positions[index].line"/>
+        <polyline class="leader" :points="positions[index].line"/>
         <circle :cx="positions[index].anchor[0]" :cy="positions[index].anchor[1]" r="5"/>
         <g :transform="`translate(${positions[index].x},${positions[index].y})`">
           <rect width="260" height="155" rx="5"/>
@@ -40,11 +41,12 @@ const machineImage=computed(()=>diagnosisArtwork({
   healthy:props.systems.every(s=>s.state==='normal'),
   equipmentIssue:props.systems.some(s=>s.state==='fault'),
 }))
+// 每条引线只有三个节点：部件锚点、斜线拐点、水平接入标签边缘。
 const positions=[
-  {x:10,y:190,line:'462,330 285,330 285,268 270,268',anchor:[462,330]},
-  {x:1010,y:15,line:'668,166 965,166 990,93 1010,93',anchor:[668,166]},
-  {x:1010,y:320,line:'886,473 990,473 990,398 1010,398',anchor:[886,473]},
-  {x:10,y:460,line:'655,520 285,520 285,538 270,538',anchor:[655,520]},
+  {x:10,y:190,line:'462,330 400,268 270,268',anchor:[462,330]},
+  {x:1010,y:15,line:'668,166 741,93 1010,93',anchor:[668,166]},
+  {x:1010,y:320,line:'886,473 961,398 1010,398',anchor:[886,473]},
+  {x:10,y:500,line:'655,520 597,578 270,578',anchor:[655,520]},
 ]
 </script>
 <style scoped>
@@ -55,7 +57,11 @@ svg { display:block; width:100%; height:auto; }
 .system-part.normal { fill:#cce7db; stroke:#27825e; }
 .system-part.fault { fill:#efb7b3; stroke:#bd423b; }
 .system-callout { stroke-width:2; }
-.system-callout polyline { fill:none; }
+.system-callout polyline { fill:none; vector-effect:non-scaling-stroke; stroke-linejoin:round; stroke-linecap:round; }
+/* 浅色描边隔开机壳线稿，缩放后引线仍保持清晰。 */
+.system-callout .leader-halo { stroke:var(--card-bg,#fff); stroke-width:4px; }
+.system-callout .leader { stroke-width:1.7px; }
+.system-callout.fault .leader { stroke-width:2px; }
 .system-callout rect { fill:var(--card-bg,#fff); }
 .system-callout.unknown { stroke:#8795a3; fill:#8795a3; }
 .system-callout.normal { stroke:#27825e; fill:#27825e; }
