@@ -22,8 +22,11 @@
           <div class="card-title">铺粉后图像<span class="tm">{{ d.image.box ? '虚线框为成形区' : '' }}</span></div>
           <svg v-if="d.image.url" class="img" :viewBox="`0 0 ${d.image.w} ${d.image.h}`" preserveAspectRatio="xMidYMid meet">
             <image :href="imgUrl" x="0" y="0" :width="d.image.w" :height="d.image.h" />
-            <rect v-if="d.image.box" :x="d.image.box[0]" :y="d.image.box[1]" :width="d.image.box[2] - d.image.box[0]" :height="d.image.box[3] - d.image.box[1]"
-              fill="none" stroke="#7b8794" stroke-width="14" stroke-dasharray="48 28" />
+            <!-- 以屏幕像素固定线宽，深浅双描边兼顾亮粉床与暗部，不随原图尺寸变粗。 -->
+            <g v-if="d.image.box" class="build-region-outline">
+              <rect v-for="stroke in ['roi-outline', 'roi-line']" :key="stroke" :class="stroke"
+                :x="d.image.box[0]" :y="d.image.box[1]" :width="d.image.box[2] - d.image.box[0]" :height="d.image.box[3] - d.image.box[1]" />
+            </g>
           </svg><div v-else class="image-pending">铺粉后图像未接入</div>
         </div>
 
@@ -171,6 +174,10 @@ const torqueOption = computed(() => {
 </script>
 
 <style scoped>
+.build-region-outline rect { fill: none; vector-effect: non-scaling-stroke; stroke-dasharray: 8 5; stroke-linejoin: round; pointer-events: none; }
+.roi-outline { stroke: #243b53; stroke-width: 2.75px; }
+.roi-line { stroke: #fff; stroke-width: 1.25px; }
+
 .c-rec .tbl { width: 100%; table-layout: fixed; }
 .c-rec .tbl th:first-child { width: 22%; }
 .c-rec .tbl th:last-child { width: 28%; }
