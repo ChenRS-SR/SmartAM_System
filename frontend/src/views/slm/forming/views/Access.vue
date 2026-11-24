@@ -43,12 +43,7 @@
 
     <Region kind="vis" class="r-vis">
       <div class="grid" :class="{ 'grid--filtered': filtered }" :style="{ '--access-columns': topColumns, '--access-columns-narrow': Math.min(2, topColumns) }">
-        <div v-for="channel in activeImageChannels" :key="channel.key" class="card c-img" :data-channel="channel.key">
-          <div class="card-title">{{ channel.name }}<span class="tm"><template v-if="d.images[channel.key].layer">第 {{ d.images[channel.key].layer }} 层 · </template>{{ d.images[channel.key].time }}</span></div>
-          <video v-if="d.images[channel.key].videoUrl" :src="d.images[channel.key].videoUrl" class="img" controls muted loop playsinline preload="metadata" />
-          <img v-else-if="d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">数据暂未接入</div>
-        </div>
-        <div v-if="visible('设备状态参数')" class="card c-state">
+        <div class="card c-state">
           <div class="card-title">设备状态<span class="tm">{{ d.device.name }}</span></div>
           
           <div class="progress">
@@ -60,6 +55,11 @@
           </div>
           <div class="alarm" v-if="d.alarms.length"><span class="al-tag">最近报警</span>{{ d.alarms[0].time.slice(5, 16) }}　{{ d.alarms[0].text }}</div>
           
+        </div>
+        <div v-for="channel in activeImageChannels" :key="channel.key" class="card c-img" :data-channel="channel.key">
+          <div class="card-title">{{ channel.name }}<span class="tm"><template v-if="d.images[channel.key].layer">第 {{ d.images[channel.key].layer }} 层 · </template>{{ d.images[channel.key].time }}</span></div>
+          <video v-if="d.images[channel.key].videoUrl" :src="d.images[channel.key].videoUrl" class="img" controls muted loop playsinline preload="metadata" />
+          <img v-else-if="d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">数据暂未接入</div>
         </div>
         <div v-if="visible('刮刀扭矩') || visible('加工平台扭矩')" class="card c-torque">
           <div class="card-title">{{ torqueTitle }}{{ replaySession?.source !== 'device-record' ? ' · 连续采样' : '' }}</div>
@@ -115,7 +115,7 @@ const filtered = true
 const activeImageChannels = computed(() => monitoringImages.filter(channel => visible(channel.name)))
 const channelGroups = computed(() => [
   { title: '图像通道', channels: d.value.channels.filter(c => c.imageKey) },
-  { title: '状态与扭矩', channels: d.value.channels.filter(c => !c.imageKey) },
+  { title: '扭矩通道', channels: d.value.channels.filter(c => !c.imageKey) },
 ])
 const topColumns = 2
 const torqueTitle = computed(() => '刮刀与加工平台扭矩')
@@ -163,6 +163,11 @@ onMounted(() => { if (!replaySession) load() })
 onBeforeUnmount(() => clearInterval(poll))
 
 const envList = computed(() => {
+  // 合并原参数卡片，保留当前设备的全部参数与单位。
+  const parameters = replaySession?.snapshot?.parameters
+  if (parameters?.length) return parameters.map(p => ({
+    k: p.name, v: p.value == null || p.value === '--' ? '—' : typeof p.value === 'number' ? Number(p.value.toFixed(3)) : p.value, u: p.unit,
+  }))
   const e = d.value.env
   // 按设备原始通道命名，B44/B15 的气源压力不标成 B17 的氩气压力。
   const pressureLabel = replaySession?.manifest.gasPressureLabel || '氩气压力'
@@ -242,9 +247,9 @@ const torqueOption = computed(() => {
 .pg-row b { color: var(--text); }
 .bar { height: 10px; background: var(--track-2); border-radius: 5px; margin-top: 4px; overflow: hidden; }
 .fill { height: 100%; background: var(--nav-bg); transition: width .4s; }
-.env { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 18px; }
+.env { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px 24px; }
 .env-item { display: flex; align-items: baseline; gap: 6px; font-size: 16px; }
-.ek { color: var(--text-2); flex: 1; white-space: nowrap; }
+.ek { color: var(--text-2); flex: 1; overflow-wrap: anywhere; }
 .env-item b { font-size: 17px; }
 .eu { color: var(--text-2); font-size: 14px; width: 40px; }
 .alarm { margin-top: auto; font-size: 15px; background: var(--alarm-bg); border: 1px solid var(--alarm-border); border-radius: 5px; padding: 4px 8px;

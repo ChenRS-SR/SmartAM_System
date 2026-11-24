@@ -12,7 +12,7 @@ export function monitoringAccess(data) {
     images[slot.key] = data.images[source?.imageKey || slot.key] || {url:null, time:null, layer:null, available:false}
     channels.push({...source, name:slot.name, imageKey:slot.key, spec:source?.spec || '图像', rate:source?.rate || '未接入'})
   }
-  for (const name of ['刮刀扭矩', '加工平台扭矩', '设备状态参数']) {
+  for (const name of ['刮刀扭矩', '加工平台扭矩']) {
     channels.push(data.channels.find(c => c.name === name) || {name, spec:'采样', rate:'未接入'})
   }
   return {...data, images, channels}

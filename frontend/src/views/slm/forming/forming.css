@@ -256,6 +256,7 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
   grid-template-rows: auto;
 }
 .forming-root .access-page .grid--filtered > .card { grid-column: auto; }
+.forming-root .access-page .grid--filtered > .c-state,
 .forming-root .access-page .grid--filtered > .c-torque,
 .forming-root .access-page .grid--filtered > .c-rec,
 .forming-root .access-page .grid--filtered > .channels-empty { grid-column: 1 / -1; }

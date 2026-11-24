@@ -24,6 +24,7 @@ it('默认显示两路可见光，勾选可立即启用其他通道', () => {
   expect(store.isVisible('B44', '铺粉后图像')).toBe(true)
   expect(store.isVisible('B44', '熔化后图像')).toBe(true)
   expect(store.isVisible('B44', '红外图像')).toBe(false)
+  expect(store.isVisible('B44', '熔化后红外图像')).toBe(false)
   expect(store.isVisible('B44', '刮刀扭矩')).toBe(true)
   store.setVisible('B44', ['红外图像'], true)
   expect(store.isVisible('B44', '红外图像')).toBe(true)

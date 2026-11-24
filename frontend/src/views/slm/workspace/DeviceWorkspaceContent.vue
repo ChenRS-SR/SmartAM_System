@@ -17,13 +17,6 @@
     </nav>
     <template v-if="frame && tab === 'status'">
       <div class="forming-root forming-replay"><Access /></div>
-      <section class="replay-card">
-        <h2>设备状态参数 <small>{{ frame?.time }}</small></h2>
-        <div v-if="frame" class="parameter-grid">
-          <div v-for="p in frame.parameters" :key="p.name"><span>{{ p.name }}</span><strong>{{ format(p.value) }} <small>{{ p.unit }}</small></strong></div>
-        </div>
-        <div v-if="frame" class="sample-times"><span v-for="(sample, key) in frame.samples" :key="key">{{ channelNames[key] }}：{{ sample ? `${sample.time}（${sample.age} 秒前更新）` : '暂无采样' }}</span></div>
-      </section>
       <div class="status-details">
         <section class="replay-card">
           <h2>故障诊断</h2>
@@ -91,8 +84,6 @@ const tab = computed(() => slmTab(route.query.tab).key)
 const views = { recognition: Recognition, trace: Trace }
 const frame = computed(() => replay.snapshot)
 const currentSlice = computed(() => frame.value?.slice || regionSlice(frame.value))
-const channelNames = { torque: '扭矩', env_a: '温度与压力', env_b: '氧含量与物位', env_c: '气体流量与风机' }
-const format = value => value == null || value === '--' ? '—' : typeof value === 'number' ? Number(value.toFixed(3)) : value
 provide('formingEmbedded', true)
 provide('formingReplay', replay)
 onMounted(() => {
@@ -116,12 +107,7 @@ a { color: var(--am-accent); }
 .replay-summary a { margin-left: auto; }
 .analysis-time { display: flex; flex-wrap: wrap; gap: 16px; color: var(--am-text-2); font-size: 13px; }
 .forming-replay { min-width: 0; width: 100%; }
-.parameter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-.parameter-grid > div { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: var(--am-card-bg-2); border: 1px solid var(--am-card-border-2); }
-.parameter-grid span { color: var(--am-text-2); font-size: 13px; }
-.parameter-grid strong { overflow-wrap: anywhere; font-size: 22px; font-variant-numeric: tabular-nums; }
 small, .data-note, .sample-times { font-size: 12px; font-weight: 400; color: var(--am-text-2); }
-.sample-times { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .alarm-list > div { display: flex; flex-wrap: wrap; gap: 10px 20px; padding: 12px 0; border-bottom: 1px solid var(--am-card-border-2); font-size: 14px; }
 .alarm-list time { color: var(--am-text-2); flex: none; }
 .replay-error { color: var(--am-danger); padding: 12px; border: 1px solid var(--am-danger); }
