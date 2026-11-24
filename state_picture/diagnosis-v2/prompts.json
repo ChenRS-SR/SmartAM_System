@@ -1,0 +1,46 @@
+[
+  {
+    "name": "neutral",
+    "prompt": "Edit the reference as a consistent industrial diagnosis illustration family. Preserve EXACT reference 3D perspective, framing, machine scale, geometry, translucent shell and crisp restrained grayscale technical render. One complete machine, original landscape aspect 1698:926; machine occupies same bounds, generous transparent side margins for UI callouts. Truly transparent RGBA background. No text, labels, symbols, arrows, floor, exterior shadow or extra panels. Only change specified component highlight, everything else neutral gray. Remove ALL red tint: entire machine neutral gray, no fault highlight."
+  },
+  {
+    "name": "healthy",
+    "prompt": "Edit the reference as a consistent industrial diagnosis illustration family. Preserve EXACT reference 3D perspective, framing, machine scale, geometry, translucent shell and crisp restrained grayscale technical render. One complete machine, original landscape aspect 1698:926; machine occupies same bounds, generous transparent side margins for UI callouts. Truly transparent RGBA background. No text, labels, symbols, arrows, floor, exterior shadow or extra panels. Only change specified component highlight, everything else neutral gray. Replace red highlights with subtle muted green on functional powder mechanism, top laser assembly, right ventilation cabinet and lower cooling unit. Healthy working machine, no glow."
+  },
+  {
+    "name": "scraper",
+    "prompt": "Edit the reference as a consistent industrial diagnosis illustration family. Preserve EXACT reference 3D perspective, framing, machine scale, geometry, translucent shell and crisp restrained grayscale technical render. One complete machine, original landscape aspect 1698:926; machine occupies same bounds, generous transparent side margins for UI callouts. Truly transparent RGBA background. No text, labels, symbols, arrows, floor, exterior shadow or extra panels. Only change specified component highlight, everything else neutral gray. Highlight ONLY recoater blade carriage and horizontal recoater rail spanning central powder bed in muted red, indicating recoater torque fault. Hopper and top laser and all other parts gray."
+  },
+  {
+    "name": "feeder",
+    "prompt": "Edit the reference as a consistent industrial diagnosis illustration family. Preserve EXACT reference 3D perspective, framing, machine scale, geometry, translucent shell and crisp restrained grayscale technical render. One complete machine, original landscape aspect 1698:926; machine occupies same bounds, generous transparent side margins for UI callouts. Truly transparent RGBA background. No text, labels, symbols, arrows, floor, exterior shadow or extra panels. Only change specified component highlight, everything else neutral gray. Highlight ONLY left powder hopper metering outlet and small feed-axis motor attached to hopper in muted red, indicating powder feeder torque fault. Horizontal recoater rail and laser remain gray."
+  },
+  {
+    "name": "filter",
+    "prompt": "Edit the reference as a consistent industrial diagnosis illustration family. Preserve EXACT reference 3D perspective, framing, machine scale, geometry, translucent shell and crisp restrained grayscale technical render. One complete machine, original landscape aspect 1698:926; machine occupies same bounds, generous transparent side margins for UI callouts. Truly transparent RGBA background. No text, labels, symbols, arrows, floor, exterior shadow or extra panels. Only change specified component highlight, everything else neutral gray. Highlight only a visible pleated filter cartridge in the upper vent section of right-side auxiliary cabinet, muted red to indicate excessive filter pressure drop. Show cartridge through existing translucent cabinet cover. No other highlight."
+  },
+  {
+    "name": "gas",
+    "prompt": "Edit the reference as a consistent industrial diagnosis illustration family. Preserve EXACT reference 3D perspective, framing, machine scale, geometry, translucent shell and crisp restrained grayscale technical render. One complete machine, original landscape aspect 1698:926; machine occupies same bounds, generous transparent side margins for UI callouts. Truly transparent RGBA background. No text, labels, symbols, arrows, floor, exterior shadow or extra panels. Only change specified component highlight, everything else neutral gray. Highlight only inert gas supply pressure regulator and short inlet tubing near lower center-right machine interior in muted red, show small mechanical pressure gauge without text. Rest of reference incl powder hopper neutral gray."
+  },
+  {
+    "name": "fan",
+    "prompt": "Edit the reference as a consistent industrial diagnosis illustration family. Preserve EXACT reference 3D perspective, framing, machine scale, geometry, translucent shell and crisp restrained grayscale technical render. One complete machine, original landscape aspect 1698:926; machine occupies same bounds, generous transparent side margins for UI callouts. Truly transparent RGBA background. No text, labels, symbols, arrows, floor, exterior shadow or extra panels. Only change specified component highlight, everything else neutral gray. Highlight ONLY circular ventilation fan blades behind grille on front of right auxiliary cabinet in muted red. Restrained short rotational arcs around fan only indicate high speed, no arrows elsewhere. All rest neutral gray including powder."
+  },
+  {
+    "name": "chiller",
+    "prompt": "Edit the reference as a consistent industrial diagnosis illustration family. Preserve EXACT reference 3D perspective, framing, machine scale, geometry, translucent shell and crisp restrained grayscale technical render. One complete machine, original landscape aspect 1698:926; machine occupies same bounds, generous transparent side margins for UI callouts. Truly transparent RGBA background. No text, labels, symbols, arrows, floor, exterior shadow or extra panels. Only change specified component highlight, everything else neutral gray. Show cooling unit as a small visible finned heat exchanger and coolant hoses in LOWER CENTER compartment under build platform; highlight these in muted red for water chiller fault. Do not highlight right ventilation fan or top optics or left hopper. Keep overall shell geometry and perspective."
+  },
+  {
+    "name": "equipment",
+    "prompt": "Edit the reference as a consistent industrial diagnosis illustration family. Preserve EXACT reference 3D perspective, framing, machine scale, geometry, translucent shell and crisp restrained grayscale technical render. One complete machine, original landscape aspect 1698:926; machine occupies same bounds, generous transparent side margins for UI callouts. Truly transparent RGBA background. No text, labels, symbols, arrows, floor, exterior shadow or extra panels. Only change specified component highlight, everything else neutral gray. Generic equipment issue overview: All parts neutral gray. Subtly tint ONLY the wide front-left vertical frame post a muted desaturated red, flush flat material color, no glowing lines or highlights around silhouette. Absolutely clean silhouette and empty transparent margins; no floating specks or pixels, no external glow. No specific component fault location."
+  },
+  {
+    "name": "process",
+    "prompt": "Edit the reference as a consistent industrial diagnosis illustration family. Preserve EXACT reference 3D perspective, framing, machine scale, geometry, translucent shell and crisp restrained grayscale technical render. One complete machine, original landscape aspect 1698:926; machine occupies same bounds, generous transparent side margins for UI callouts. Truly transparent RGBA background. No text, labels, symbols, arrows, floor, exterior shadow or extra panels. Only change specified component highlight, everything else neutral gray. Process-side energy deviation schematic: ALL machine hardware neutral gray, highlight ONLY small central rectangular build surface in muted amber orange with several parallel scan tracks and small localized thermal footprint. NO damaged hardware, no red machine parts, no flames, no dramatic beam."
+  },
+  {
+    "name": "laser",
+    "prompt": "复用已确认的光学系统透明背景备用图，见 spares/README.md。"
+  }
+]

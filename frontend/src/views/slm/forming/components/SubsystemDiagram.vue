@@ -1,6 +1,6 @@
 <template>
   <div class="subsystem-diagram">
-    <!-- 保留原始立体图的画布与比例；引线独立叠加，不改变机器结构。 -->
+    <!-- 统一新版立体图的画布与比例；引线独立叠加，不改变机器结构。 -->
     <svg viewBox="0 0 1280 698" role="img" :aria-label="description">
       <title>设备子系统健康状态</title>
       <image :href="machineImage" width="1280" height="698" preserveAspectRatio="xMidYMid meet" />
@@ -30,18 +30,16 @@
 </template>
 <script setup>
 import { computed } from 'vue'
-const props=defineProps({systems:{type:Array,required:true},processIssue:Boolean})
+import { diagnosisArtwork } from '../diagnosisArtwork'
+const props=defineProps({systems:{type:Array,required:true},processIssue:Boolean, diagnosisState:String, faults:{type:Array,default:()=>[]}})
 const description=computed(()=>props.systems.map(s=>`${s.name}：${s.label}${s.details.length ? '，'+s.details.join('、') : ''}`).join('；'))
-// 复用原有预制立体图，未知状态保持中性，不能将未接入误标成健康。
-const machineImage=computed(()=>{
-  const faults=props.systems.filter(s=>s.state==='fault').map(s=>s.key)
-  if (props.processIssue) return '/state_picture/power_off.png'
-  if (faults.length>1) return '/state_picture/fault_multi.png'
-  const images={powder:'fault_powder',optics:'fault_laser',gas:'fault_gas'}
-  if (faults.length===1 && images[faults[0]]) return `/state_picture/${images[faults[0]]}.png`
-  if (props.systems.every(s=>s.state==='normal')) return '/state_picture/health.png'
-  return '/state_picture/power_off.png'
-})
+// 图像类别和引线共用诊断结果，不用子系统大类推测具体故障。
+const machineImage=computed(()=>diagnosisArtwork({
+  state:props.processIssue ? 'process' : props.diagnosisState,
+  faults:props.faults,
+  healthy:props.systems.every(s=>s.state==='normal'),
+  equipmentIssue:props.systems.some(s=>s.state==='fault'),
+}))
 const positions=[
   {x:10,y:190,line:'462,330 285,330 285,268 270,268',anchor:[462,330]},
   {x:1010,y:15,line:'668,166 965,166 990,93 1010,93',anchor:[668,166]},
