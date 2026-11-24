@@ -7,7 +7,8 @@
       <span>{{ records.length }} 条任务记录</span>
     </div>
     <div class="systems-grid">
-      <button v-for="system in systems" :key="system.key" class="system-card" :aria-label="`${system.name}维护详情`" @click="openDetail(system)">
+      <div v-for="(group, index) in systemGroups" :key="index" class="system-group">
+      <button v-for="system in group" :key="system.key" class="system-card" :class="{ compact: system.model === 'PLP' }" :aria-label="`${system.name}维护详情`" @click="openDetail(system)">
         <div class="system-title"><strong>{{ system.name }}</strong><span>{{ system.model || '—' }}</span></div>
         <template v-if="system.model === 'PHM'">
           <div class="risk-track">
@@ -21,6 +22,7 @@
         <div class="age-row"><span>下限 {{ percent(system.rmin) }}</span><span>役龄 {{ fmt(system.age) }} {{ system.unit }}</span></div>
         <el-tag :type="maintenanceStatus(system).type">{{ maintenanceStatus(system).label }}</el-tag>
       </button>
+      </div>
     </div>
     <div class="maintenance-advice"><strong>维护建议</strong><p v-for="system in attention" :key="system.key">{{ system.name }}：{{ maintenanceStatus(system).label }}，建议安排维护检查。</p><p v-if="!attention.length">{{ records.length ? '继续监测各子系统状态。' : '暂无已接入的维护评估。' }}</p></div>
     <p v-if="statisticsError" role="alert">{{ statisticsError }}</p>
@@ -40,6 +42,12 @@ const detailVisible = ref(false)
 const detailKey = ref('powder')
 watch(() => props.deviceId, id => { selectedTask.value = initialMaintenanceTask(id); detailVisible.value = false }, {immediate: true})
 const systems = computed(() => records.value.find(row => row.task === selectedTask.value)?.systems || maintenanceSystems.map(([key, name]) => ({key, name})))
+// 五类风险评估卡按三列排列，两张可靠性卡共用末列，避免不同内容高度造成大块空白。
+const systemGroups = computed(() => {
+  const risk = systems.value.filter(system => !['laser', 'chiller'].includes(system.key))
+  const reliability = systems.value.filter(system => ['laser', 'chiller'].includes(system.key))
+  return [...risk.map(system => [system]), reliability]
+})
 const attention = computed(() => systems.value.filter(system => maintenanceStatus(system).rank > 0))
 const overall = computed(() => {
   if (!records.value.length) return {type: 'info', label: '评估数据未接入'}
@@ -59,22 +67,29 @@ const { statistics, error: statisticsError } = useMaintenanceStatistics(() => pr
 .maintenance-panel {color:var(--am-text);background:var(--am-card-bg);border:1px solid var(--am-card-border)}
 .maintenance-heading,.assessment-toolbar,.system-title,.reliability-row,.age-row {display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .maintenance-heading {font-size:18px;font-weight:600}
-.assessment-toolbar {justify-content:flex-start;margin-bottom:18px;font-size:14px}
+.assessment-toolbar {justify-content:flex-start;margin-bottom:12px;font-size:14px}
 .assessment-toolbar select {min-height:38px;max-width:100%;padding:6px 12px;color:var(--am-text);background:var(--am-card-bg-2);border:1px solid var(--am-card-border);border-radius:4px}
 .assessment-toolbar>span,.system-title>span,.age-row {color:var(--am-text-2);font-size:12px}
-.systems-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:16px}
-.system-card {display:flex;flex-direction:column;gap:12px;min-width:0;padding:16px;text-align:left;background:var(--am-card-bg-2);border:1px solid var(--am-card-border);border-radius:4px;color:var(--am-text);font:inherit;cursor:pointer}
+.systems-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.system-group {display:grid;gap:12px;min-width:0}
+.system-card {display:flex;flex-direction:column;gap:8px;min-width:0;padding:12px;text-align:left;background:var(--am-card-bg-2);border:1px solid var(--am-card-border);border-radius:4px;color:var(--am-text);font:inherit;cursor:pointer}
 .system-card:hover,.system-card:focus-visible {border-color:var(--am-accent)}
-.system-title {font-size:15px}.system-card>.el-tag {align-self:flex-start;margin-top:auto}
+.system-title {font-size:15px}.system-card>.el-tag {align-self:flex-start}
+.system-card.compact {display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-content:start}
+.compact .system-title,.compact .reliability-row,.compact .reliability-track,.compact .age-row {grid-column:1 / -1}
+.compact .system-title {grid-column:1;grid-row:1}
+.compact>.el-tag {grid-column:2;grid-row:1;justify-self:end;font-size:11px}
+.compact .system-title>span {display:none}
 .risk-track {position:relative;height:20px;margin:6px 0;background:linear-gradient(transparent 8px,var(--am-card-border) 8px,var(--am-card-border) 12px,transparent 12px)}
 .risk-track i {position:absolute;height:20px;border-left:2px dashed;transform:translateX(-50%)}
 .wl {color:#4686b8}.wr {color:#18a2a4}.wu {color:#dc4545}
 .risk-point {position:absolute;top:5px;width:10px;height:10px;background:var(--am-text);border:1px solid var(--am-card-bg);transform:translateX(-50%)}
 .metric-grid {display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:12px}.metric-grid span {display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
-.reliability-row {margin-top:auto;font-size:13px}.reliability-row strong {font-size:20px}
+.reliability-row {font-size:13px}.reliability-row strong {font-size:20px}
 .reliability-track {height:5px;background:var(--am-card-border)}.reliability-track>div {height:100%}
-.maintenance-advice {margin-top:20px;padding:16px;border:1px solid var(--am-card-border);border-radius:4px;font-size:14px}.maintenance-advice p {margin:8px 0 0;line-height:1.6}
-.statistics-section {display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}.statistics-section>div {display:flex;flex-direction:column;gap:8px;padding:16px;border:1px solid var(--am-card-border);border-radius:4px}.statistics-section span {font-size:12px;color:var(--am-text-2)}.statistics-section strong {font-size:22px}
+.maintenance-advice {margin-top:12px;padding:12px;border:1px solid var(--am-card-border);border-radius:4px;font-size:14px}.maintenance-advice p {margin:8px 0 0;line-height:1.6}
+.statistics-section {display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}.statistics-section>div {display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px;border:1px solid var(--am-card-border);border-radius:4px}.statistics-section span {font-size:12px;color:var(--am-text-2)}.statistics-section strong {font-size:22px}
 .system-card,.statistics-section {font-variant-numeric:tabular-nums}
+@media(max-width:1150px){.systems-grid {grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.systems-grid,.statistics-section {grid-template-columns:1fr}.assessment-toolbar select {width:100%}}
 </style>
