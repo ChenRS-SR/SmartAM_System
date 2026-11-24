@@ -99,7 +99,7 @@
             <thead><tr><th>层号</th><th>{{ d.infrared ? '可见光异常概率' : '异常概率' }}</th><th>识别结果</th></tr></thead>
             <tbody>
               <tr v-if="!d.records.length"><td colspan="3">暂无逐层识别结果</td></tr>
-              <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!replaySession && !stepper.running.value && run(r.layer)">
+              <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer, selectable: canSelectRecord }" :tabindex="canSelectRecord ? 0 : undefined" :aria-label="`查看第 ${r.layer} 层识别结果`" :aria-current="r.layer === d.layer ? 'true' : undefined" @click="selectRecord(r.layer)" @keydown.enter.prevent="selectRecord(r.layer)" @keydown.space.prevent="selectRecord(r.layer)">
                 <td>{{ r.layer }}</td><td>{{ fmtPct(r.p) }}</td>
                 <td><span class="tag" :class="r.label === '异常' ? 't-def' : 't-nor'">{{ r.label }}</span></td>
               </tr>
@@ -136,6 +136,13 @@ const layers = ref([])
 const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : devicesFor('recognition'))
 const modalityResults = computed(() => d.value?.infrared ? [...d.value.singles, { key:'ir', name:'铺粉后红外', p:d.value.infrared.anomalyProbability, label:d.value.infrared.anomalyProbability >= .5 ? '异常' : '正常', used:true }] : d.value?.singles || [])
 const imgUrl = computed(() => mediaUrl(d.value.image.url, 1200))
+
+const canSelectRecord = computed(() => replaySession ? typeof replaySession.seekRecognitionLayer === 'function' && !replaySession.loading : !stepper.running.value && !busy.value)
+async function selectRecord(layer) {
+  if (!canSelectRecord.value) return
+  if (replaySession) await replaySession.seekRecognitionLayer(layer)
+  else await run(layer)
+}
 
 async function run(layer) {
   if (replaySession) return
@@ -186,6 +193,12 @@ const torqueOption = computed(() => {
 </script>
 
 <style scoped>
+/* 长记录只在表格内滚动，表头固定；点击记录复用设备共享回放游标。 */
+.c-rec .table-scroll { max-height: 280px; overflow-y: auto; scrollbar-gutter: stable; }
+.c-rec thead { position: sticky; top: 0; z-index: 1; background: var(--card-bg); }
+.c-rec tr.selectable { cursor: pointer; }
+.c-rec tr.selectable:hover, .c-rec tr.selectable:focus-visible { background: var(--dev-soft); outline: 2px solid var(--dev); outline-offset: -2px; }
+
 .infrared-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 @media(max-width:600px) { .infrared-content { grid-template-columns: minmax(0, 1fr); } }
 .r-input { flex: 520 0 520px; }

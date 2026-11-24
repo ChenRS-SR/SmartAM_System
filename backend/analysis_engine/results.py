@@ -74,7 +74,7 @@ def attach(frame, results, rows):
     complete=[r for r in arrived if r['end']<=frame['timestamp'] and results[str(r['layer'])]['trace'] is not None]
     if arrived:
         recognition=copy.deepcopy(results[str(arrived[-1]['layer'])]['recognition'])
-        recognition['records']=[{'layer':r['layer'],'p':results[str(r['layer'])]['recognition']['prob']['def'],'label':results[str(r['layer'])]['recognition']['label']} for r in arrived[-6:][::-1]]
+        recognition['records']=[{'layer':r['layer'],'p':results[str(r['layer'])]['recognition']['prob']['def'],'label':results[str(r['layer'])]['recognition']['label']} for r in arrived[::-1]]
         frame['recognition']=recognition
     else: frame['recognition']=None
     if complete:

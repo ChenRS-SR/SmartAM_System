@@ -130,3 +130,14 @@ describe('多设备进度隔离', () => {
     expect(fetch.mock.calls.some(([url]) => url.includes('/cases/b44-20250321-09-20/'))).toBe(true)
   })
 })
+
+it('点击历史记录定位识别结果到达时刻并暂停，不停在层开始', async () => {
+  const replay = useReplayStore()
+  await replay.open()
+  replay.manifest.layers[0] = {layer:1, offset:0, start:100, recognitionAt:112}
+  await replay.seekRecognitionLayer(1)
+  expect(replay.snapshot.offset).toBe(12)
+  expect(replay.playing).toBe(false)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(replay.snapshot.offset).toBe(12)
+})
