@@ -18,7 +18,7 @@
             aria-controls="primary-sidebar"
             @click="isCollapsed = !isCollapsed"
           >
-            {{ isCollapsed ? '展开导航' : '收起导航' }}
+            <span class="nav-label">{{ isCollapsed ? '展开导航' : '收起导航' }}</span><span class="nav-compact">导航</span>
           </el-button>
           <span class="page-title">{{ currentPageTitle }}</span>
         </div>
@@ -171,6 +171,16 @@ onMounted(() => {
 
 .page-container.no-padding {
   padding: 0;
+}
+
+.nav-compact { display: none; }
+.header .page-title { white-space: nowrap; }
+@media (max-width: 600px) {
+  .nav-label { display: none; }
+  .nav-compact { display: inline; }
+  .header { padding: 0 12px; }
+  .header-left, .header-right { gap: 4px; }
+  .header :deep(.el-button) { padding-left: 6px; padding-right: 6px; }
 }
 
 /* 响应式 */

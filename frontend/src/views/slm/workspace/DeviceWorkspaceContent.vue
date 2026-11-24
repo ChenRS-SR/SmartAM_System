@@ -20,7 +20,7 @@
       <div class="status-details">
         <section class="replay-card">
           <h2>故障诊断</h2>
-          <template v-if="frame?.trace"><p>{{ frame.trace.recordDiagnosis ? '设备档案：' : `第 ${frame.trace.layer} 层：` }}{{ frame.trace.conclusion }}</p><p>{{ frame.trace.actions.join('；') || '暂无处置建议' }}</p></template>
+          <template v-if="frame?.trace"><p>{{ frame.trace.recordDiagnosis ? '设备档案：' : `第 ${frame.trace.layer} 层：` }}{{ diagnosis.conclusion }}</p><p>{{ diagnosisAdvice.join('；') || '暂无处置建议' }}</p></template>
           <p v-else>当前时刻尚无可用溯源结果。</p>
           </section>
         <section class="replay-card">
@@ -52,6 +52,7 @@
   </div>
 </template>
 <script setup>
+import { traceDiagnosis } from '../forming/traceDiagnosis'
 import { slmTabs, slmTab } from '../../../utils/slmNavigation'
 import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -66,6 +67,7 @@ import { regionSlice } from '../../../components/slm/regionControl'
 import MaintenanceDecisionPanel from '../../../components/common/MaintenanceDecisionPanel.vue'
 import MaintenanceDetailDialog from '../../../components/common/MaintenanceDetailDialog.vue'
 import '../forming/forming.css'
+import './workspace.css'
 const props = defineProps({ deviceId: { type: String, required: true } })
 const caseConfig = replayCaseForDevice(props.deviceId)
 const replay = caseConfig ? useReplayStore(caseConfig.id) : createRecordSession(props.deviceId)
@@ -83,6 +85,9 @@ const tabs = slmTabs
 const tab = computed(() => slmTab(route.query.tab).key)
 const views = { recognition: Recognition, trace: Trace }
 const frame = computed(() => replay.snapshot)
+// 摘要与诊断页共用结论，不能再显示原始结果中的旧说明。
+const diagnosis = computed(() => traceDiagnosis(frame.value?.trace))
+const diagnosisAdvice = computed(() => (frame.value?.trace?.actions || []).filter(action => action.trim() !== '复核超限区域与识别结果'))
 const currentSlice = computed(() => frame.value?.slice || regionSlice(frame.value))
 provide('formingEmbedded', true)
 provide('formingReplay', replay)

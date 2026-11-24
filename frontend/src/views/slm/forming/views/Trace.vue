@@ -4,23 +4,26 @@
       <Region kind="input" title="监测数据" class="r-input">
         <div class="fields">
           <div class="field"><span class="k">设备</span>
-            <select class="sel" :value="replaySession ? d.device.id : state.device" :disabled="embedded || stepper.running.value" @change="switchDevice($event.target.value)">
+            <span v-if="replaySession" class="field-value">{{ d.device.name }}</span>
+            <select v-else class="sel" :value="state.device" :disabled="embedded || stepper.running.value" @change="switchDevice($event.target.value)">
               <option v-for="x in devs" :key="x.id" :value="x.id">{{ x.name }}</option></select></div>
-          <div class="field"><span class="k">成形任务</span><select class="sel" disabled><option>{{ d.task.name }}</option></select></div>
+          <div class="field"><span class="k">成形任务</span><span class="field-value">{{ d.task.name }}</span></div>
           <div class="field"><span class="k">成形层</span>
-            <select class="sel" :value="d.layer" :disabled="!!replaySession || stepper.running.value || layers.length < 2" @change="run(+$event.target.value)">
-              <option v-if="replaySession" :value="d.layer">第 {{ d.layer ?? '—' }} 层</option>
+            <span v-if="replaySession" class="field-value">第 {{ d.layer ?? '—' }} 层</span>
+            <select v-else class="sel" :value="d.layer" :disabled="stepper.running.value || layers.length < 2" @change="run(+$event.target.value)">
               <option v-for="L in layers" :key="L" :value="L">第 {{ L }} 层</option></select></div>
-          <div class="field"><span class="k">参照层</span><select class="sel" disabled><option>第 {{ d.refLayer ?? '—' }} 层</option></select></div>
+          <div class="field"><span class="k">参照层</span><span class="field-value">第 {{ d.refLayer ?? '—' }} 层</span></div>
         </div>
       </Region>
       <Region kind="param" title="溯源参数" class="r-param">
         <div class="fields one">
           <div class="field"><span class="k">零件区边缘邻域</span>
-            <input class="inp" type="number" min="0" max="40" step="1" :value="d.params.bandPx" :disabled="replay || d.mode === 'dual'" @change="setBand($event.target.value)" />
-            <span class="k">像素</span></div>
+            <span v-if="replaySession" class="field-value">{{ d.params.bandPx ?? '—' }} 像素</span>
+            <input v-else class="inp" type="number" min="0" max="40" step="1" :value="d.params.bandPx" :disabled="replay || d.mode === 'dual'" @change="setBand($event.target.value)" />
+            <span v-if="!replaySession" class="k">像素</span></div>
           <div class="field"><span class="k">参照层选取</span>
-            <select class="sel" :value="d.mode === 'dual' ? d.refMode : state.trace.refMode" :disabled="replay || d.mode === 'dual'" @change="setRefMode($event.target.value)">
+            <span v-if="replaySession" class="field-value">{{ d.refMode === 'manual' ? '指定层' : '前序最近正常层' }}</span>
+            <select v-else class="sel" :value="d.mode === 'dual' ? d.refMode : state.trace.refMode" :disabled="replay || d.mode === 'dual'" @change="setRefMode($event.target.value)">
               <option value="prev_normal">前序最近正常层</option><option value="manual">指定层</option></select>
             <input v-if="d.mode !== 'dual' && state.trace.refMode === 'manual'" class="inp ref-inp" type="number" :value="state.trace.refLayer ?? d.refLayer"
               @change="setRefLayer($event.target.value)" /></div>
