@@ -18,10 +18,13 @@
         </div>
       </Region>
       <Region kind="param" title="采集通道" class="r-param">
-        <div class="chs">
-          <label v-for="c in d.channels" :key="c.name" class="ch" :title="`${c.spec} · ${c.rate}`">
-            <input type="checkbox" :checked="visible(c.name)" @change="setChannels([c.name], $event.target.checked)" />{{ c.name }}
-          </label>
+        <div v-for="group in channelGroups" :key="group.title" class="channel-group">
+          <div class="channel-group-title">{{ group.title }}</div>
+          <div class="chs">
+            <label v-for="c in group.channels" :key="c.name" class="ch" :title="`${c.spec} · ${c.rate}`">
+              <input type="checkbox" :checked="visible(c.name)" @change="setChannels([c.name], $event.target.checked)" /><span>{{ c.name }}</span>
+            </label>
+          </div>
         </div>
         <div class="channel-actions"><button class="btn" @click="setChannels(d.channels.map(c => c.name), true)">全部显示</button><button class="btn" @click="setChannels(d.channels.map(c => c.name), false)">全部隐藏</button><span>勾选显示，不改变原始采集</span></div>
       </Region>
@@ -42,12 +45,12 @@
       <div class="grid" :class="{ 'grid--filtered': filtered }" :style="{ '--access-columns': topColumns, '--access-columns-narrow': Math.min(2, topColumns) }">
         <div v-for="channel in activeImageChannels" :key="channel.key" class="card c-img" :data-channel="channel.key">
           <div class="card-title">{{ channel.name }}<span class="tm"><template v-if="d.images[channel.key].layer">第 {{ d.images[channel.key].layer }} 层 · </template>{{ d.images[channel.key].time }}</span></div>
-          <video v-if="visible(channel.name) && d.images[channel.key].videoUrl" :src="d.images[channel.key].videoUrl" class="img" controls muted loop playsinline preload="metadata" />
-          <img v-else-if="visible(channel.name) && d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">{{ visible(channel.name) ? '数据暂未接入' : '通道已隐藏' }}</div>
+          <video v-if="d.images[channel.key].videoUrl" :src="d.images[channel.key].videoUrl" class="img" controls muted loop playsinline preload="metadata" />
+          <img v-else-if="d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">数据暂未接入</div>
         </div>
-        <div class="card c-state">
+        <div v-if="visible('设备状态参数')" class="card c-state">
           <div class="card-title">设备状态<span class="tm">{{ d.device.name }}</span></div>
-          <template v-if="visible('设备状态参数')">
+          
           <div class="progress">
             <div class="pg-row"><span>成形进度</span><b>第 {{ d.progress.layer ?? '—' }} 层 / 共 {{ d.progress.total ?? '—' }} 层</b></div>
             <div class="bar"><div class="fill" :style="{ width: (d.progress.total > 0 ? Math.min(100, d.progress.layer / d.progress.total * 100) : 0) + '%' }"></div></div>
@@ -56,9 +59,9 @@
             <div v-for="e in envList" :key="e.k" class="env-item"><span class="ek">{{ e.k }}</span><b>{{ e.v }}</b><span class="eu">{{ e.u }}</span></div>
           </div>
           <div class="alarm" v-if="d.alarms.length"><span class="al-tag">最近报警</span>{{ d.alarms[0].time.slice(5, 16) }}　{{ d.alarms[0].text }}</div>
-          </template><div v-else class="image-pending">通道已隐藏</div>
+          
         </div>
-        <div class="card c-torque">
+        <div v-if="visible('刮刀扭矩') || visible('加工平台扭矩')" class="card c-torque">
           <div class="card-title">{{ torqueTitle }}{{ replaySession?.source !== 'device-record' ? ' · 连续采样' : '' }}</div>
           <div class="chart-window-note">{{ replaySession?.source === 'device-record' ? '已接入采样记录 · 最近 50 点' : '最近 50 个采样点 · 时间轴随采样滚动' }}</div>
           <EChart v-if="hasTorque" :option="torqueOption" class="chart" /><div v-else class="image-pending">数据暂未接入</div>
@@ -105,10 +108,15 @@ const { busy, call } = useCall()
 const d = ref(null)
 const channelStore = useAccessChannels()
 const channelKey = computed(() => replaySession ? `replay:${replaySession.caseId}` : state.device)
-const visible = name => d.value?.channels.some(c => c.name === name) && channelStore.forDevice(channelKey.value)[name] !== false
+const visible = name => d.value?.channels.some(c => c.name === name) && channelStore.isVisible(channelKey.value, name)
 const setChannels = (names, shown) => channelStore.setVisible(channelKey.value, names, shown)
 const filtered = true
-const activeImageChannels = computed(() => monitoringImages)
+// 取消勾选时移除整张卡片，已勾选但未接入的通道保留缺省占位。
+const activeImageChannels = computed(() => monitoringImages.filter(channel => visible(channel.name)))
+const channelGroups = computed(() => [
+  { title: '图像通道', channels: d.value.channels.filter(c => c.imageKey) },
+  { title: '状态与扭矩', channels: d.value.channels.filter(c => !c.imageKey) },
+])
 const topColumns = 2
 const torqueTitle = computed(() => '刮刀与加工平台扭矩')
 // 回放设备从工作区共享快照读取，跳转时清空旧结果，不再启动页面各自的计时器。
@@ -214,7 +222,10 @@ const torqueOption = computed(() => {
 .r-op { flex: 280 0 280px; }
 .r-vis { flex: 1; }
 .fields { gap: 6px 14px; }
-.chs { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 8px; font-size: 15px; justify-content: start; }
+.channel-group + .channel-group { margin-top: 12px; }
+.channel-group-title { margin-bottom: 6px; font-size: 12px; color: var(--text-2); }
+.chs { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 6px 12px; font-size: 14px; }
+.chs .ch { min-height: 30px; min-width: 0; }
 .chs .ch { cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .ch input { accent-color: var(--nav-bg); width: 15px; height: 15px; flex: none; cursor: pointer; }
 .channel-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
