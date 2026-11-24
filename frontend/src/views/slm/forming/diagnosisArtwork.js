@@ -7,6 +7,7 @@ export function diagnosisArtwork({ state, faults = [], healthy = false, equipmen
   if (state === 'process') name = 'process'
   else if (faults.length === 1 && knownFaults.has(faults[0].key)) name = faults[0].key
   else if (faults.length || equipmentIssue || state === 'unclassified' || state === 'fault') name = 'equipment'
-  else if (healthy) name = 'healthy'
+  // 正常诊断统一使用正常设备图，不因子系统接入状态不同而退回灰色底图。
+  else if (state === 'normal' || healthy) name = 'healthy'
   return `/state_picture/diagnosis-v2/${name}.png`
 }

@@ -15,4 +15,9 @@ describe('立体诊断图与类别对应', () => {
     expect(diagnosisArtwork({healthy:true})).toContain('/healthy.png')
     expect(diagnosisArtwork({state:'pending'})).toContain('/neutral.png')
   })
+  it('正常结论统一使用健康图，与子系统是否全部正常无关', () => {
+    expect(diagnosisArtwork({state:'normal',healthy:false})).toContain('/healthy.png')
+    expect(diagnosisArtwork({state:'normal',healthy:true})).toContain('/healthy.png')
+    expect(diagnosisArtwork({state:'normal',equipmentIssue:true})).toContain('/equipment.png')
+  })
 })
