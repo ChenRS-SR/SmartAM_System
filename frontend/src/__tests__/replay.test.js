@@ -141,3 +141,44 @@ it('点击历史记录定位识别结果到达时刻并继续播放，不停在�
   await vi.advanceTimersByTimeAsync(1000)
   expect(replay.snapshot.offset).toBeCloseTo(13)
 })
+
+it('连续定位立即保留最新游标，慢响应和页面重新打开不改变目标', async () => {
+  const replay = useReplayStore()
+  await replay.open()
+  let finishOld, finishNew
+  fetch.mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve }))
+  const old = replay.seek(70)
+  expect(replay.cursor).toBe(70)
+  expect(replay.loading).toBe(true)
+  fetch.mockImplementationOnce(() => new Promise(resolve => { finishNew = resolve }))
+  const latest = replay.seek(30)
+  await replay.open({ autoplay:true })
+  expect(replay.cursor).toBe(30)
+  await vi.advanceTimersByTimeAsync(3000)
+  finishOld(response(frame(70)))
+  await old
+  expect(replay.cursor).toBe(30)
+  expect(replay.loading).toBe(true)
+  finishNew(response(frame(30)))
+  await latest
+  expect(replay.snapshot.offset).toBe(30)
+  await vi.advanceTimersByTimeAsync(250)
+  expect(replay.snapshot.offset).toBeCloseTo(30.25)
+})
+
+it('层定位和步进使用识别到达时间，初始空窗被默认有效位置截断', async () => {
+  const replay = useReplayStore()
+  await replay.open()
+  replay.manifest = {...manifest, layers:[
+    {layer:1,offset:0,start:100,recognitionAt:105},
+    {layer:2,offset:50,start:150,recognitionAt:165},
+  ]}
+  await replay.seekLayer(2)
+  expect(replay.snapshot.offset).toBe(65)
+  await replay.step(-1)
+  expect(replay.snapshot.offset).toBe(10)
+  await replay.step(1)
+  expect(replay.snapshot.offset).toBe(65)
+  await replay.seekLayer(999)
+  expect(replay.snapshot.offset).toBe(65)
+})

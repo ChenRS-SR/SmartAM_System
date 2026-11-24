@@ -43,3 +43,25 @@ describe('系统设置中的回放设备隔离', () => {
     wrapper.unmount()
   })
 })
+
+it('定位期间进度不回零且控件可继续操作，拖动不受快照刷新干扰', async () => {
+  const replay = useReplayStore()
+  vi.spyOn(replay,'open').mockResolvedValue()
+  const seek=vi.spyOn(replay,'seek').mockResolvedValue()
+  replay.manifest={duration:100,defaultOffset:10,layers:[{layer:1,offset:0},{layer:2,offset:50}],segments:[]}
+  replay.cursor=70
+  replay.loading=true
+  replay.snapshot=null
+  const wrapper=mount(ReplaySettings,{props:{deviceId:REPLAY_DEVICE_ID},global:{stubs:{RouterLink:true}}})
+  const slider=wrapper.get('[aria-label="回放时间进度"]')
+  expect(wrapper.get('fieldset').element.disabled).toBe(false)
+  expect(Number(slider.element.value)).toBe(70)
+  slider.element.value=40
+  await slider.trigger('input')
+  replay.cursor=71
+  await flushPromises()
+  expect(Number(slider.element.value)).toBe(40)
+  await slider.trigger('change')
+  expect(seek).toHaveBeenCalledWith(40)
+  wrapper.unmount()
+})
