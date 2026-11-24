@@ -9,7 +9,7 @@ export function subsystemHealth(diagnosis, trace) {
   return definitions.map(system => {
     const faults = diagnosis.faults.filter(f => system.faults.includes(f.key))
     const measured = trace?.subsystemHealth?.[system.key]
-    const normal = measured?.state === 'normal' || measured?.state === 'healthy'
+    const normal = diagnosis.demoHealth === 'normal' || measured?.state === 'normal' || measured?.state === 'healthy'
     const state = faults.length || measured?.state === 'fault' ? 'fault' : normal ? 'normal' : 'unknown'
     return {...system, state, label:state === 'fault' ? '异常' : state === 'normal' ? '正常' : '未接入',
       details:faults.length ? faults.map(f=>f.name) : measured?.state === 'fault' ? [measured.faultType || '异常类别未登记'] : []}

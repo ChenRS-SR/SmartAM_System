@@ -214,6 +214,7 @@
 </template>
 
 <script setup>
+import { caseDiagnosis } from './forming/caseDiagnosis'
 import { compareFeaturedDevices } from '../../utils/devicePriority'
 import { useReplayStore, REPLAY_CASES } from '../../stores/replay'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
@@ -394,7 +395,8 @@ const displayDevices = computed(() => deviceStore.devices.map(device => {
     const frame = replay.snapshot
     // 状态卡沿用当前快照的异常判定；不展示内部数据来源和冗长告警。
     const probability = frame?.recognition?.prob
-    const abnormal = probability && Math.max(probability.proc, probability.dev) >= .5
+    const healthyDemo = caseDiagnosis[device.id]?.health === 'normal' && caseDiagnosis[device.id].taskId === frame?.access?.task?.id
+    const abnormal = !healthyDemo && probability && Math.max(probability.proc, probability.dev) >= .5
     const acquisitionStatus = replay.error ? '数据异常' : !frame ? '等待数据' : replay.playing ? '采集中' : '采集暂停'
     return { ...device, name: device.name, dataTag: '', databaseTag: '', online: !!frame && !replay.error,
       health: abnormal ? 'fault' : 'healthy', healthData: { status: abnormal ? 'fault' : 'healthy' }, statusText: acquisitionStatus,
