@@ -171,7 +171,7 @@ const curveOption = computed(() => {
     animation: false,
     tooltip: { trigger: 'axis', confine: true },
     // 图例固定分成曲线/上限两行，单独预留空间，避免窄列自动换行压住坐标轴。
-    grid: { left: 8, right: 16, top: 88, bottom: 42, containLabel: true },
+    grid: { left: 6, right: 12, top: 76, bottom: 38, containLabel: true },
     legend: { top: 4, left: 'center', itemWidth: 18, itemHeight: 8, itemGap: 12,
       data: ['工艺侧', '设备侧', '', ...series.slice(2).map(s => s.name)],
       textStyle: { fontSize: 13, color: P.text } },

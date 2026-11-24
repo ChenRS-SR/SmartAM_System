@@ -291,8 +291,8 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
   aspect-ratio: 4 / 3;
 }
 
-/* 贡献图为双行图例与坐标名称预留高度，不挤压实际绘图区。 */
-.forming-root .trace-page .c-curve .chart { height: 300px; min-height: 300px; flex: none; }
+/* 图表填满诊断卡片拉伸后的剩余高度；最小高度容纳双行图例与坐标名称。 */
+.forming-root .trace-page .c-curve .chart { height: 0; min-height: 300px; flex: 1 1 300px; }
 
 /* 识别页仅保留对象信息，采集操作统一由状态监测管理。 */
 .forming-root .recognition-page .row-top { grid-template-columns: minmax(0, 1fr); }
