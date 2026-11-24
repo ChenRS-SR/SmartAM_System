@@ -1,6 +1,7 @@
 """统一设备工作区的数据隔离、缺失语义与部署契约。"""
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -9,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from device_workspace import record_workspace, router, preview_records
+from core.slm_device_data import SLMDeviceDataStore
 from task4.service import devices, asset
 from replay.service import case_for_device
 
@@ -51,7 +53,32 @@ class WorkspaceTests(unittest.TestCase):
         self.assertIsNone(frame['recognition']['image']['url'])
         self.assertIsNone(frame['access']['images']['before']['url'])
         self.assertEqual([c['name'] for c in frame['access']['channels'][-2:]], ['可见光图像', '红外图像'])
-        self.assertEqual(frame['access']['images']['video_0']['videoUrl'], record_workspace('huake-slm-02')['device']['mockVideo']['channels']['camera_ch1']['url'])
+        self.assertEqual(frame['access']['images']['video_0']['videoUrl'], record_workspace('huake-slm-02')['device']['mockVideo']['correctedChannels']['camera_ch1']['url'])
+
+    def test_corrected_image_and_missing_correction_never_use_raw(self):
+        device = record_workspace('huake-slm-02')['device']
+        with patch('device_workspace.get_slm_device_data_store') as store:
+            store.return_value.get_device.return_value = device
+            device['mockVideo']['correctedChannels'] = {
+                'camera_ch1': dict(available=True, url='/corrected.jpg', media_type='image')}
+            access = record_workspace('huake-slm-02')['snapshot']['access']
+            self.assertEqual(access['images']['video_0']['url'], '/corrected.jpg')
+            self.assertIsNone(access['images']['video_0']['videoUrl'])
+            self.assertTrue(access['images']['video_0']['distortionCorrected'])
+            device['mockVideo']['correctedChannels'] = {}
+            access = record_workspace('huake-slm-02')['snapshot']['access']
+            self.assertFalse(any(c['name'] == '可见光图像' for c in access['channels']))
+
+    def test_corrected_media_scanner_accepts_still_images(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / 'slm_device_data' / 'SLM' / 'demo' / 'mock_video_corrected'
+            (folder / 'CH1').mkdir(parents=True)
+            (folder / 'CH1' / 'frame.png').write_bytes(b'')
+            result = SLMDeviceDataStore(project_root=root)._scan_channel_video(folder, 'CH1')
+            self.assertTrue(result['available'])
+            self.assertEqual(result['media_type'], 'image')
+            self.assertIn('/mock_video_corrected/CH1/frame.png', result['url'])
 
     def test_missing_file_and_traversal_are_errors(self):
         for path in ('../README.md', 'SLM/not-found.csv'):
