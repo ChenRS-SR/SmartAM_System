@@ -53,8 +53,8 @@ export function maintenanceChartSeries(measurements) {
   return definitions.map(([key, name, color], index) => ({
     name, type: 'line',
     data: (measurements?.history || []).map(row => key === 'limit' ? maintenanceLimit(row) : row[key] ?? null),
-    connectNulls: false, symbol: 'circle', symbolSize: 7, showSymbol: true, showAllSymbol: true,
-    // 长划—短点交替表示指标，阈值用等长虚线；图例继承同一线型。
-    lineStyle: {color, width: 2, type: index ? 'dashed' : [10, 4, 2, 4]}, itemStyle: {color}
+    connectNulls: false, symbol: index ? 'none' : 'circle', symbolSize: 7, showSymbol: index === 0, showAllSymbol: index === 0,
+    // 指标采用带点实线；阈值为无点虚线。
+    lineStyle: {color, width: 2, type: index ? 'dashed' : 'solid'}, itemStyle: {color}
   }))
 }

@@ -39,15 +39,17 @@ const metrics = computed(() => {
 })
 const buildChartOption = () => {
   const data = props.measurements
+  const series = maintenanceChartSeries(data)
   return {
     backgroundColor: 'transparent',
     tooltip: {trigger: 'axis', confine: true, backgroundColor: amVar('--am-card-bg'), textStyle: {color: amVar('--am-text')}, valueFormatter: value => value == null ? '—' : Number(value).toFixed(4)},
-    legend: {top: 12, left: 'center', type: 'scroll', itemWidth: 36, itemHeight: 16, itemGap: 22, textStyle: {color: amVar('--am-text-2'), fontSize: 15}},
+    // ECharts 默认会给无点折线补圆点图例，阈值显式使用无点虚线图标。
+    legend: {data: series.map((item, index) => index ? {name: item.name, icon: 'line', itemStyle: {color: item.lineStyle.color, borderColor: item.lineStyle.color, borderWidth: 2, borderType: 'dashed'}} : {name: item.name}), top: 12, left: 'center', type: 'scroll', itemWidth: 36, itemHeight: 16, itemGap: 22, textStyle: {color: amVar('--am-text-2'), fontSize: 15}},
     grid: {left: 14, right: 20, top: 64, bottom: 72, containLabel: true},
     xAxis: {type: 'category', data: data?.duration || [], axisLabel: {color: amVar('--am-text-2'), formatter: value => `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}`}},
     yAxis: {type: 'value', name: isPLP.value ? '可靠性 R' : '风险指标 W', ...(isPLP.value ? {min:0, max:1} : {}), nameTextStyle: {color: amVar('--am-text-2')}, axisLabel: {color: amVar('--am-text-2')}, splitLine: {lineStyle: {color: amVar('--am-card-border')}}},
     dataZoom: [{type: 'inside'}, {type: 'slider', bottom: 8, height: 22, textStyle: {color: amVar('--am-text-2')}}],
-    series: maintenanceChartSeries(data)
+    series
   }
 }
 const initChart = async () => {
