@@ -318,12 +318,16 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
   margin: 8px 0 4px;
 }
 
-/* 通道选择占主要宽度；接入信息单列紧凑排列。 */
-/* 同行卡片由内容最多的一侧决定高度，保持上下边缘对齐，缩窄后仍自然换行。 */
+/* 卡片同高；接入信息均分可用高度，避免内容挤在顶部留下整块空白。 */
 .forming-root .access-page .row-top { grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr); align-items: stretch; }
-.forming-root .access-page .r-input .fields { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.forming-root .access-page .r-input .field { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; }
-.forming-root .access-page .r-input .field-value { line-height: 1.5; }
+.forming-root .access-page .r-input .region-body { display: flex; }
+.forming-root .access-page .r-input .fields { flex: 1; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(4, minmax(56px, 1fr)); gap: 0; }
+.forming-root .access-page .r-input .field { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: center; }
+.forming-root .access-page .r-input .field:last-child { border-bottom: 0; }
+.forming-root .access-page .r-input .k { font-size: 14px; }
+.forming-root .access-page .r-input .field-value { font-size: 16px; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
 @container forming (max-width: 760px) {
   .forming-root .access-page .row-top { grid-template-columns: minmax(0, 1fr); }
+  .forming-root .access-page .r-input .fields { grid-template-rows: repeat(4, minmax(48px, auto)); }
+  .forming-root .access-page .r-input .field { padding: 10px 0; }
 }
