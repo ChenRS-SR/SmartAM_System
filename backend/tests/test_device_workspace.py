@@ -53,7 +53,10 @@ class WorkspaceTests(unittest.TestCase):
         self.assertIsNone(frame['recognition']['image']['url'])
         self.assertIsNone(frame['access']['images']['before']['url'])
         self.assertEqual([c['name'] for c in frame['access']['channels'][-2:]], ['可见光图像', '红外图像'])
-        self.assertEqual(frame['access']['images']['video_0']['videoUrl'], record_workspace('huake-slm-02')['device']['mockVideo']['correctedChannels']['camera_ch1']['url'])
+        image = frame['access']['images']['video_0']
+        self.assertTrue(image['url'].endswith('/mock_video_corrected/CH1/frames/000001.jpg'))
+        self.assertGreater(image['frameSequence']['count'], 1)
+        self.assertNotIn('videoUrl', image)
 
     def test_corrected_image_and_missing_correction_never_use_raw(self):
         device = record_workspace('huake-slm-02')['device']
@@ -63,7 +66,7 @@ class WorkspaceTests(unittest.TestCase):
                 'camera_ch1': dict(available=True, url='/corrected.jpg', media_type='image')}
             access = record_workspace('huake-slm-02')['snapshot']['access']
             self.assertEqual(access['images']['video_0']['url'], '/corrected.jpg')
-            self.assertIsNone(access['images']['video_0']['videoUrl'])
+            self.assertNotIn('videoUrl', access['images']['video_0'])
             self.assertTrue(access['images']['video_0']['distortionCorrected'])
             device['mockVideo']['correctedChannels'] = {}
             access = record_workspace('huake-slm-02')['snapshot']['access']

@@ -23,11 +23,11 @@ afterEach(()=>{vi.unstubAllGlobals();vi.restoreAllMocks()})
 describe('统一工作区状态',()=>{
  it('全部设备使用固定通道槽位，不修改原始快照',()=>{
   const empty={images:{},channels:[]}
-  const full={images:{before:{url:'/before.png'},video_0:{videoUrl:'/coax.mp4'}},channels:[{name:'同轴图像',imageKey:'video_0'}]}
+  const full={images:{before:{url:'/before.png'},video_0:{url:'/coax.jpg'}},channels:[{name:'同轴图像',imageKey:'video_0'}]}
   const a=monitoringAccess(empty),b=monitoringAccess(full)
   expect(a.channels.map(c=>c.name)).toEqual(b.channels.map(c=>c.name))
   expect(Object.keys(a.images)).toHaveLength(monitoringImages.length)
-  expect(b.images.coax.videoUrl).toBe('/coax.mp4')
+  expect(b.images.coax.url).toBe('/coax.jpg')
   expect(b.channels.map(c=>c.name)).toContain('可见光图像')
   expect(b.channels.map(c=>c.name)).not.toContain('侧轴图像')
   const sideOnly=monitoringAccess({images:{side:{videoUrl:'/side.mp4'}},channels:[{name:'侧轴图像',imageKey:'side'}]})

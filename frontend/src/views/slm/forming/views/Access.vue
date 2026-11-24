@@ -47,8 +47,7 @@
         </div>
         <div v-for="channel in activeImageChannels" :key="channel.key" class="card c-img" :data-channel="channel.key">
           <div class="card-title">{{ channel.name }}<span class="tm"><template v-if="d.images[channel.key].layer">第 {{ d.images[channel.key].layer }} 层 · </template>{{ d.images[channel.key].time }}</span></div>
-          <video v-if="d.images[channel.key].videoUrl" :src="d.images[channel.key].videoUrl" class="img" controls muted loop playsinline preload="metadata" />
-          <img v-else-if="d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">数据暂未接入</div>
+          <img v-if="d.images[channel.key].url" :src="img(channel.key)" :alt="channel.name" class="img" /><div v-else class="image-pending">数据暂未接入</div>
         </div>
         <div v-if="visible('刮刀扭矩') || visible('加工平台扭矩')" class="card c-torque">
           <div class="card-title">{{ torqueTitle }}{{ replaySession?.source !== 'device-record' ? ' · 连续采样' : '' }}</div>

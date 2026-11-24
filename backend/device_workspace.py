@@ -97,10 +97,14 @@ def record_workspace(device_id):
     for i, media in enumerate(media):
         key = 'video_' + str(i)
         is_video = media['media_type'] == 'video'
-        images[key] = dict(url=None if is_video else media['url'],
-                           videoUrl=media['url'] if is_video else None,
+        sequence = media.get('frameSequence') if is_video else None
+        # 视频仅提供离线抽帧图像，不向监测页暴露播放器地址。
+        if is_video and not sequence:
+            continue
+        images[key] = dict(url=sequence['baseUrl'] + '/000001.jpg' if sequence else media['url'],
+                           frameSequence=sequence,
                            time=None, layer=None, available=True, distortionCorrected=True)
-        channels.append(dict(name=media['name'], spec='视频' if is_video else '图像', rate='档案媒体', imageKey=key))
+        channels.append(dict(name=media['name'], spec='图像', rate='1 帧/秒' if sequence else '单帧', imageKey=key))
     alarms = [dict(time='', text=e['text']) for e in (fault or {}).get('diagnosis', {}).get('evidence', [])]
     access = dict(**context, progress=dict(layer=layer, total=None), images=images, env=env, torque=torque,
                   channels=channels, alarms=alarms, records=[], acquisition=dict(running=False, mode='record', layer=layer),

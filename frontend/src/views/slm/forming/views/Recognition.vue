@@ -4,14 +4,15 @@
       <Region kind="input" title="识别对象" class="r-input">
         <div class="fields">
           <div class="field"><span class="k">设备</span>
-            <select class="sel" :value="replaySession ? d.device.id : state.device" :disabled="embedded || busy" @change="switchDevice($event.target.value)">
+            <span v-if="embedded || replaySession" class="field-value">{{ d.device.name }}</span>
+            <select v-else class="sel" :value="state.device" :disabled="busy" aria-label="识别设备" @change="switchDevice($event.target.value)">
               <option v-for="x in devs" :key="x.id" :value="x.id">{{ x.name }}</option></select></div>
-          <div class="field"><span class="k">成形任务</span><select class="sel" disabled><option>{{ d.task.name }}</option></select></div>
-          <div class="field"><span class="k">识别模型</span><select class="sel" disabled><option>{{ d.model.name }}</option></select></div>
+          <div class="field"><span class="k">成形任务</span><span class="field-value">{{ d.task.name }}</span></div>
+          <div class="field"><span class="k">识别模型</span><span class="field-value">{{ d.model.name }}</span></div>
           <div class="field"><span class="k">成形层</span>
-            <select class="sel" :value="d.layer" :disabled="!!replaySession || busy" @change="run(+$event.target.value)">
-              <option v-if="replaySession" :value="d.layer">第 {{ d.layer ?? '—' }} 层</option>
-              <option v-for="L in layers" :key="L" :value="L">第 {{ L }} 层</option></select></div>
+            <select v-if="selectableLayers.length" class="sel" aria-label="识别成形层" :value="d.layer" :disabled="!canSelectRecord" @change="selectRecord(+$event.target.value)">
+              <option v-for="L in selectableLayers" :key="L" :value="L">第 {{ L }} 层</option></select>
+            <span v-else class="field-value">第 {{ d.layer ?? '—' }} 层</span></div>
         </div>
       </Region>
     </div>
@@ -129,6 +130,13 @@ const weightedModalities = computed(() => {
 const imgUrl = computed(() => mediaUrl(d.value.image.url, 1200))
 
 const canSelectRecord = computed(() => replaySession ? typeof replaySession.seekRecognitionLayer === 'function' && !replaySession.loading : !busy.value)
+// 层选择与逐层记录使用同一跳转入口，避免只改控件数值而不刷新共享快照。
+const selectableLayers = computed(() => {
+  if (!replaySession) return layers.value
+  if (typeof replaySession.seekRecognitionLayer !== 'function') return []
+  return [...new Set([d.value?.layer, ...(d.value?.records || []).map(record => record.layer)])]
+    .filter(Number.isFinite).sort((a, b) => a - b)
+})
 async function selectRecord(layer) {
   if (!canSelectRecord.value) return
   if (replaySession) await replaySession.seekRecognitionLayer(layer)

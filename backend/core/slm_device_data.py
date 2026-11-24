@@ -145,12 +145,20 @@ class SLMDeviceDataStore:
             }
 
         video_file = supported_files[0]
+        sequence = None
+        frame_manifest = channel_dir / 'frames' / 'manifest.json'
+        if video_root.name == 'mock_video_corrected' and frame_manifest.is_file():
+            info = json.loads(frame_manifest.read_text(encoding='utf-8'))
+            if info['source'] == video_file.name and info['count'] > 0:
+                sequence = dict(baseUrl=self._public_file_path(channel_dir / 'frames'),
+                                count=info['count'], intervalMs=info['intervalMs'])
         return {
             "available": True,
             "channel": channel_folder,
             "filename": video_file.name,
             "url": self._public_file_path(video_file),
             "media_type": "video" if video_file.suffix.lower() in SUPPORTED_MOCK_VIDEO_SUFFIXES else "image",
+            "frameSequence": sequence,
             "unsupportedFiles": unsupported_files
         }
 

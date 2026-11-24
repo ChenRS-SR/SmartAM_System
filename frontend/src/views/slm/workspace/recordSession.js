@@ -1,4 +1,5 @@
 import { createParameterDemo } from './demoParameters'
+import { updateMonitorFrames } from './monitorFrames'
 import { reactive } from 'vue'
 import { standardDevice } from '../../../utils/deviceNames'
 
@@ -33,10 +34,17 @@ export function createRecordSession(deviceId) {
       session.manifest = result.manifest
       session.snapshot = result.snapshot
       const demo = createParameterDemo(session.snapshot, deviceId)
-      if (demo.enabled) {
-        demo.update()
+      const images = session.snapshot.access.images
+      const hasFrames = Object.values(images || {}).some(image => image.frameSequence)
+      if (demo.enabled || hasFrames) {
+        const started = performance.now()
+        const update = () => {
+          if (demo.enabled) demo.update()
+          updateMonitorFrames(images, performance.now() - started)
+        }
+        update()
         session.statusLabel = '状态更新中'
-        demoTimer = setInterval(() => demo.update(), 1000)
+        demoTimer = setInterval(update, 1000)
       } else session.statusLabel = '档案已载入'
     } catch (e) {
       if (!disposed && controller === request) {

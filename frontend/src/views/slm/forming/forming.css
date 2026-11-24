@@ -296,6 +296,13 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
 
 /* 识别页仅保留对象信息，采集操作统一由状态监测管理。 */
 .forming-root .recognition-page .row-top { grid-template-columns: minmax(0, 1fr); }
+/* 识别对象标签等宽、内容等高；只读信息与可操作的层选择保持同一对齐基线。 */
+.forming-root .recognition-page .r-input .fields { gap: 10px 24px; grid-auto-rows: minmax(36px, auto); }
+.forming-root .recognition-page .r-input .field { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 10px; align-items: stretch; }
+.forming-root .recognition-page .r-input .k { display: flex; align-items: center; }
+.forming-root .recognition-page .r-input .field-value,
+.forming-root .recognition-page .r-input .sel { box-sizing: border-box; width: 100%; min-height: 36px; height: 100%; margin: 0; }
+.forming-root .recognition-page .r-input .field-value { display: flex; align-items: center; padding: 5px 10px; border: 1px solid transparent; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
 
 /* 溯源图保持完整区域边界，画布随卡片伸展，图例独立居中。 */
 .forming-root .trace-page .c-img { padding: 6px; }
