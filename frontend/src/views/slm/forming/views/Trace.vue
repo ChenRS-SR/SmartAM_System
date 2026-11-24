@@ -58,9 +58,9 @@
             <div class="p-head"><span>{{ p.name }}</span><b>{{ fmtPct(p.v) }}</b></div>
             <div class="track"><div class="fill" :style="{ width: p.v * 100 + '%', background: p.color }"></div></div>
           </div>
-          <div v-if="d.actions.length" class="check-advice">
+          <div v-if="checkAdvice.length" class="check-advice">
             <span>检查建议</span>
-            <p>{{ d.actions.join('；') }}</p>
+            <p>{{ checkAdvice.join('；') }}</p>
           </div>
           </div>
         </div>
@@ -138,6 +138,8 @@ const viewBox = computed(() => {
 const toPts = (cs, w, h) => cs.map((c) => c.map(([x, y]) => `${x * w},${y * h}`).join(' '))
 const part = computed(() => toPts(d.value.partContours, d.value.image.width, d.value.image.height))
 const band = computed(() => toPts(d.value.bandContours, d.value.image.width, d.value.image.height))
+// 历史封存结果也统一移除泛化复核提示，仅展示具体检查建议。
+const checkAdvice = computed(() => d.value.actions.filter(action => action.trim() !== '复核超限区域与识别结果'))
 const probs = computed(() => [
   ...(d.value.factors.proc ? [{ name: '工艺问题', v: d.value.factors.proc.prob, color: 'var(--proc)' }] : []),
   { name: '设备问题', v: d.value.factors.dev.prob, color: 'var(--dev)' },
@@ -160,20 +162,20 @@ const curveOption = computed(() => {
   const factors = visibleFactors.value
   // 首个有效结果尚不能连成线，仍需显示数据点；缺失层继续保留为空。
   const series = [
-        { name: '工艺侧', type: 'line', showSymbol: true, symbol: 'circle', symbolSize: 6, z: 8, lineStyle: { width: 1.6, color: C.proc }, itemStyle: { color: C.proc },
+        { name: '工艺问题来源', type: 'line', showSymbol: true, symbol: 'circle', symbolSize: 6, z: 8, lineStyle: { width: 1.6, color: C.proc }, itemStyle: { color: C.proc },
           data: factors.map((x) => [x.layer, x.proc]), connectNulls: false },
-        { name: '设备侧', type: 'line', showSymbol: true, symbol: 'circle', symbolSize: 6, z: 8, lineStyle: { width: 1.6, color: C.dev }, itemStyle: { color: C.dev },
+        { name: '设备问题来源', type: 'line', showSymbol: true, symbol: 'circle', symbolSize: 6, z: 8, lineStyle: { width: 1.6, color: C.dev }, itemStyle: { color: C.dev },
           data: factors.map((x) => [x.layer, x.dev]), markLine: Number.isFinite(d.value.layer) ? cur : undefined },
-        ...(hasProcessCurve.value ? [lim('工艺上限水平', cv.upper.proc, P.upperProc, 'dashed')] : []),
-        ...(Number.isFinite(cv.upper.dev) ? [lim('设备上限水平', cv.upper.dev, P.upperDev, 'dotted')] : []),
+        ...(hasProcessCurve.value ? [lim('正常样本参考水平（工艺）', cv.upper.proc, P.upperProc, 'dashed')] : []),
+        ...(Number.isFinite(cv.upper.dev) ? [lim('正常样本参考水平（设备）', cv.upper.dev, P.upperDev, 'dotted')] : []),
       ]
   return {
     animation: false,
     tooltip: { trigger: 'axis', confine: true },
-    // 图例固定分成曲线/上限两行，单独预留空间，避免窄列自动换行压住坐标轴。
-    grid: { left: 6, right: 12, top: 76, bottom: 38, containLabel: true },
+    // 来源曲线并列，两个正常参考水平各占一行，避免长名称在窄列重叠。
+    grid: { left: 6, right: 12, top: 104, bottom: 38, containLabel: true },
     legend: { top: 4, left: 'center', itemWidth: 18, itemHeight: 8, itemGap: 12,
-      data: ['工艺侧', '设备侧', '', ...series.slice(2).map(s => s.name)],
+      data: ['工艺问题来源', '设备问题来源', '', ...series.slice(2).flatMap(s => [s.name, ''])],
       textStyle: { fontSize: 13, color: P.text } },
     xAxis: { type: 'value', min: lo === hi ? lo - 1 : lo, max: lo === hi ? hi + 1 : hi, name: '层号', nameLocation: 'middle', nameGap: 26,
       minInterval: 1, nameTextStyle: axisFont, axisLabel: { ...axisFont, hideOverlap: true, formatter: (v) => String(v) }, splitLine: { show: false } },
