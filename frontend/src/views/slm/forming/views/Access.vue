@@ -26,7 +26,7 @@
             </label>
           </div>
         </div>
-        <div class="channel-actions"><button class="btn" @click="setChannels(d.channels.map(c => c.name), true)">全部显示</button><button class="btn" @click="setChannels(d.channels.map(c => c.name), false)">全部隐藏</button><span>勾选显示，不改变原始采集</span></div>
+        <div class="channel-actions"><button class="btn" @click="setChannels(d.channels.map(c => c.name), true)">全部显示</button><button class="btn" @click="setChannels(d.channels.map(c => c.name), false)">全部隐藏</button></div>
       </Region>
     </div>
 
@@ -213,7 +213,6 @@ const torqueOption = computed(() => {
 .ch input { accent-color: var(--nav-bg); width: 15px; height: 15px; flex: none; cursor: pointer; }
 .channel-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
 .channel-actions .btn { padding: 4px 9px; font-size: 12px; }
-.channel-actions span { color: var(--text-2); font-size: 12px; }
 .field-value { font-size: 15px; overflow-wrap: anywhere; }
 .channels-empty { color: var(--text-2); padding: 24px; }
 .grid { height: 100%; display: grid; grid-template-columns: minmax(0, 300fr) minmax(0, 300fr) minmax(0, 540fr); grid-template-rows: minmax(0, 282fr) minmax(0, 278fr); gap: 12px; }
