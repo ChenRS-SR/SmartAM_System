@@ -27,3 +27,12 @@ describe('故障类别与部件图对应',()=>{
   expect(traceDiagnosis({conclusion:'未见异常'}).state).toBe('normal')
  })
 })
+
+it('仅贡献超参考水平不生成额外故障类别，正常概率结果显示正常', () => {
+ const trace={device:{id:'slm-b44'},task:{id:'B44-20250321-09-20'},conclusion:'贡献超限，待复核',factors:{proc:{prob:.1},dev:{prob:.2}}}
+ expect(traceDiagnosis(trace)).toMatchObject({state:'normal',conclusion:'正常',faults:[]})
+ trace.factors.dev.prob=.8
+ expect(traceDiagnosis(trace).conclusion).toBe('刮刀扭矩故障')
+ trace.factors.dev.prob=.1;trace.factors.proc.prob=.8
+ expect(traceDiagnosis(trace).state).toBe('process')
+})
