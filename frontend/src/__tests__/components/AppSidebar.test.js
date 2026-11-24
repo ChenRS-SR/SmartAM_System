@@ -38,7 +38,7 @@ describe('工业工作区导航', () => {
     expect(wrapper.get('[aria-current="page"]').attributes('aria-label')).toBe('缺陷识别')
     expect(wrapper.get('[aria-label="系统设置"]').attributes('href')).toBe('/slm/settings?device=machine-02')
     expect(wrapper.get('nav').findAll('a').map(a => a.attributes('aria-label')))
-      .toEqual(['设备总览', '状态监测', '数据接入', '缺陷识别', '异常溯源', '闭环调控'])
+      .toEqual(['设备总览', '状态监测', '缺陷识别', '异常溯源', '闭环调控'])
     await wrapper.get('[aria-label="闭环调控"]').trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.fullPath).toBe('/slm/device/machine-02?tab=control')
@@ -49,7 +49,7 @@ describe('工业工作区导航', () => {
   it('收起模式保留全部导航入口，并从总览恢复设备上下文', async () => {
     localStorage.setItem('slmSelectedDeviceId', 'machine-03')
     const { wrapper } = await setup('/slm/dashboard', true)
-    expect(wrapper.findAll('.nav-item')).toHaveLength(7)
+    expect(wrapper.findAll('.nav-item')).toHaveLength(6)
     expect(wrapper.get('[aria-label="状态监测"]').attributes('href')).toBe('/slm/device/machine-03?tab=status')
     expect(wrapper.find('[aria-label="设备健康"]').exists()).toBe(false)
     expect(wrapper.get('[aria-label="异常溯源"]').attributes('href')).toBe('/slm/device/machine-03?tab=trace')

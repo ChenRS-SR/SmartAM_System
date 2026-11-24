@@ -8,6 +8,8 @@ import Recognition from '../views/slm/forming/views/Recognition.vue'
 import Trace from '../views/slm/forming/views/Trace.vue'
 import RegionControlPanel from '../components/slm/RegionControlPanel.vue'
 import { factorCurveRows } from '../views/slm/forming/traceCurve'
+import { monitoringAccess, monitoringImages } from '../views/slm/workspace/accessPresentation'
+import { slmTabs, slmTab } from '../utils/slmNavigation'
 import { mediaUrl } from '../views/slm/forming/api'
 
 const frame = () => ({ layer: 8, time: '12:00:00', access: {
@@ -19,6 +21,18 @@ const payload = id => ({schemaVersion:1,manifest:{deviceId:id},device:{id,name:i
 afterEach(()=>{vi.unstubAllGlobals();vi.restoreAllMocks()})
 
 describe('统一工作区状态',()=>{
+ it('全部设备使用固定通道槽位，不修改原始快照',()=>{
+  const empty={images:{},channels:[]}
+  const full={images:{before:{url:'/before.png'},video_0:{videoUrl:'/coax.mp4'}},channels:[{name:'同轴图像',imageKey:'video_0'}]}
+  const a=monitoringAccess(empty),b=monitoringAccess(full)
+  expect(a.channels.map(c=>c.name)).toEqual(b.channels.map(c=>c.name))
+  expect(Object.keys(a.images)).toHaveLength(monitoringImages.length)
+  expect(b.images.coax.videoUrl).toBe('/coax.mp4')
+  expect(a.images.before.url).toBe(null)
+  expect(empty.images).toEqual({})
+  expect(slmTabs.map(t=>t.key)).toEqual(['status','recognition','trace','control'])
+  expect(slmTab('access').key).toBe('status')
+ })
  it('缺失模型输出保留识别和诊断卡片，未知量不显示为正常概率',async()=>{
   const session=reactive({snapshot:frame(),playing:false,manifest:{deviceId:'slm-test'}})
   for(const View of [Recognition,Trace]) {

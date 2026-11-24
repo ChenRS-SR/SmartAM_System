@@ -16,6 +16,7 @@
       <router-link v-for="item in tabs" :key="item.key" :to="{ path: route.path, query: { tab: item.key } }" :class="{ active: tab === item.key }" :aria-current="tab === item.key ? 'page' : undefined">{{ item.label }}</router-link>
     </nav>
     <template v-if="frame && tab === 'status'">
+      <div class="forming-root forming-replay"><Access /></div>
       <section class="replay-card">
         <h2>设备状态参数 <small>{{ frame?.time }}</small></h2>
         <div v-if="frame" class="parameter-grid">
@@ -51,7 +52,7 @@
     <template v-else-if="frame">
       <div v-if="frame" class="analysis-time">
         <span>{{ replay.source === 'device-record' ? '档案采样' : '当前采集' }}：第 {{ frame.layer ?? '—' }} 层</span>
-        <span v-if="tab !== 'access'">当前可用结果：{{ frame[tab]?.available === false ? '未接入' : frame[tab] ? `第 ${frame[tab].layer} 层` : '尚未到达' }}</span>
+        <span>当前可用结果：{{ frame[tab]?.available === false ? '未接入' : frame[tab] ? `第 ${frame[tab].layer} 层` : '尚未到达' }}</span>
       </div>
       <div class="forming-root forming-replay"><component :is="views[tab]" /></div>
     </template>
@@ -87,7 +88,7 @@ const devices = useSlmDeviceStore()
 const route = useRoute()
 const tabs = slmTabs
 const tab = computed(() => slmTab(route.query.tab).key)
-const views = { access: Access, recognition: Recognition, trace: Trace }
+const views = { recognition: Recognition, trace: Trace }
 const frame = computed(() => replay.snapshot)
 const currentSlice = computed(() => frame.value?.slice || regionSlice(frame.value))
 const channelNames = { torque: '扭矩', env_a: '温度与压力', env_b: '氧含量与物位', env_c: '气体流量与风机' }
