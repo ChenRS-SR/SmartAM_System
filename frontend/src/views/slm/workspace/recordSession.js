@@ -1,13 +1,16 @@
+import { createParameterDemo } from './demoParameters'
 import { reactive } from 'vue'
 import { standardDevice } from '../../../utils/deviceNames'
 
-// 档案不是实时采集流；每次打开读取本设备，离开后取消请求，不启动随机数据计时器。
+// 档案与缺失参数演示分离；离开、重试时释放本设备计时器与请求。
 export function createRecordSession(deviceId) {
   const session = reactive({ caseId: deviceId, manifest: null, snapshot: null, device: null,
     playing: false, loading: false, error: '', statusLabel: '档案已载入', source: 'device-record' })
+  let demoTimer
   let controller
   let disposed = false
   session.open = async () => {
+    clearInterval(demoTimer)
     controller?.abort()
     const request = new AbortController()
     controller = request
@@ -29,6 +32,12 @@ export function createRecordSession(deviceId) {
       for (const name of ['access', 'recognition', 'trace']) result.snapshot[name].device.name = session.device.name
       session.manifest = result.manifest
       session.snapshot = result.snapshot
+      const demo = createParameterDemo(session.snapshot, deviceId)
+      if (demo.enabled) {
+        demo.update()
+        session.statusLabel = '状态更新中'
+        demoTimer = setInterval(() => demo.update(), 1000)
+      } else session.statusLabel = '档案已载入'
     } catch (e) {
       if (!disposed && controller === request) {
         if (timedOut) session.error = '设备数据读取超时，请重试'
@@ -39,6 +48,6 @@ export function createRecordSession(deviceId) {
       if (!disposed && controller === request) session.loading = false
     }
   }
-  session.dispose = () => { disposed = true; controller?.abort() }
+  session.dispose = () => { disposed = true; clearInterval(demoTimer); controller?.abort() }
   return session
 }

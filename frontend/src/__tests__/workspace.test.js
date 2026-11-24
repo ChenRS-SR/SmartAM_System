@@ -58,6 +58,19 @@ describe('统一工作区状态',()=>{
   expect(fetch.mock.calls.every(([url])=>url==='/api/slm/control/config')).toBe(true)
   w.unmount()
  })
+ it('参数演示重载只有一个计时器，离开后停止刷新',async()=>{
+  vi.useFakeTimers()
+  const session=createRecordSession('slm-b17')
+  vi.stubGlobal('fetch',vi.fn().mockImplementation(async()=>({ok:true,json:async()=>payload('slm-b17')})))
+  try {
+   await session.open();expect(vi.getTimerCount()).toBe(1)
+   const first=session.snapshot.parameters.find(p=>p.id==='chamber_temperature').value
+   await vi.advanceTimersByTimeAsync(1000)
+   expect(session.snapshot.parameters.find(p=>p.id==='chamber_temperature').value).not.toBe(first)
+   await session.open();expect(vi.getTimerCount()).toBe(1)
+   session.dispose();expect(vi.getTimerCount()).toBe(0)
+  } finally {session.dispose();vi.useRealTimers()}
+ })
  it('旧请求不能覆盖重试，离开工作区不会再写入',async()=>{
   const completions=[]
   vi.stubGlobal('fetch',vi.fn(()=>new Promise(resolve=>completions.push(resolve))))

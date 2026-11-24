@@ -214,6 +214,7 @@
 </template>
 
 <script setup>
+import { compareFeaturedDevices } from '../../utils/devicePriority'
 import { useReplayStore, REPLAY_CASES } from '../../stores/replay'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -408,7 +409,7 @@ const displayDevices = computed(() => deviceStore.devices.map(device => {
 }))
 
 // 故障设备优先，随后完整案例；原始故障清单排序稳定，不随模拟波动跳动。
-const orderedDevices = computed(() => [...displayDevices.value].sort((a, b) => Number(deviceStore.getDeviceById(b.id)?.health === 'fault') - Number(deviceStore.getDeviceById(a.id)?.health === 'fault') || Number(Boolean(b.replayCase)) - Number(Boolean(a.replayCase))))
+const orderedDevices = computed(() => [...displayDevices.value].sort((a, b) => compareFeaturedDevices(a, b) || Number(deviceStore.getDeviceById(b.id)?.health === 'fault') - Number(deviceStore.getDeviceById(a.id)?.health === 'fault') || Number(Boolean(b.replayCase)) - Number(Boolean(a.replayCase))))
 const filteredDevices = computed(() => {
   if (selectedOrg.value === 'all') return orderedDevices.value
   return orderedDevices.value.filter((device) => {
