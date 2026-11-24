@@ -296,3 +296,21 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
 
 /* 识别页仅保留对象信息，采集操作统一由状态监测管理。 */
 .forming-root .recognition-page .row-top { grid-template-columns: minmax(0, 1fr); }
+
+/* 溯源图保持完整区域边界，画布随卡片伸展，图例独立居中。 */
+.forming-root .trace-page .c-img { padding: 6px; }
+.forming-root .trace-page .c-img .card-title { padding: 4px 6px; }
+.forming-root .trace-page .c-img .overlay {
+  height: auto;
+  max-height: none;
+  min-height: 240px;
+  flex: 1 1 auto;
+  width: 100%;
+}
+.forming-root .trace-page .c-img .img-legend {
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px 14px;
+  margin: 8px 0 4px;
+}

@@ -37,7 +37,7 @@
     <Region kind="vis" class="r-vis">
       <div class="vis-grid">
         <div class="card c-img">
-          <div class="card-title">异常溯源</div>
+          <div class="card-title">监测图像溯源区域划分</div>
           <svg v-if="d.image.url" class="overlay" :viewBox="viewBox" preserveAspectRatio="xMidYMid meet">
             <image :href="imgUrl" x="0" y="0" :width="d.image.width" :height="d.image.height" />
             <polygon v-for="(c, i) in band" :key="'b' + i" :points="c" class="band" />
