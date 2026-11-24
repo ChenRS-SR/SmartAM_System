@@ -47,9 +47,9 @@
             <div class="m-sub">各模态识别概率</div>
             <div class="single" v-for="m in modalityResults" :key="m.key" :class="{ unused: !m.used }">
               <span class="s-name">{{ m.name }}</span>
-              <div class="s-track"><div class="s-fill" :style="{ width: m.p * 100 + '%', background: probabilityColor(m.p) }"></div><i class="s-th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
               <span class="s-p">{{ fmtPct(m.p) }}</span>
               <span class="tag" :style="{color:probabilityColor(m.p)}">{{ m.label }}</span>
+              <div class="s-track"><div class="s-fill" :style="{ width: m.p * 100 + '%', background: probabilityColor(m.p) }"></div><i class="s-th" :style="{ left: d.params.threshold * 100 + '%' }"></i></div>
             </div>
             <template v-if="!d.infrared">
               <div class="m-sub second">融合权重</div>
@@ -228,12 +228,14 @@ const torqueOption = computed(() => {
 .c-torque { grid-column: 1 / 3; }
 .m-sub { font-size: 17px; font-weight: 700; margin-top: 4px; }
 .m-sub.second { margin-top: 18px; }
-.single { display: grid; grid-template-columns: 140px 1fr 64px 58px; align-items: center; gap: 10px; margin-top: 10px; font-size: 16px; }
+/* 文字与概率条分行；数值和标签按内容占宽，避免固定窄列遮挡。 */
+.single { display: grid; grid-template-columns: minmax(0, 1fr) max-content max-content; align-items: center; gap: 10px 14px; margin-top: 14px; padding-bottom: 6px; font-size: 16px; }
 .single.unused { opacity: .45; }
-.s-name { white-space: nowrap; }
-.s-track { position: relative; height: 12px; background: var(--track); border-radius: 6px; }
+.s-name { min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
+.single .tag { box-sizing: border-box; min-width: 56px; padding: 3px 10px; line-height: 1.4; }
+.s-track { grid-column: 1 / -1; min-width: 0; position: relative; height: 10px; margin: 3px 0; background: var(--track); border-radius: 3px; }
 .s-fill { height: 100%; background: var(--am-text-3); border-radius: 6px; }
 .s-th { position: absolute; top: -4px; width: 2px; height: 20px; background: var(--ink); }
-.s-p { text-align: right; font-weight: 700; }
+.s-p { text-align: right; white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
 .tag { text-align: center; }
 </style>

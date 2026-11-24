@@ -192,8 +192,6 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
 .forming-root .analysis-page .eu { flex: 0 0 40px; }
 .forming-root .analysis-page .alarm { white-space: normal; overflow-wrap: anywhere; }
 .forming-root .analysis-page .w-legend, .forming-root .analysis-page .img-legend { flex-wrap: wrap; gap: 4px 14px; }
-.forming-root .analysis-page .single { grid-template-columns: minmax(80px, 1.3fr) minmax(40px, 1fr) 60px 48px; gap: 6px; }
-.forming-root .analysis-page .s-name { white-space: normal; }
 .forming-root .analysis-page .g-head, .forming-root .analysis-page .kv { flex-wrap: wrap; gap: 4px 8px; }
 .forming-root .analysis-page .act-box { flex-wrap: wrap; }
 .forming-root .analysis-page .act-t { white-space: normal; }
@@ -224,8 +222,6 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
   .forming-root .analysis-page .fields { grid-template-columns: minmax(0, 1fr); }
   .forming-root .analysis-page .chs { grid-template-columns: repeat(2, minmax(0, 1fr)); font-size: 13px; }
   .forming-root .analysis-page .ch { white-space: normal; }
-  .forming-root .analysis-page .single { grid-template-columns: minmax(0, 1fr) 60px 48px; }
-  .forming-root .analysis-page .s-name { grid-column: 1 / -1; }
   .forming-root .analysis-page .zrow { grid-template-columns: 48px minmax(24px, 1fr) 46px 56px; gap: 4px; font-size: 14px; }
   .forming-root .analysis-page .z-tag { padding: 0 4px; }
 }
