@@ -44,12 +44,13 @@ const buildChartOption = () => {
   return {
     backgroundColor: 'transparent',
     tooltip: {trigger: 'axis', confine: true, backgroundColor: amVar('--am-card-bg'), textStyle: {color: amVar('--am-text')}, valueFormatter: value => value == null ? '—' : Number(value).toFixed(4)},
-    legend: {top: 12, type: 'scroll', textStyle: {color: amVar('--am-text-2')}},
+    legend: {top: 12, left: 'center', type: 'scroll', itemWidth: 36, itemHeight: 16, itemGap: 22, textStyle: {color: amVar('--am-text-2'), fontSize: 15}},
     grid: {left: 14, right: 20, top: 64, bottom: 72, containLabel: true},
     xAxis: {type: 'category', data: data?.duration || [], axisLabel: {color: amVar('--am-text-2'), formatter: value => `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}`}},
     yAxis: {type: 'value', name: isPLP.value ? '可靠性 R' : '风险指标 W', ...(isPLP.value ? {min:0, max:1} : {}), nameTextStyle: {color: amVar('--am-text-2')}, axisLabel: {color: amVar('--am-text-2')}, splitLine: {lineStyle: {color: amVar('--am-card-border')}}},
     dataZoom: [{type: 'inside'}, {type: 'slider', bottom: 8, height: 22, textStyle: {color: amVar('--am-text-2')}}],
-    series: definitions.map(([key, name, color], index) => ({name, type: 'line', data: (data?.history || []).map(row => row[key] ?? null), connectNulls: false, symbol: index ? 'none' : 'circle', symbolSize: 6, lineStyle: {color, width: 2, type: index ? 'dashed' : 'solid'}, itemStyle: {color}}))
+    // 曲线始终绘制每个任务的数据点，与图例的圆点线段保持一致。
+    series: definitions.map(([key, name, color], index) => ({name, type: 'line', data: (data?.history || []).map(row => row[key] ?? null), connectNulls: false, symbol: 'circle', symbolSize: 7, showSymbol: true, showAllSymbol: true, lineStyle: {color, width: 2, type: index ? 'dashed' : 'solid'}, itemStyle: {color}}))
   }
 }
 const initChart = async () => {
