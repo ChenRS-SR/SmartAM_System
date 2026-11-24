@@ -143,7 +143,7 @@ const probs = computed(() => [
   { name: '设备问题', v: d.value.factors.dev.prob, color: 'var(--dev)' },
 ])
 const visibleFactors = computed(() => layerWindow(factorCurveRows(d.value), d.value.layer))
-const curveStart = computed(() => Math.max(1, (d.value.layer ?? TRACE_WINDOW_SIZE) - TRACE_WINDOW_SIZE + 1))
+const curveStart = computed(() => visibleFactors.value[0]?.layer ?? Math.max(1, (d.value.layer ?? TRACE_WINDOW_SIZE) - TRACE_WINDOW_SIZE + 1))
 const hasProcessCurve = computed(() => visibleFactors.value.some(r => r.proc !== null))
 
 const curveOption = computed(() => {
@@ -156,24 +156,26 @@ const curveOption = computed(() => {
   const cur = { silent: true, symbol: 'none', data: [{ xAxis: d.value.layer, lineStyle: { color: P.ink, width: 1.4 },
     label: { show: true, color: P.text, formatter: '当前层', fontSize: 12, position: 'insideEndTop', distance: 6 } }] }
   const lim = (name, v, color, type) => ({ name, type: 'line', symbol: 'none', z: 5, lineStyle: { width: 1.8, color, type }, itemStyle: { color },
-    data: [[lo, v], [hi, v]] })
+    data: [[lo === hi ? lo - 1 : lo, v], [lo === hi ? hi + 1 : hi, v]] })
   const factors = visibleFactors.value
+  // 首个有效结果尚不能连成线，仍需显示数据点；缺失层继续保留为空。
   const series = [
-        { name: '工艺侧', type: 'line', showSymbol: false, lineStyle: { width: 1.6, color: C.proc }, itemStyle: { color: C.proc },
+        { name: '工艺侧', type: 'line', showSymbol: true, symbol: 'circle', symbolSize: 6, z: 8, lineStyle: { width: 1.6, color: C.proc }, itemStyle: { color: C.proc },
           data: factors.map((x) => [x.layer, x.proc]), connectNulls: false },
-        { name: '设备侧', type: 'line', showSymbol: false, lineStyle: { width: 1.6, color: C.dev }, itemStyle: { color: C.dev },
+        { name: '设备侧', type: 'line', showSymbol: true, symbol: 'circle', symbolSize: 6, z: 8, lineStyle: { width: 1.6, color: C.dev }, itemStyle: { color: C.dev },
           data: factors.map((x) => [x.layer, x.dev]), markLine: Number.isFinite(d.value.layer) ? cur : undefined },
         ...(hasProcessCurve.value ? [lim('工艺上限水平', cv.upper.proc, P.upperProc, 'dashed')] : []),
         ...(Number.isFinite(cv.upper.dev) ? [lim('设备上限水平', cv.upper.dev, P.upperDev, 'dotted')] : []),
       ]
   return {
     animation: false,
+    tooltip: { trigger: 'axis', confine: true },
     // 图例固定分成曲线/上限两行，单独预留空间，避免窄列自动换行压住坐标轴。
     grid: { left: 8, right: 16, top: 88, bottom: 42, containLabel: true },
     legend: { top: 4, left: 'center', itemWidth: 18, itemHeight: 8, itemGap: 12,
       data: ['工艺侧', '设备侧', '', ...series.slice(2).map(s => s.name)],
       textStyle: { fontSize: 13, color: P.text } },
-    xAxis: { type: 'value', min: lo === hi ? lo - 1 : lo, max: hi, name: '层号', nameLocation: 'middle', nameGap: 26,
+    xAxis: { type: 'value', min: lo === hi ? lo - 1 : lo, max: lo === hi ? hi + 1 : hi, name: '层号', nameLocation: 'middle', nameGap: 26,
       minInterval: 1, nameTextStyle: axisFont, axisLabel: { ...axisFont, hideOverlap: true, formatter: (v) => String(v) }, splitLine: { show: false } },
     yAxis: { type: 'value', name: '贡献', nameTextStyle: { ...axisFont, align: 'left' }, nameGap: 10, axisLabel: axisFont, splitNumber: 4,
       splitLine: { lineStyle: { color: P.split } } },
