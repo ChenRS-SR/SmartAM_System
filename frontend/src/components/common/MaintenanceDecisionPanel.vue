@@ -1,584 +1,80 @@
 <template>
   <el-card class="maintenance-panel" shadow="never">
-    <template #header>
-      <div class="card-header">
-        <span class="header-title">
-          视情维护可视化
-        </span>
-        <div class="header-tags">
-          <el-tag :type="overallStatus.type" size="small" effect="dark">
-            {{ overallStatus.label }}
-          </el-tag>
-        </div>
-      </div>
-    </template>
-
-    <!-- 6个系统风险可视化 -->
+    <template #header><div class="maintenance-heading"><span>视情维护可视化</span><el-tag :type="overall.type">{{ overall.label }}</el-tag></div></template>
+    <div v-if="records.length" class="assessment-toolbar">
+      <label for="maintenance-task">评估任务</label>
+      <select id="maintenance-task" v-model="selectedTask"><option v-for="row in records" :key="row.task" :value="row.task">{{ row.task }}</option></select>
+      <span>{{ records.length }} 条任务记录</span>
+    </div>
     <div class="systems-grid">
-      <div
-        v-for="system in displaySystems"
-        :key="system.key"
-        class="system-card"
-        role="button"
-        tabindex="0"
-        :aria-label="`${system.name}维护详情`"
-        @keydown.enter="handleSystemClick(system)"
-        @keydown.space.prevent="handleSystemClick(system)"
-        :class="{ 'risk-warning': system.riskPercent > 50 && system.riskPercent <= 80, 'risk-danger': system.riskPercent > 80 }"
-        @click="handleSystemClick(system)"
-      >
-        <div class="system-title">{{ system.name }}</div>
-        <div class="risk-visual">
-          <div class="risk-bar-container">
-            <div class="risk-bar-bg">
-              <div
-                class="risk-bar-fill"
-                :style="{ width: Math.min(system.riskPercent, 100) + '%', background: getRiskColor(system.riskPercent) }"
-              ></div>
-            </div>
-            <div
-              v-if="Number.isFinite(system.thresholdPercent)" class="risk-threshold-mark"
-              :style="{ left: Math.min(system.thresholdPercent, 100) + '%' }"
-            >
-              <div class="threshold-line"></div>
-              <div class="threshold-tooltip">阈值</div>
-            </div>
+      <button v-for="system in systems" :key="system.key" class="system-card" :aria-label="`${system.name}维护详情`" @click="openDetail(system)">
+        <div class="system-title"><strong>{{ system.name }}</strong><span>{{ system.model || '—' }}</span></div>
+        <template v-if="system.model === 'PHM'">
+          <div class="risk-track">
+            <i v-for="field in ['wl', 'wr', 'wu'].filter(key => Number.isFinite(system[key]))" :key="field" :class="field" :style="{ left: riskPosition(system, system[field]) + '%' }" :title="`${field.toUpperCase()} ${fmt(system[field])}`"></i>
+            <b v-if="Number.isFinite(system.w)" class="risk-point" :style="{ left: riskPosition(system, system.w) + '%' }" :title="`W ${fmt(system.w)}`"></b>
           </div>
-          <div class="risk-labels">
-            <span class="risk-current" :style="{ color: getRiskColor(system.riskPercent) }">
-              当前: {{ fmt(system.riskValue) }}
-            </span>
-            <span class="risk-threshold">阈值: {{ fmt(system.thresholdValue) }}</span>
-          </div>
-        </div>
-        <div class="system-status">
-          <el-tag :type="getRiskTagType(system.riskPercent)" size="small" effect="dark">
-            {{ getRiskLabel(system.riskPercent) }}
-          </el-tag>
-        </div>
-      </div>
+          <div class="metric-grid"><span>风险 W <b>{{ fmt(system.w) }}</b></span><span>经济 WL <b>{{ fmt(system.wl) }}</b></span><span>可靠性 WR <b>{{ fmt(system.wr) }}</b></span><span>维修 WU <b>{{ fmt(system.wu) }}</b></span></div>
+        </template>
+        <div class="reliability-row"><span>可靠性 R</span><strong>{{ percent(system.reliability) }}</strong></div>
+        <div class="reliability-track"><div :style="{width: `${(system.reliability || 0) * 100}%`, background: reliabilityColor(system)}"></div></div>
+        <div class="age-row"><span>下限 {{ percent(system.rmin) }}</span><span>役龄 {{ fmt(system.age) }} {{ system.unit }}</span></div>
+        <el-tag :type="maintenanceStatus(system).type">{{ maintenanceStatus(system).label }}</el-tag>
+      </button>
     </div>
-
-    <!-- 可靠性计算值区域 -->
-    <div class="reliability-section">
-      <div class="section-header">
-        <span class="section-label">各系统当前可靠性计算值</span>
-      </div>
-      <div class="reliability-grid">
-        <div
-          v-for="system in displaySystems"
-          :key="'rel-' + system.key"
-          class="reliability-card"
-        >
-          <div class="rel-content">
-            <span class="rel-name">{{ system.name }}</span>
-            <span
-              class="rel-value"
-              :style="{ color: getReliabilityColor(system.reliability) }"
-            >
-              {{ Number.isFinite(system.reliability) ? (system.reliability * 100).toFixed(1) + '%' : '—' }}
-            </span>
-          </div>
-          <div class="rel-bar-bg">
-            <div
-              class="rel-bar-fill"
-              :style="{
-                width: system.reliability * 100 + '%',
-                background: getReliabilityColor(system.reliability)
-              }"
-            ></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 维修建议框 -->
-    <div class="advice-section">
-      <div class="advice-box">
-        <div class="advice-label">维修建议</div>
-        <div class="advice-content">
-          <p v-for="(line, idx) in adviceLines" :key="idx" class="advice-line">
-            <el-tag size="small" :type="line.type" effect="dark" class="advice-priority">
-              {{ line.priority }}
-            </el-tag>
-            {{ line.text }}
-          </p>
-          <p v-if="adviceLines.length === 0" class="advice-empty">
-            暂无已接入的维修建议。
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 底部统计信息 -->
+    <div class="maintenance-advice"><strong>维护建议</strong><p v-for="system in attention" :key="system.key">{{ system.name }}：{{ maintenanceStatus(system).label }}，建议安排维护检查。</p><p v-if="!attention.length">{{ records.length ? '继续监测各子系统状态。' : '暂无已接入的维护评估。' }}</p></div>
     <p v-if="statisticsError" role="alert">{{ statisticsError }}</p>
-    <div class="statistics-section">
-      <div class="stat-card">
-        <div class="stat-content">
-          <span class="stat-label">累计发生故障任务</span>
-          <span class="stat-value">{{ displayStats.totalFaults }}</span>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-content">
-          <span class="stat-label">维护记录次数</span>
-          <span class="stat-value">{{ displayStats.preventiveRepairs }}</span>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-content">
-          <span class="stat-label">故障任务率</span>
-          <span class="stat-value">{{ displayStats.rateText }}%</span>
-        </div>
-      </div>
-    </div>
+    <div class="statistics-section"><div><span>累计发生故障任务</span><strong>{{ statistics.totalFaults }}</strong></div><div><span>维护记录次数</span><strong>{{ statistics.preventiveRepairs }}</strong></div><div><span>故障任务率</span><strong>{{ statistics.rateText }}%</strong></div></div>
+    <MaintenanceDetailDialog v-model="detailVisible" :system-key="detailKey" :system-name="detail?.name || ''" :device-name="deviceName" :organization-label="organizationLabel" :measurements="detail" />
   </el-card>
 </template>
-
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import MaintenanceDetailDialog from './MaintenanceDetailDialog.vue'
 import { useMaintenanceStatistics } from '../../composables/useMaintenanceStatistics'
-
-const props = defineProps({
-  deviceId: {type:String,default:''},
-  systems: {
-    type: Array,
-    default: () => []
-  },
-  statistics: {
-    type: Object,
-    default: () => ({})
-  },
-  advice: {
-    type: Array,
-    default: () => []
-  }
+import { maintenanceSystems, maintenanceRecords, initialMaintenanceTask, maintenanceStatus, maintenanceMeasurements, riskPosition } from '../../utils/maintenanceAssessment'
+const props = defineProps({ deviceId: {type: String, default: ''}, deviceName: {type: String, default: ''}, organizationLabel: {type: String, default: ''} })
+const records = computed(() => maintenanceRecords(props.deviceId))
+const selectedTask = ref('')
+const detailVisible = ref(false)
+const detailKey = ref('powder')
+watch(() => props.deviceId, id => { selectedTask.value = initialMaintenanceTask(id); detailVisible.value = false }, {immediate: true})
+const systems = computed(() => records.value.find(row => row.task === selectedTask.value)?.systems || maintenanceSystems.map(([key, name]) => ({key, name})))
+const attention = computed(() => systems.value.filter(system => maintenanceStatus(system).rank > 0))
+const overall = computed(() => {
+  if (!records.value.length) return {type: 'info', label: '评估数据未接入'}
+  const status = systems.value.map(maintenanceStatus).sort((a,b) => b.rank - a.rank)[0]
+  if (status.rank > 0) return {type: status.type, label: '存在维护需求'}
+  if (systems.value.some(system => maintenanceStatus(system).rank < 0)) return {type: 'info', label: '部分评估数据缺失'}
+  return {type: 'success', label: '持续监测'}
 })
-
-const emit = defineEmits(['system-click'])
-
-const handleSystemClick = (system) => {
-  emit('system-click', { key: system.key, name: system.name })
-}
-
-// 只固定系统结构，风险与可靠性必须来自该设备的计算结果。
-const systemDefinitions = [
-  ['filter', '高效滤芯'], ['argon', '氩气循环系统'], ['powder', '铺粉成型系统（刮刀）'],
-  ['feeder', '落粉轴系统'], ['laser', '激光器'], ['fan', '风机']
-]
-const fmt = value => Number.isFinite(value) ? value.toFixed(2) : '—'
-
-const {statistics:apiStats, error:statisticsError} = useMaintenanceStatistics(() => props.deviceId ? [props.deviceId] : null)
-
-const displaySystems = computed(() => systemDefinitions.map(([key, name]) => ({
-  key, name, riskValue: null, thresholdValue: null, riskPercent: null, thresholdPercent: null, reliability: null,
-  ...props.systems.find(system => system.key === key)
-})))
-const displayStats = computed(() => ({ ...apiStats.value, ...props.statistics }))
-const adviceLines = computed(() => props.advice)
-
-const overallStatus = computed(() => {
-  if (displaySystems.value.some(s => !Number.isFinite(s.riskPercent))) return {type:'info', label:'评估数据未齐备'}
-  const maxRisk = Math.max(...displaySystems.value.map(s => s.riskPercent))
-  if (maxRisk > 80) return { type: 'danger', label: '高风险' }
-  if (maxRisk > 50) return { type: 'warning', label: '中风险' }
-  return { type: 'success', label: '低风险' }
-})
-
-const getRiskColor = (percent) => {
-  if (!Number.isFinite(percent)) return '#87919d'
-  if (percent > 80) return '#ef4444'
-  if (percent > 50) return '#f59e0b'
-  return '#22c55e'
-}
-
-const getRiskTagType = (percent) => {
-  if (!Number.isFinite(percent)) return 'info'
-  if (percent > 80) return 'danger'
-  if (percent > 50) return 'warning'
-  return 'success'
-}
-
-const getRiskLabel = (percent) => {
-  if (!Number.isFinite(percent)) return '未接入'
-  if (percent > 80) return '超阈值'
-  if (percent > 50) return '预警'
-  return '正常'
-}
-
-const getReliabilityColor = (value) => {
-  if (!Number.isFinite(value)) return '#87919d'
-  if (value >= 0.85) return '#22c55e'
-  if (value >= 0.60) return '#f59e0b'
-  return '#ef4444'
-}
+const detail = computed(() => maintenanceMeasurements(records.value, selectedTask.value, detailKey.value))
+function openDetail(system) { detailKey.value = system.key; detailVisible.value = true }
+const fmt = value => Number.isFinite(value) ? value.toFixed(3) : '—'
+const percent = value => Number.isFinite(value) ? `${(value * 100).toFixed(2)}%` : '—'
+const reliabilityColor = system => !Number.isFinite(system.reliability) ? '#87919d' : system.reliability < system.rmin ? '#dc4545' : '#31966c'
+const { statistics, error: statisticsError } = useMaintenanceStatistics(() => props.deviceId ? [props.deviceId] : null)
 </script>
-
 <style scoped>
-.maintenance-panel {
-  background: var(--am-card-bg);
-  border: 1px solid var(--am-card-border);
-  color: var(--am-text);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.header-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--am-text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.header-tags {
-  display: flex;
-  gap: 8px;
-}
-
-/* 6个系统网格 */
-.systems-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.system-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-  background: var(--am-card-bg-2);
-  border-radius: 4px;
-  border: 1px solid var(--am-card-border-2);
-  transition: border-color .15s ease;
-}
-
-.system-card:hover {
-  border-color: color-mix(in srgb, var(--am-accent) 30%, transparent);
-
-  cursor: pointer;
-}
-
-.system-card::after {
-  content: '查看详情';
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 2px 6px;
-  font-size: 10px;
-  color: var(--am-accent);
-  background: color-mix(in srgb, var(--am-accent) 13%, transparent);
-  border: 1px solid color-mix(in srgb, var(--am-accent) 20%, transparent);
-  border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.system-card:focus-visible::after, .system-card:hover::after {
-  opacity: 1;
-}
-
-.system-card.risk-warning {
-  border-color: color-mix(in srgb, var(--am-warn) 40%, transparent);
-  background: color-mix(in srgb, var(--am-warn) 8%, transparent);
-}
-
-.system-card.risk-danger {
-  border-color: color-mix(in srgb, var(--am-danger) 50%, transparent);
-  background: color-mix(in srgb, var(--am-danger) 11%, transparent);
-
-}
-
-
-
-.system-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--am-text);
-  text-align: center;
-}
-
-/* 风险条形图 */
-.risk-visual {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.risk-bar-container {
-  position: relative;
-  height: 24px;
-}
-
-.risk-bar-bg {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  transform: translateY(-50%);
-  height: 10px;
-  background: var(--am-card-bg-2);
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.risk-bar-fill {
-  height: 100%;
-  border-radius: 5px;
-  transition: width 0.6s ease, background 0.3s ease;
-}
-
-.risk-threshold-mark {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.threshold-line {
-  width: 2px;
-  height: 100%;
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--am-accent) 0px,
-    var(--am-accent) 3px,
-    transparent 3px,
-    transparent 6px
-  );
-}
-
-.threshold-tooltip {
-  position: absolute;
-  top: -16px;
-  font-size: 10px;
-  color: var(--am-accent);
-  background: var(--am-card-bg);
-  padding: 1px 4px;
-  border-radius: 3px;
-  white-space: nowrap;
-  border: 1px solid color-mix(in srgb, var(--am-accent) 30%, transparent);
-}
-
-.risk-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  padding: 0 2px;
-}
-
-.risk-current {
-  font-weight: 600;
-}
-
-.risk-threshold {
-  color: var(--am-text-2);
-}
-
-.system-status {
-  display: flex;
-  justify-content: center;
-}
-
-/* 可靠性区域 */
-.reliability-section {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: var(--am-card-bg-2);
-  border-radius: 4px;
-  border: 1px solid var(--am-card-border-2);
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--am-text);
-}
-
-.reliability-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
-}
-
-.reliability-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 8px;
-  background: var(--am-card-bg-2);
-  border-radius: 8px;
-  border: 1px solid var(--am-card-border-2);
-  text-align: center;
-}
-
-
-.rel-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.rel-name {
-  font-size: 12px;
-  color: var(--am-text-2);
-  line-height: 1.3;
-}
-
-.rel-value {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.rel-bar-bg {
-  width: 100%;
-  height: 4px;
-  background: var(--am-card-bg-2);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.rel-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.6s ease;
-}
-
-/* 维修建议框 */
-.advice-section {
-  margin-bottom: 20px;
-}
-
-.advice-box {
-  position: relative;
-  padding: 20px 16px 16px;
-  background: var(--am-card-bg-2);
-  border-radius: 4px;
-  border: 1px solid var(--am-card-border);
-  min-height: 80px;
-}
-
-.advice-label {
-  position: absolute;
-  top: -10px;
-  left: 12px;
-  padding: 2px 10px;
-  background: var(--am-card-bg);
-  border: 1px solid color-mix(in srgb, var(--am-accent) 40%, transparent);
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--am-accent);
-}
-
-.advice-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.advice-line {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 0;
-  font-size: 13px;
-  color: var(--am-text);
-  line-height: 1.6;
-}
-
-.advice-priority {
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.advice-empty {
-  margin: 0;
-  font-size: 13px;
-  color: var(--am-text-2);
-  text-align: center;
-  padding: 12px 0;
-}
-
-/* 底部统计 */
-.statistics-section {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--am-card-border-2);
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--am-card-bg-2);
-  border-radius: 4px;
-  border: 1px solid var(--am-card-border-2);
-}
-
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--am-text-2);
-}
-
-.stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--am-text);
-  font-family: 'Courier New', monospace;
-}
-
-/* 响应式 */
-@media (max-width: 1200px) {
-  .systems-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .reliability-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .systems-grid {
-    grid-template-columns: 1fr;
-  }
-  .reliability-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .statistics-section {
-    grid-template-columns: 1fr;
-  }
-  .header-tags {
-    width: 100%;
-  }
-}
+.maintenance-panel {color:var(--am-text);background:var(--am-card-bg);border:1px solid var(--am-card-border)}
+.maintenance-heading,.assessment-toolbar,.system-title,.reliability-row,.age-row {display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.maintenance-heading {font-size:18px;font-weight:600}
+.assessment-toolbar {justify-content:flex-start;margin-bottom:18px;font-size:14px}
+.assessment-toolbar select {min-height:38px;max-width:100%;padding:6px 12px;color:var(--am-text);background:var(--am-card-bg-2);border:1px solid var(--am-card-border);border-radius:4px}
+.assessment-toolbar>span,.system-title>span,.age-row {color:var(--am-text-2);font-size:12px}
+.systems-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:16px}
+.system-card {display:flex;flex-direction:column;gap:12px;min-width:0;padding:16px;text-align:left;background:var(--am-card-bg-2);border:1px solid var(--am-card-border);border-radius:4px;color:var(--am-text);font:inherit;cursor:pointer}
+.system-card:hover,.system-card:focus-visible {border-color:var(--am-accent)}
+.system-title {font-size:15px}.system-card>.el-tag {align-self:flex-start;margin-top:auto}
+.risk-track {position:relative;height:20px;margin:6px 0;background:linear-gradient(transparent 8px,var(--am-card-border) 8px,var(--am-card-border) 12px,transparent 12px)}
+.risk-track i {position:absolute;height:20px;border-left:2px dashed;transform:translateX(-50%)}
+.wl {color:#4686b8}.wr {color:#18a2a4}.wu {color:#dc4545}
+.risk-point {position:absolute;top:5px;width:10px;height:10px;background:var(--am-text);border:1px solid var(--am-card-bg);transform:translateX(-50%)}
+.metric-grid {display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:12px}.metric-grid span {display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.reliability-row {margin-top:auto;font-size:13px}.reliability-row strong {font-size:20px}
+.reliability-track {height:5px;background:var(--am-card-border)}.reliability-track>div {height:100%}
+.maintenance-advice {margin-top:20px;padding:16px;border:1px solid var(--am-card-border);border-radius:4px;font-size:14px}.maintenance-advice p {margin:8px 0 0;line-height:1.6}
+.statistics-section {display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}.statistics-section>div {display:flex;flex-direction:column;gap:8px;padding:16px;border:1px solid var(--am-card-border);border-radius:4px}.statistics-section span {font-size:12px;color:var(--am-text-2)}.statistics-section strong {font-size:22px}
+.system-card,.statistics-section {font-variant-numeric:tabular-nums}
+@media(max-width:600px){.systems-grid,.statistics-section {grid-template-columns:1fr}.assessment-toolbar select {width:100%}}
 </style>

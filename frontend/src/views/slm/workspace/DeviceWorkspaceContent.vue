@@ -30,14 +30,7 @@
         </section>
       </div>
       <!-- 每台设备均提供维护面板，详情按当前设备与所属单位展示。 -->
-      <MaintenanceDecisionPanel :device-id="deviceId" @system-click="openMaintenanceDetail" />
-      <MaintenanceDetailDialog
-        v-model="maintenanceVisible"
-        :system-key="maintenanceSystem.key"
-        :system-name="maintenanceSystem.name"
-        :device-name="device.name"
-        :organization-label="device.owner === '华科' ? '华科' : '7103（铂力特）'"
-      />
+      <MaintenanceDecisionPanel :device-id="deviceId" :device-name="device.name" :organization-label="device.owner === '华科' ? '华科' : '7103（铂力特）'" />
     </template>
     <template v-else-if="frame && tab === 'control'">
       <RegionControlPanel :frame="frame" :slice="currentSlice" :blocked="!!replay.error" />
@@ -54,7 +47,7 @@
 <script setup>
 import { traceDiagnosis } from '../forming/traceDiagnosis'
 import { slmTabs, slmTab } from '../../../utils/slmNavigation'
-import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
+import { computed, onMounted, onUnmounted, provide } from 'vue'
 import { useRoute } from 'vue-router'
 import { useReplayStore, replayCaseForDevice } from '../../../stores/replay'
 import { useSlmDeviceStore } from '../../../stores/slmDevices'
@@ -65,7 +58,6 @@ import { createRecordSession } from './recordSession'
 import RegionControlPanel from '../../../components/slm/RegionControlPanel.vue'
 import { regionSlice } from '../../../components/slm/regionControl'
 import MaintenanceDecisionPanel from '../../../components/common/MaintenanceDecisionPanel.vue'
-import MaintenanceDetailDialog from '../../../components/common/MaintenanceDetailDialog.vue'
 import '../forming/forming.css'
 import './workspace.css'
 const props = defineProps({ deviceId: { type: String, required: true } })
@@ -73,12 +65,6 @@ const caseConfig = replayCaseForDevice(props.deviceId)
 const replay = caseConfig ? useReplayStore(caseConfig.id) : createRecordSession(props.deviceId)
 const device = computed(() => caseConfig || replay.device || { name: props.deviceId, owner: '' })
 onUnmounted(() => { if (!caseConfig) replay.dispose() })
-const maintenanceVisible = ref(false)
-const maintenanceSystem = ref({ key: 'filter', name: '高效滤芯' })
-function openMaintenanceDetail(system) {
-  maintenanceSystem.value = system
-  maintenanceVisible.value = true
-}
 const devices = useSlmDeviceStore()
 const route = useRoute()
 const tabs = slmTabs
