@@ -28,17 +28,6 @@
         </div>
         <div class="channel-actions"><button class="btn" @click="setChannels(d.channels.map(c => c.name), true)">全部显示</button><button class="btn" @click="setChannels(d.channels.map(c => c.name), false)">全部隐藏</button><span>勾选显示，不改变原始采集</span></div>
       </Region>
-      <Region kind="op" title="操作" class="r-op">
-        <div v-if="replaySession" class="ops replay-ops">
-          <span>{{ replaySession.statusLabel || (replaySession.playing ? '采集中' : '采集暂停') }}</span>
-          <router-link :to="{ path: '/slm/settings', query: { device: replaySession.manifest.deviceId } }">系统设置</router-link>
-        </div>
-        <div v-else class="ops">
-          <span class="state" :class="{ idle: !acq.running }"><i class="led" :class="acq.running ? 'run' : ''"></i>{{ acq.running ? '接入中' : '已连接' }}</span>
-          <button class="btn primary" :disabled="acq.running || busy" @click="start">开始接入</button>
-          <button class="btn" :disabled="!acq.running" @click="stop">暂停</button>
-        </div>
-      </Region>
     </div>
 
     <Region kind="vis" class="r-vis">
@@ -104,7 +93,7 @@ import { useAccessChannels } from '../../../../stores/accessChannels'
 
 const embedded = inject('formingEmbedded', false)
 const replaySession = inject('formingReplay', null)
-const { busy, call } = useCall()
+const { call } = useCall()
 const d = ref(null)
 const channelStore = useAccessChannels()
 const channelKey = computed(() => replaySession ? `replay:${replaySession.caseId}` : state.device)
@@ -148,15 +137,6 @@ function watchAcq() {
     acq.value = s
     if (!s.running) clearInterval(poll)
   }, 1000)
-}
-async function start() {
-  const s = await call(() => api.acqStart(state.device, { from_layer: d.value.layer }))
-  if (s) { acq.value = s; watchAcq() }
-}
-async function stop() {
-  clearInterval(poll)
-  const s = await call(() => api.acqStop(state.device))
-  if (s) { acq.value = s; if (s.layer !== d.value.layer) load(s.layer) }
 }
 function switchDevice(id) { selectDevice(id); d.value = null; layers.value = []; load() }
 onMounted(() => { if (!replaySession) load() })
@@ -224,7 +204,6 @@ const torqueOption = computed(() => {
 .table-scroll { max-height: 280px; overflow-y: auto; }
 .r-input { flex: 470 0 470px; }
 .r-param { flex: 416 1 416px; min-width: 0; }
-.r-op { flex: 280 0 280px; }
 .r-vis { flex: 1; }
 .fields { gap: 6px 14px; }
 .channel-group + .channel-group { margin-top: 12px; }
@@ -238,8 +217,6 @@ const torqueOption = computed(() => {
 .channel-actions span { color: var(--text-2); font-size: 12px; }
 .field-value { font-size: 15px; overflow-wrap: anywhere; }
 .channels-empty { color: var(--text-2); padding: 24px; }
-.state { font-size: 17px; white-space: nowrap; display: flex; align-items: center; gap: 6px; color: var(--ok); font-weight: 700; }
-.state .led { width: 12px; height: 12px; }
 .grid { height: 100%; display: grid; grid-template-columns: minmax(0, 300fr) minmax(0, 300fr) minmax(0, 540fr); grid-template-rows: minmax(0, 282fr) minmax(0, 278fr); gap: 12px; }
 .img { width: 100%; flex: 1; min-height: 0; object-fit: contain; background: var(--img-bg); border-radius: 4px; }
 .progress { margin-bottom: 8px; }
