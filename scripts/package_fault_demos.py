@@ -80,6 +80,9 @@ def build():
         result[device_id]=item
     if len(result)!=9: raise ValueError(f'故障设备清单数量发生变化：{len(result)}')
     (DATA/'fault-demos.json').write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n',encoding='utf-8')
+    # 页面只加载类别证据，避免把原始采样表打入前端脚本。
+    labels={k:{'status':v['status'],'diagnosis':{'evidence':v['diagnosis']['evidence']},'control':{'side':v['control']['side']}} for k,v in result.items()}
+    (DATA/'fault-labels.json').write_text(json.dumps(labels,ensure_ascii=False,separators=(',',':'))+'\n',encoding='utf-8')
     print('封存九台故障设备：', {k: {'records':len(v['records']),'media':len(v['media'])} for k,v in result.items()})
 
 if __name__=='__main__': build()

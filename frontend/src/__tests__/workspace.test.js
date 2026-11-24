@@ -39,7 +39,7 @@ describe('统一工作区状态',()=>{
    const w=mount(View,{global:{plugins:[createPinia()],provide:{formingReplay:session,formingEmbedded:true},stubs:{EChart:true,RouterLink:true}}})
    expect(w.find('.c-img').exists()).toBe(true)
    expect(w.find('.c-res').exists()).toBe(true)
-   expect(w.find('.c-rec').exists()).toBe(true)
+   expect(w.find(View === Trace ? '.c-curve' : '.c-rec').exists()).toBe(true)
    expect(w.text()).not.toContain('100.0%')
    expect(w.text()).not.toContain('NaN')
    expect(w.text()).not.toContain('未见异常')

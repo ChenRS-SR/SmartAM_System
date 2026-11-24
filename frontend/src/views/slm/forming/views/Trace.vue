@@ -37,7 +37,7 @@
     <Region kind="vis" class="r-vis">
       <div class="vis-grid">
         <div class="card c-img">
-          <div class="card-title">铺粉后图像与因果因子</div>
+          <div class="card-title">异常溯源</div>
           <svg v-if="d.image.url" class="overlay" :viewBox="viewBox" preserveAspectRatio="xMidYMid meet">
             <image :href="imgUrl" x="0" y="0" :width="d.image.width" :height="d.image.height" />
             <polygon v-for="(c, i) in band" :key="'b' + i" :points="c" class="band" />
@@ -48,24 +48,6 @@
             <span><i class="sw sw-band"></i>边缘邻域</span>
             <span><i class="sw sw-powder"></i>粉床区</span>
           </div>
-          <div class="c-contrib">
-          <div class="card-title">因果因子贡献
-            <span class="lg"><i class="lim-sw"></i>上限水平 {{ upperText }}</span></div>
-          <div class="grp" v-for="g in groups" :key="g.key">
-            <div class="g-head"><span class="g-name">{{ g.name }}上的贡献</span><span class="g-sum">总改变量 <b>{{ fmt(g.total) }}</b></span></div>
-            <div class="zrow" v-for="z in g.zones" :key="z.key">
-              <span class="z-name">{{ z.name }}</span>
-              <div class="z-track">
-                <div class="z-fill" :class="['f-' + z.key, { dim: !z.over }]" :style="{ width: z.w + '%' }"></div>
-                <i v-if="Number.isFinite(g.upper)" class="z-lim" :style="{ left: g.wTh + '%' }"></i>
-              </div>
-              <b class="z-val" :class="{ over: z.over }">{{ fmt(z.v) }}</b>
-              <span class="z-tag" :class="z.over == null ? 'unknown' : z.over ? 'on' : 'off'">{{ z.over == null ? '—' : z.over ? '超过' : '未超过' }}</span>
-            </div>
-          </div>
-          <div v-if="replaySession && d.mode !== 'dual'" class="replay-note">工艺侧分析暂无数据，当前显示设备侧分析。</div>
-        </div>
-
         </div>
 
         <div class="card c-res" :class="{ dense: d.mode === 'dual' }">
@@ -84,35 +66,10 @@
         </div>
 
         <div class="card c-curve">
-          <div class="card-title">逐层工艺侧与设备侧因果贡献</div>
-          <div class="curve-note">{{ d.available === false ? '逐层贡献结果未接入' : `最近 ${TRACE_WINDOW_SIZE} 层（${curveStart}–${d.layer} 层）` }}</div>
+          <div class="card-title">因果因子贡献溯源</div>
           <EChart :option="curveOption" class="chart" />
         </div>
 
-        <div class="card c-rec">
-          <div class="card-title">逐层溯源记录</div>
-          <!-- 窄屏下仅记录表局部滚动，保留所有字段。 -->
-          <div class="table-scroll" tabindex="0" role="region" aria-label="逐层溯源记录表格">
-          <table class="tbl">
-            <thead v-if="d.mode === 'dual'"><tr><th>层号</th><th>工艺较大区</th><th>设备较大区</th><th>结论</th></tr></thead>
-            <thead v-else><tr><th>层号</th><th>零件区</th><th>粉床区</th><th>总改变量</th><th>结论</th></tr></thead>
-            <tbody v-if="d.mode === 'dual'">
-              <tr v-if="!d.records.length"><td colspan="4">暂无逐层溯源结果</td></tr>
-              <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }">
-                <td>{{ r.layer }}</td><td>{{ fmt(mx(r.proc_part, r.proc_powder)) }}</td><td>{{ fmt(mx(r.dev_part, r.dev_powder)) }}</td>
-                <td><span class="tag" :class="tagCls(r.conclusion)" :title="r.conclusion">{{ tagTxt(r.conclusion) }}</span></td>
-              </tr>
-            </tbody>
-            <tbody v-else>
-              <tr v-for="r in d.records" :key="r.layer" :class="{ cur: r.layer === d.layer }" @click="!replaySession && !stepper.running.value && run(r.layer)">
-                <td>{{ r.layer }}</td><td :class="{ over: r.part >= upDev }">{{ r.part.toFixed(2) }}</td>
-                <td :class="{ over: r.powder >= upDev }">{{ r.powder.toFixed(2) }}</td><td class="muted">{{ r.total.toFixed(2) }}</td>
-                <td><span class="tag" :class="tagCls(r.conclusion)" :title="r.conclusion">{{ tagTxt(r.conclusion) }}</span></td>
-              </tr>
-            </tbody>
-          </table>
-          </div>
-        </div>
       </div>
     </Region>
   </div>
@@ -181,27 +138,10 @@ const viewBox = computed(() => {
 const toPts = (cs, w, h) => cs.map((c) => c.map(([x, y]) => `${x * w},${y * h}`).join(' '))
 const part = computed(() => toPts(d.value.partContours, d.value.image.width, d.value.image.height))
 const band = computed(() => toPts(d.value.bandContours, d.value.image.width, d.value.image.height))
-const groups = computed(() => {
-  const f = d.value.factors
-  const g = [{ key: 'dev', ...f.dev }, ...(f.proc ? [{ key: 'proc', ...f.proc }] : [])]
-  const m = Math.max(1e-6, ...g.flatMap((q) => [...q.zones.map((z) => z.v), q.upper]).filter(Number.isFinite)) * 1.08
-  const w = (v) => Math.max(v, 0) / m * 100
-  return g.map((q) => ({ ...q, wTh: w(q.upper), zones: q.zones.map((z) => ({ ...z, w: w(z.v) })) }))
-})
-const upDev = computed(() => d.value.factors.dev.upper)
-const upperText = computed(() => {
-  const f = d.value.factors
-  if (!f.proc) return fmt(f.dev.upper)
-  return f.dev.upper === f.proc.upper ? fmt(f.dev.upper) : `工艺 ${fmt(f.proc.upper)}　设备 ${fmt(f.dev.upper)}`
-})
-const fmt = v => Number.isFinite(v) ? v.toFixed(2) : '—'
-const mx = (a, b) => Number.isFinite(a) && Number.isFinite(b) ? Math.max(a, b) : null
 const probs = computed(() => [
   ...(d.value.factors.proc ? [{ name: '工艺问题', v: d.value.factors.proc.prob, color: 'var(--proc)' }] : []),
   { name: '设备问题', v: d.value.factors.dev.prob, color: 'var(--dev)' },
 ])
-const tagCls = (r) => ({ '由二者共同诱发': 't-both', '由工艺因素诱发': 't-proc', '由设备因素诱发': 't-dev', '已识别异常，归因待确认': 't-pending', '贡献超限，待复核': 't-pending' }[r] || 't-nor')
-const tagTxt = (r) => ({ '由二者共同诱发': '二者共同', '由工艺因素诱发': '工艺因素', '由设备因素诱发': '设备因素', '已识别异常，归因待确认': '异常·待归因', '贡献超限，待复核': '超限·待复核' }[r] || r)
 const visibleFactors = computed(() => layerWindow(factorCurveRows(d.value), d.value.layer))
 const curveStart = computed(() => Math.max(1, (d.value.layer ?? TRACE_WINDOW_SIZE) - TRACE_WINDOW_SIZE + 1))
 const hasProcessCurve = computed(() => visibleFactors.value.some(r => r.proc !== null))
@@ -259,30 +199,6 @@ const curveOption = computed(() => {
 .sw-part { background: rgba(178, 49, 46, 0.45); border: 1px solid #b2312e; }
 .sw-band { background: rgba(178, 49, 46, 0.12); border: 1px dashed #b2312e; }
 .sw-powder { background: var(--powder-sw); border: 1px solid var(--powder-sw-border); }
-.lg { font-size: 15px; font-weight: 400; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
-.lim-sw { display: inline-block; width: 3px; height: 16px; background: var(--ink); }
-.grp { margin-top: 8px; }
-.g-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 17px; font-weight: 700; }
-.g-sum { font-size: 15px; font-weight: 400; color: var(--text-2); }
-.g-sum b { font-size: 17px; color: var(--text); }
-.zrow { display: grid; grid-template-columns: 58px 1fr 54px 60px; align-items: center; gap: 8px; margin-top: 6px; font-size: 16px; }
-.z-name { white-space: nowrap; }
-.z-track { position: relative; height: 20px; background: var(--track); border-radius: 4px; }
-.z-fill { height: 100%; border-radius: 4px; }
-.z-fill.f-part { background: var(--proc); }
-.z-fill.f-powder { background: var(--dev); }
-.z-fill.dim { opacity: 0.35; }
-.z-lim { position: absolute; top: -4px; width: 3px; height: 28px; background: var(--ink); margin-left: -1px; }
-.z-val { text-align: right; font-weight: 400; color: var(--text-2); }
-.z-val.over { font-weight: 700; color: var(--text); }
-.z-tag { font-size: 14px; border-radius: 10px; padding: 0 8px; text-align: center; white-space: nowrap; }
-.z-tag.unknown { color: var(--text-2); background: var(--track); }
-.z-tag.on { background: var(--warn); color: #fff; font-weight: 700; }
-.z-tag.off { background: var(--ok-soft); color: var(--ok); }
-.hint { margin-top: auto; font-size: 14px; color: var(--text-3); line-height: 1.35; }
-.verdict { font-size: 25px; font-weight: 800; color: #fff; border-radius: 6px; padding: 6px 10px; text-align: center; margin-bottom: 6px; }
-.v-dev, .v-proc, .v-both { background: var(--warn); }
-.v-nor { background: var(--ok); }
 .prob { margin-top: 6px; }
 .p-head { display: flex; justify-content: space-between; font-size: 16px; }
 .p-head b { font-size: 17px; }
@@ -304,24 +220,7 @@ const curveOption = computed(() => {
 .act-box.none .act-t { color: var(--text-2); }
 .c-res.dense .verdict { font-size: 23px; padding: 3px 10px; margin-bottom: 2px; }
 .c-res.dense .prob { margin-top: 3px; }
-.c-curve { grid-column: 2; grid-row: 2; }
-.c-rec { grid-column: 1; grid-row: 2; }
-.curve-note { font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
-.tbl { font-size: 15px; }
-.tbl th { padding: 4px 3px; }
-.tbl td { padding: 5px 3px; }
-.tbl td.over { font-weight: 700; }
-.tbl td.muted { color: var(--text-2); }
-.tag { padding: 0 7px; font-size: 14px; }
-/* 诊断图为主区，图像及贡献共用一个紧凑证据块。 */
-.c-contrib { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 10px; }
-.c-contrib .card-title, .c-contrib .g-name { font-size: 14px; }
-.c-contrib .g-sum, .c-contrib .g-sum b, .c-contrib .lg { font-size: 12px; }
-.c-contrib .zrow { grid-template-columns: 46px minmax(24px, 1fr) 42px 48px; font-size: 13px; gap: 5px; }
-.c-contrib .z-tag { font-size: 11px; padding: 0 3px; }
-.c-contrib .z-track { height: 12px; }
-.c-contrib .z-lim { height: 20px; }
-.c-contrib .hint { margin-top: 10px; font-size: 12px; }
+.c-curve { grid-column: 1; grid-row: 2; }
 .diagnosis-details { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
 .check-advice { grid-column: 1 / -1; margin-top: 6px; padding: 12px 16px; text-align: center; border: 1px solid var(--border); border-top: 3px solid var(--dev); border-radius: 4px; background: var(--dev-soft); line-height: 1.6; }
 .check-advice span { font-size: 13px; font-weight: 600; color: var(--text-2); }

@@ -1,19 +1,17 @@
 <template>
   <figure class="equipment-diagnosis" :class="diagnosis.state" aria-label="设备故障诊断图">
-    <div class="diagram-heading"><strong>{{ diagnosis.title }}</strong><span>{{ diagnosis.source || (trace?.available === false ? '等待诊断证据' : trace ? `诊断层：${trace.layer}` : '等待诊断证据') }}</span></div>
+    <div class="diagram-heading"><strong>{{ diagnosis.title }}</strong><span>{{ diagnosis.source || (trace?.available === false ? '—' : trace ? `诊断层：${trace.layer}` : '—') }}</span></div>
     <div class="diagnosis-visual">
-      <img :src="`/state_picture/${diagnosis.image}`" :alt="diagnosis.title" />
+      <div v-if="diagnosis.faults.length" class="fault-gallery"><figure v-for="fault in diagnosis.faults" :key="fault.key"><img :src="`/public/diagnosis/${fault.key}.svg`" :alt="fault.name" /><figcaption>{{ fault.name }}</figcaption></figure></div>
+      <img v-else-if="diagnosis.image" :src="`/state_picture/${diagnosis.image}`" :alt="diagnosis.title" />
+      <div v-else class="diagnosis-empty">{{ diagnosis.state === 'unclassified' ? '故障类型：—' : '数据暂未接入' }}</div>
       <!-- 结论与诊断图共用一个画布，底部预留标注空间，不遮挡设备结构。 -->
       <div class="diagram-conclusion" role="status">
         <span>诊断结论</span>
         <strong>{{ diagnosis.conclusion }}</strong>
       </div>
     </div>
-    <figcaption>
-      <span>铺粉与供粉机构：<b>{{ diagnosis.powder }}</b></span>
-      <span>工艺输入：<b>{{ diagnosis.process }}</b></span>
-      <span>光路、气氛等其他系统：<b>{{ diagnosis.other || '暂无独立诊断证据' }}</b></span>
-    </figcaption>
+
   </figure>
 </template>
 <script setup>
@@ -23,6 +21,10 @@ const props = defineProps({ trace: Object, recognition: Object })
 const diagnosis = computed(() => traceDiagnosis(props.trace, props.recognition))
 </script>
 <style scoped>
+.fault-gallery { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+.fault-gallery figure { margin:0; }
+.fault-gallery figcaption { justify-content:center; font-weight:600; }
+.diagnosis-empty { min-height:280px; display:grid; place-items:center; color:var(--text-2); }
 .equipment-diagnosis { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .diagram-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 15px; }
 .diagram-heading span { color: var(--text-2); font-size: 13px; }
