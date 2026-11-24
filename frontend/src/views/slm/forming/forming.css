@@ -315,8 +315,9 @@ html.dark .forming-root .sel { background-image: url("data:image/svg+xml,%3Csvg 
   margin: 8px 0 4px;
 }
 
-/* 通道选择占主要宽度；接入信息单列紧凑排列，不随右侧内容强制拉高。 */
-.forming-root .access-page .row-top { grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr); align-items: start; }
+/* 通道选择占主要宽度；接入信息单列紧凑排列。 */
+/* 同行卡片由内容最多的一侧决定高度，保持上下边缘对齐，缩窄后仍自然换行。 */
+.forming-root .access-page .row-top { grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr); align-items: stretch; }
 .forming-root .access-page .r-input .fields { grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .forming-root .access-page .r-input .field { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; }
 .forming-root .access-page .r-input .field-value { line-height: 1.5; }
