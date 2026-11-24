@@ -50,8 +50,8 @@ class WorkspaceTests(unittest.TestCase):
         frame = record_workspace('huake-slm-02')['snapshot']
         self.assertIsNone(frame['recognition']['image']['url'])
         self.assertIsNone(frame['access']['images']['before']['url'])
-        self.assertEqual([c['name'] for c in frame['access']['channels'][-3:]], ['同轴图像', '侧轴图像', '红外图像'])
-        self.assertTrue(frame['access']['images']['video_0']['videoUrl'].endswith('.mp4'))
+        self.assertEqual([c['name'] for c in frame['access']['channels'][-2:]], ['可见光图像', '红外图像'])
+        self.assertEqual(frame['access']['images']['video_0']['videoUrl'], record_workspace('huake-slm-02')['device']['mockVideo']['channels']['camera_ch1']['url'])
 
     def test_missing_file_and_traversal_are_errors(self):
         for path in ('../README.md', 'SLM/not-found.csv'):

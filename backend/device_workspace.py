@@ -88,10 +88,10 @@ def record_workspace(device_id):
     channels = [dict(name=name, spec=kind, rate='未接入', imageKey=key) for name, kind, key in [
         ('铺粉后图像', '图像', 'before'), ('熔化后图像', '图像', 'after'),
         ('刮刀扭矩', '采样', None), ('加工平台扭矩', '采样', None), ('设备状态参数', '采样', None)]]
-    # 同轴、侧轴、红外视频保留原通道名称，不能冒充铺粉后图像或模型输入。
+    # 可见光统一使用同轴 CH1；侧轴不再进入监测通道，红外仍独立保留。
     media_channels = (device.get('mockVideo') or {}).get('channels', {})
     media = [dict(name=name, url=media_channels[key]['url']) for key, name in
-             [('camera_ch1', '同轴图像'), ('camera_ch2', '侧轴图像'), ('thermal', '红外图像')]
+             [('camera_ch1', '可见光图像'), ('thermal', '红外图像')]
              if media_channels.get(key, {}).get('available')]
     for i, media in enumerate(media):
         key = 'video_' + str(i)
