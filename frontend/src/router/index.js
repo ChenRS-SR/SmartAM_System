@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { recoverUpdatedPage } from './recoverUpdatedPage'
 
 // SLM 页面
 const SLMDeviceGroup = () => import('../views/slm/DeviceGroup.vue')
@@ -159,5 +160,7 @@ router.beforeEach((to, from, next) => {
     next()
   }
 })
+
+recoverUpdatedPage(router)
 
 export default router
