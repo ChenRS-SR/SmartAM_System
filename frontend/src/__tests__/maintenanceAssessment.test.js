@@ -43,7 +43,7 @@ describe('案例二维护评估', () => {
 it('WR/WU逐任务取较小值，图例名称与线型随合并曲线一致', () => {
   const series = maintenanceChartSeries({model:'PHM',history:[{w:1,wl:2,wr:3,wu:4},{w:2,wl:1,wr:5,wu:3},{w:0,wr:null,wu:4}]})
   expect(series).toHaveLength(3)
-  expect(series[2].name).toBe('维护阈值 min(WR, WU)')
+  expect(series[2].name).toBe('阈值上限 min(WR, WU)')
   expect(series[2].data).toEqual([3,3,null])
   expect(series[0].lineStyle.type).toBe('solid')
   expect(series.slice(1).every(item => item.lineStyle.type === 'dashed')).toBe(true)

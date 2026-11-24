@@ -49,7 +49,7 @@ export function maintenanceLimit(system) {
 export function maintenanceChartSeries(measurements) {
   const definitions = measurements?.model === 'PLP'
     ? [['reliability', '可靠性 R', '#4686b8'], ['rmin', '可靠性下限 Rmin', '#dc4545']]
-    : [['w', '风险指标 W', '#7189ba'], ['wl', '经济阈值 WL', '#4686b8'], ['limit', '维护阈值 min(WR, WU)', '#dc4545']]
+    : [['w', '风险指标 W', '#7189ba'], ['wl', '阈值下限 WL', '#4686b8'], ['limit', '阈值上限 min(WR, WU)', '#dc4545']]
   return definitions.map(([key, name, color], index) => ({
     name, type: 'line',
     data: (measurements?.history || []).map(row => key === 'limit' ? maintenanceLimit(row) : row[key] ?? null),

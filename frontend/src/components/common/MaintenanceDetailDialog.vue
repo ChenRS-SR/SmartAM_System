@@ -34,7 +34,7 @@ const percent = value => Number.isFinite(value) ? `${(value * 100).toFixed(2)}%`
 const metrics = computed(() => {
   const data = props.measurements
   if (!data) return []
-  const risk = isPLP.value ? [] : [['风险指标 W', data.w], ['经济阈值 WL', data.wl], ['维护阈值 min(WR, WU)', maintenanceLimit(data)]].map(([label, value]) => ({label, value: fmt(value)}))
+  const risk = isPLP.value ? [] : [['风险指标 W', data.w], ['阈值下限 WL', data.wl], ['阈值上限 min(WR, WU)', maintenanceLimit(data)]].map(([label, value]) => ({label, value: fmt(value)}))
   return [...risk, {label: '可靠性 R', value: percent(data.reliability)}, {label: '可靠性下限 Rmin', value: percent(data.rmin)}, {label: `役龄（${data.unit}）`, value: fmt(data.age)}]
 })
 const buildChartOption = () => {

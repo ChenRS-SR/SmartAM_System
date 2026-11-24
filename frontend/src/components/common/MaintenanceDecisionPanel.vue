@@ -15,7 +15,7 @@
             <i v-for="field in ['wl', 'limit'].filter(key => Number.isFinite(key === 'limit' ? maintenanceLimit(system) : system[key]))" :key="field" :class="field" :style="{ left: riskPosition(system, field === 'limit' ? maintenanceLimit(system) : system[field]) + '%' }" :title="`${field === 'limit' ? 'min(WR, WU)' : 'WL'} ${fmt(field === 'limit' ? maintenanceLimit(system) : system[field])}`"></i>
             <b v-if="Number.isFinite(system.w)" class="risk-point" :style="{ left: riskPosition(system, system.w) + '%' }" :title="`W ${fmt(system.w)}`"></b>
           </div>
-          <div class="metric-grid"><span>风险 W <b>{{ fmt(system.w) }}</b></span><span>经济 WL <b>{{ fmt(system.wl) }}</b></span><span class="combined-limit">维护阈值 min(WR, WU) <b>{{ fmt(maintenanceLimit(system)) }}</b></span></div>
+          <div class="metric-grid"><span>风险 W <b>{{ fmt(system.w) }}</b></span><span>阈值下限 WL <b>{{ fmt(system.wl) }}</b></span><span class="combined-limit">阈值上限 min(WR, WU) <b>{{ fmt(maintenanceLimit(system)) }}</b></span></div>
         </template>
         <div class="reliability-row"><span>可靠性 R</span><strong>{{ percent(system.reliability) }}</strong></div>
         <div class="reliability-track"><div :style="{width: `${(system.reliability || 0) * 100}%`, background: reliabilityColor(system)}"></div></div>
