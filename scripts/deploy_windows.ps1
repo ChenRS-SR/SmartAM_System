@@ -131,6 +131,30 @@ function Find-ProjectListener {
     return $null
 }
 
+function Stop-ProjectProcesses {
+    # 只清理命令行明确指向本项目 backend/main.py 的 Python 进程。
+    $mainFile = Join-Path $Backend 'main.py'
+    $processes = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+        ([IO.Path]::GetFileName($_.ExecutablePath) -in @('python.exe', 'pythonw.exe')) -and
+        $null -ne $_.CommandLine -and $_.CommandLine.Contains('"' + $mainFile + '"')
+    })
+    foreach ($owner in $processes) {
+        Write-Host "清理本项目残留进程 $($owner.Name) [$($owner.ProcessId)]。" -ForegroundColor Yellow
+        try {
+            Stop-Process -Id $owner.ProcessId -Force -ErrorAction Stop
+        } catch {
+            $elevatedCommand = "Stop-Process -Id $($owner.ProcessId) -Force -ErrorAction Stop"
+            $elevated = Start-Process powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList @(
+                '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $elevatedCommand
+            )
+            if ($elevated.ExitCode -ne 0) {
+                throw "无法清理本项目残留进程 $($owner.ProcessId)，请允许管理员权限后重试。"
+            }
+        }
+    }
+    if ($processes.Count -gt 0) { Start-Sleep -Milliseconds 500 }
+}
+
 function Clear-PlatformPort {
     $listeners = @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue |
         Select-Object -ExpandProperty OwningProcess -Unique)
@@ -173,10 +197,14 @@ function Invoke-Deployment {
     $existing = Find-ProjectListener
     if ($null -ne $existing) {
         Set-PlatformPort $existing.LocalPort
-        if (-not (Platform-Ready)) { throw '本项目进程已监听但尚未就绪，请检查原服务窗口。' }
-        Write-Host "本项目已运行，打开现有页面：$Url。更新代码后请先关闭原服务窗口再部署。" -ForegroundColor Green
-        if (-not $NoBrowser) { Start-Process $Url }
-        return
+        if (-not (Platform-Ready)) {
+            Write-Host '本项目残留进程未就绪，先清理后重新启动。' -ForegroundColor Yellow
+            Stop-ProjectProcesses
+        } else {
+            Write-Host "本项目已运行，打开现有页面：$Url。更新代码后请先关闭原服务窗口再部署。" -ForegroundColor Green
+            if (-not $NoBrowser) { Start-Process $Url }
+            return
+        }
     }
     if ($StartOnly) {
         # 常规启动不安装、不下载、不重新构建；缺失或更新时明确指向部署入口。
@@ -285,6 +313,7 @@ function Invoke-Deployment {
     } catch {
         # 只结束本次启动且未完成部署的进程，不触碰端口占用者。
         if (-not $process.HasExited) { Stop-Process -Id $process.Id }
+        Stop-ProjectProcesses
         throw
     }
     $publicNetworks = @(Get-NetConnectionProfile | Where-Object NetworkCategory -eq 'Public')
