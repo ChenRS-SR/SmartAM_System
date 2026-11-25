@@ -36,7 +36,6 @@
           <div class="status-dot-large" :style="{ background: currentStatusConfig.color }"></div>
           <div class="status-info">
             <div class="status-name" :style="{ color: currentStatusConfig.color }">{{ currentStatusConfig.label }}</div>
-            <div class="status-code">状态码: {{ displayStatusCode }}</div>
           </div>
         </div>
       </div>

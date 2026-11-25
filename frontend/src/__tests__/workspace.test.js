@@ -66,11 +66,12 @@ describe('统一工作区状态',()=>{
  it('参数演示重载只有一个计时器，离开后停止刷新',async()=>{
   vi.useFakeTimers()
   const session=createRecordSession('slm-b17')
-  vi.stubGlobal('fetch',vi.fn().mockImplementation(async()=>({ok:true,json:async()=>payload('slm-b17')})))
+  let sequence=0
+  vi.stubGlobal('fetch',vi.fn().mockImplementation(async()=>({ok:true,json:async()=>{const data=payload('slm-b17');data.snapshot.parameters=[{id:'chamber_temperature',value:35+(++sequence)}];return data}})))
   try {
    await session.open();expect(vi.getTimerCount()).toBe(1)
    const first=session.snapshot.parameters.find(p=>p.id==='chamber_temperature').value
-   await vi.advanceTimersByTimeAsync(1000)
+   await vi.advanceTimersByTimeAsync(2000)
    expect(session.snapshot.parameters.find(p=>p.id==='chamber_temperature').value).not.toBe(first)
    await session.open();expect(vi.getTimerCount()).toBe(1)
    session.dispose();expect(vi.getTimerCount()).toBe(0)

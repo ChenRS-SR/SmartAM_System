@@ -101,3 +101,27 @@ class WorkspaceTests(unittest.TestCase):
             response = client.get('/api/slm/workspace/devices/slm-b17')
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()['manifest']['deviceId'], 'slm-b17')
+
+class DemonstrationWorkspaceTests(unittest.TestCase):
+    def test_all_missing_devices_have_isolated_complete_changing_content(self):
+        from workspace_demo import complete_workspace
+        for device in devices():
+            if case_for_device(device['id']):
+                continue
+            original = record_workspace(device['id'])
+            a = complete_workspace(original, now=100000)['snapshot']
+            b = complete_workspace(original, now=100007)['snapshot']
+            self.assertTrue(a['recognition']['available'])
+            self.assertTrue(a['trace']['available'])
+            self.assertEqual(a['recognition']['device']['id'],device['id'])
+            self.assertNotEqual(a['parameters'][0]['value'],b['parameters'][0]['value'])
+            self.assertTrue(a['recognition']['image']['url'])
+            self.assertTrue(a['slice']['regions'])
+            self.assertEqual(len(a['trace']['curve']['layers']),40)
+            self.assertEqual(len(a['access']['torque']['t']),50)
+            if device['id'] not in asset('fault-demos.json'):
+                self.assertEqual(a['recognition']['label'],'正常')
+                self.assertEqual(a['trace']['conclusion'],'未见异常')
+                self.assertTrue(all(s['state']=='normal' for s in a['trace']['subsystemHealth'].values()))
+            self.assertFalse(original['snapshot']['recognition']['available'])
+            json.dumps(a,allow_nan=False)

@@ -51,16 +51,13 @@ def build():
             cv2.imwrite(str(destination/'source-frame.png'),frame)
             # 已核对视频第10秒的两个方形截面，裁取零件局部，排除设备平台及激光亮斑。
             cv2.imwrite(str(destination/'section.png'),frame[202:242,344:446])
-            regions = [dict(id=f'region-{n}',number=n,name=f'区域{n}',color=color,label=point)
-                       for n,color,point in [(1,'#ffb0da',[140,100]),(2,'#4150b4',[370,100])]]
             section=destination/'section.png'
-            # 两个可见截面以原帧内的轮廓外框作彩色示意；保留原局部供对照，不外推未知几何。
             polygons = [[[8,7],[45,7],[47,31],[9,31]], [[56,7],[94,7],[95,30],[56,31]]]
-            display = np.full((200,510,3),255,dtype=np.uint8)
-            for polygon,color in zip(polygons,[(218,176,255),(180,80,65)]):
-                cv2.fillPoly(display,[np.array(polygon,dtype=np.int32)*5],color)
-            cv2.imwrite(str(destination/'section_display.png'),display)
-            (destination/'section_regions.svg').write_text(annotated_svg(destination/'section_display.png',510,200,regions),encoding='utf-8')
+            # 用原始局部作图，只放大显示和添加中性引线，不覆盖零件颜色。
+            regions = [dict(id=f'region-{n}',number=n,name=f'区域{n}',color='#707070',
+                            label=(np.mean(polygon, axis=0)*5).astype(int).tolist())
+                       for n, polygon in enumerate(polygons, 1)]
+            (destination/'section_regions.svg').write_text(annotated_svg(section,510,200,regions),encoding='utf-8')
             item['slice']={'image':f'/control-regions/{device_id}/section.png', 'annotatedImage':f'/control-regions/{device_id}/section_regions.svg',
                           'sourceFile':'section.png','width':510,'height':200,'regions':regions,'sourcePolygons':polygons,
                           'sourceVideo':str(source.relative_to(ROOT)),'sourceVideoSha256':hashlib.sha256(source.read_bytes()).hexdigest(),

@@ -6,8 +6,22 @@ export const maintenanceSystems = [
 ]
 const devices = { 'slm-b10': 'B10', 'slm-b15': 'B15', 'slm-b17-replay': 'B17', 'slm-b17': 'B17', 'slm-b44': 'B44' }
 const taskDates = { 'slm-b10': '20250509-07-47', 'slm-b15': '20250107-20-02', 'slm-b17-replay': '20240828', 'slm-b44': '20250321-09-20' }
-export function maintenanceRecords(deviceId) {
-  return assessments.devices[devices[deviceId]] || []
+export function maintenanceRecords(deviceId, frame = null) {
+  const recorded = assessments.devices[devices[deviceId]]
+  if (recorded) return recorded
+  if (!frame?.demonstration) return []
+  // 无运维历史设备使用单次状态展示评估，不生成虚假的维修或故障历史。
+  const phase = Date.parse(frame.time) / 1000
+  const faults = frame.trace?.faultTypes || []
+  const keys = {powder:'scraper', argon:'gas', feeder:'feeder', fan:'fan', filter:'filter', laser:'laser', chiller:'chiller'}
+  const systems = assessments.devices.B10[0].systems.map((source, index) => {
+    const fault = faults.includes(keys[source.key])
+    const wave = .01 * Math.sin(phase * .2 + index)
+    const reliability = fault ? source.rmin * .75 + wave : Math.min(.9999, Math.max(source.rmin + .005, .99 + wave * .2))
+    return {...source, source:'generated-maintenance-demo', age:Math.max(1,source.age), reliability,
+      ...(source.model === 'PHM' ? {w:fault ? Math.max(source.wr,source.wu) + .2 + wave : source.wl - .5 + wave} : {})}
+  })
+  return [{task:frame.recognition.task.id, systems}]
 }
 export function initialMaintenanceTask(deviceId) {
   const rows = maintenanceRecords(deviceId)

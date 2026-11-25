@@ -14,28 +14,53 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def extract_regions(pixels, color_ids):
-    """每种原始填充颜色代表一个区域，数量由当前图片决定；同色离散岛屿仍属同一区域。"""
-    colors = [c for c in np.unique(pixels.reshape(-1, 3), axis=0) if not np.all(c == 255)]
-    if len(colors) > 64:
-        raise ValueError('输入须为离散颜色的切片区域图')
-    found = []
-    for color in colors:
-        mask = np.all(pixels == color, axis=2).astype(np.uint8)
-        ys, xs = np.where(mask)
-        found.append((float(xs.mean()), color, mask))
-    items = []
-    for _, color, mask in sorted(found, key=lambda r: r[0]):
-        hex_color = '#' + ''.join(f'{int(v):02x}' for v in color)
-        if hex_color not in color_ids:
-            color_ids[hex_color] = len(color_ids) + 1
-        # 引线终点选区域内部最宽处，避免凹形或空心零件的质心落在背景上。
-        y, x = np.unravel_index(np.argmax(cv2.distanceTransform(mask, cv2.DIST_L2, 5)), mask.shape)
-        items.append({'id': f'region-{color_ids[hex_color]}', 'number': color_ids[hex_color],
-                      'name': f'区域{color_ids[hex_color]}', 'color': hex_color,
-                      'pixels': int(mask.sum()), 'label': [int(x), int(y)]})
-    return sorted(items, key=lambda r: r['number'])
+def region_masks(pixels, region_count=1, binary=False):
+    """保留原图颜色；调控区数量来自设备光源配置，不按颜色数量增加控制通道。"""
+    foreground = (pixels.mean(axis=2) > 127) if binary else np.any(pixels < 250, axis=2)
+    count, labels, stats, centers = cv2.connectedComponentsWithStats(foreground.astype(np.uint8), 8)
+    usable = [i for i in range(1, count) if stats[i, cv2.CC_STAT_AREA] >= 16]
+    foreground = np.isin(labels, usable)
+    if not foreground.any():
+        raise ValueError('原图没有可用零件截面')
+    masks = [foreground]
+    if region_count == 2:
+        colors = np.unique(pixels[foreground], axis=0)
+        if not binary and len(colors) == 2:
+            # 双光彩色原图直接沿用分区；不改变跨区零件的原始颜色边界。
+            masks = [foreground & np.all(pixels == color, axis=2) for color in colors]
+        else:
+            # 无分区元数据时仅作展示：按完整连通截面的中心归入左右两组，不切碎零件染色。
+            xs = np.where(foreground)[1]
+            mid = (int(xs.min()) + int(xs.max())) / 2
+            groups = [[i for i in usable if (centers[i, 0] >= mid) == right] for right in (False, True)]
+            masks = [np.isin(labels, group) for group in groups]
+        if not all(mask.any() for mask in masks):
+            raise ValueError('双光展示缺少两个有效截面分组，需提供分区映射')
+        masks.sort(key=lambda mask: np.where(mask)[1].mean())
+    return masks
 
+
+def colorize_section(pixels, region_count, binary=False):
+    """按已确认的单双光配置着色，背景透明；原始文件保持不变。"""
+    display = np.full((*pixels.shape[:2], 4), 255, dtype=np.uint8)
+    display[:, :, 3] = 0
+    for mask, color in zip(region_masks(pixels, region_count, binary), [(255, 176, 218), (65, 80, 180)]):
+        display[mask] = (*color, 255)
+    return display
+
+
+def extract_regions(pixels, region_count=1, binary=False):
+    masks = region_masks(pixels, region_count, binary)
+    items = []
+    for number, mask in enumerate(masks, 1):
+        y, x = np.unravel_index(np.argmax(cv2.distanceTransform(mask.astype(np.uint8), cv2.DIST_L2, 5)), mask.shape)
+        colors, counts = np.unique(pixels[mask], axis=0, return_counts=True)
+        color = colors[np.argmax(counts)]
+        # 黑白原图统一用中性灰标识，不创建新的彩色零件图。
+        hex_color = '#707070' if binary else '#' + ''.join(f'{int(v):02x}' for v in color)
+        items.append({'id': f'region-{number}', 'number': number, 'name': f'区域{number}',
+                      'color': hex_color, 'pixels': int(mask.sum()), 'label': [int(x), int(y)]})
+    return items
 
 
 def annotated_svg(source, width, height, regions):
@@ -47,7 +72,7 @@ def annotated_svg(source, width, height, regions):
     top = (canvas_height - height) / 2
     encoded = base64.b64encode(source.read_bytes()).decode('ascii')
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width + 2 * margin} {canvas_height}" role="img">',
-             '<title>切片区域与引线标注</title>', '<rect width="100%" height="100%" fill="white"/>',
+             '<title>切片区域与引线标注</title>',
              f'<image x="{margin}" y="{top}" width="{width}" height="{height}" href="data:image/png;base64,{encoded}"/>']
     for side, members in enumerate(sides):
         for i, region in enumerate(sorted(members, key=lambda r: r['label'][1])):
@@ -71,16 +96,18 @@ def main():
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--case', required=True)
     parser.add_argument('--representative', action='store_true', help='source 为本任务典型切片文件，供全案例展示')
+    parser.add_argument('--regions', type=int, choices=(1, 2), help='非 S310/S430 设备的调控区数')
     parser.add_argument('--binary', action='store_true', help='黑底白色切片或零件掩膜分区')
     args = parser.parse_args()
     manifest = json.loads((ROOT / 'backend/analysis_packages' / args.case / 'manifest.json').read_text())
+    model = manifest['device']['name']
+    region_count = 1 if 'S310' in model else 2 if 'S430' in model else args.regions or 1
     destination = ROOT / 'frontend/public/control-regions' / args.case
     destination.mkdir(parents=True, exist_ok=True)
     output = {'caseId': args.case, 'deviceId': manifest['device']['id'], 'task': manifest['task'],
               'mapping': '任务典型截面，固定展示，不表示逐层几何变化' if args.representative else 'bp_<layer>.png 与当前层号一一对应',
               'representation': 'representative' if args.representative else 'per-layer',
-              'segmentation': 'section-spatial-groups-max4' if args.binary else 'original-colors-max4', 'layers': {}}
-    color_ids = {}
+              'segmentation': 'original-image-device-control-groups', 'controlRegionCount': region_count, 'layers': {}}
     packaged = {}
     for layer in [r['layer'] for r in manifest['layers']]:
         source = args.source if args.representative else args.source / f'bp_{layer}.png'
@@ -91,34 +118,13 @@ def main():
         with Image.open(source) as image:
             pixels = np.array(image.convert('RGB'))
         height, width = pixels.shape[:2]
-        shutil.copyfile(source, destination / source.name)
+        if source.resolve() != (destination / source.name).resolve():
+            shutil.copyfile(source, destination / source.name)
         display = source
-        # 彩色示意最多四区：少量原色保持原分区；碎片较多时按实际截面的空间位置归并。
-        if args.binary:
-            foreground = (pixels.mean(axis=2) > 127).astype(np.uint8)
-            count, labels, stats, _ = cv2.connectedComponentsWithStats(foreground, connectivity=8)
-            usable = [i for i in range(1, count) if stats[i, cv2.CC_STAT_AREA] >= 16]
-            foreground = np.isin(labels, usable)
-            needs_group = len(usable) > 1
-        else:
-            foreground = np.any(pixels != 255, axis=2)
-            needs_group = len(np.unique(pixels[foreground], axis=0)) > 4
-        if not foreground.any():
-            raise ValueError(f'第 {layer} 层没有零件截面')
-        if args.binary or needs_group:
-            yy, xx = np.where(foreground)
-            center_x, center_y = (xx.min()+xx.max())/2, (yy.min()+yy.max())/2
-            groups = ((xx > center_x).astype(int) + 2*(yy > center_y)) if needs_group else np.zeros(len(xx), dtype=int)
-            palette = np.array([[255,176,218],[65,80,180],[75,167,149],[219,173,80]],dtype=np.uint8)
-            colored = np.full_like(pixels,255)
-            colored[yy,xx] = palette[groups]
-            pixels = colored
-            color_ids.update({'#' + ''.join(f'{int(v):02x}' for v in color): i+1 for i,color in enumerate(palette)})
-            display = destination / (source.stem + '_display.png')
-            Image.fromarray(colored).save(display)
-        items = extract_regions(pixels, color_ids)
-        if len(items) > 4:
-            raise ValueError('展示区域不得超过四个')
+        display_pixels = colorize_section(pixels, region_count, args.binary)
+        display = destination / (source.stem + '_display.png')
+        Image.fromarray(display_pixels).save(display)
+        items = extract_regions(display_pixels[:, :, :3], region_count)
         illustration = destination / (source.stem + '_regions.svg')
         illustration.write_text(annotated_svg(display, width, height, items), encoding='utf-8')
         output['layers'][str(layer)] = {'layer': layer, 'width': width, 'height': height,

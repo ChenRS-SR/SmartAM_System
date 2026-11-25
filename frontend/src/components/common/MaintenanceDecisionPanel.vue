@@ -35,12 +35,13 @@ import { computed, ref, watch } from 'vue'
 import MaintenanceDetailDialog from './MaintenanceDetailDialog.vue'
 import { useMaintenanceStatistics } from '../../composables/useMaintenanceStatistics'
 import { maintenanceLimit, maintenanceSystems, maintenanceRecords, initialMaintenanceTask, maintenanceStatus, maintenanceMeasurements, riskPosition } from '../../utils/maintenanceAssessment'
-const props = defineProps({ deviceId: {type: String, default: ''}, deviceName: {type: String, default: ''}, organizationLabel: {type: String, default: ''} })
-const records = computed(() => maintenanceRecords(props.deviceId))
+const props = defineProps({ frame: {type: Object, default: null}, deviceId: {type: String, default: ''}, deviceName: {type: String, default: ''}, organizationLabel: {type: String, default: ''} })
+const records = computed(() => maintenanceRecords(props.deviceId, props.frame))
 const selectedTask = ref('')
+watch(records, rows => { if (!rows.some(row => row.task === selectedTask.value)) selectedTask.value = rows.at(-1)?.task || '' }, {immediate: true})
 const detailVisible = ref(false)
 const detailKey = ref('powder')
-watch(() => props.deviceId, id => { selectedTask.value = initialMaintenanceTask(id); detailVisible.value = false }, {immediate: true})
+watch(() => props.deviceId, id => { selectedTask.value = initialMaintenanceTask(id) || records.value.at(-1)?.task || '';  detailVisible.value = false }, {immediate: true})
 const systems = computed(() => records.value.find(row => row.task === selectedTask.value)?.systems || maintenanceSystems.map(([key, name]) => ({key, name})))
 // 五类风险评估卡按三列排列，两张可靠性卡共用末列，避免不同内容高度造成大块空白。
 const systemGroups = computed(() => {

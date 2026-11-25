@@ -47,9 +47,11 @@ def recognition(request):
             raise HTTPException(409, '该设备尚未绑定推理模型')
         if request.taskId is not None or request.layerNo is not None or request.offset is not None:
             raise HTTPException(404, '该设备尚无对应的逐层分析任务')
-        fault = faults.get(request.deviceId)
-        return dict(base, source='device-record', diagnosis=fault['status'] if fault else None,
-                    advice=[fault['advice']] if fault else [])
+        from device_workspace import record_workspace
+        from workspace_demo import complete_workspace
+        frame = complete_workspace(record_workspace(request.deviceId))['snapshot']
+        return dict(base, source='generated-workspace-demo', ready=True, taskId=frame['recognition']['task']['id'],
+                    layerNo=frame['layer'], recognition=frame['recognition'], trace=frame['trace'])
     item = package(entry['id'])
     task_id = item.meta['task']['id']
     if request.taskId and request.taskId != task_id:
@@ -110,7 +112,8 @@ def slice_for(device_id, task_id, layer):
             raise HTTPException(409, '该新任务尚未登记切片区域，不能套用演示任务区域')
         result = data.get('representative') or data['layers'].get(str(layer))
     else:
-        result = asset('fault-demos.json').get(device_id, {}).get('slice')
+        from workspace_demo import demo_slice
+        result = demo_slice(devices([device_id])[0])
     if not result:
         raise HTTPException(409, '该设备任务尚未登记切片区域')
     return result
@@ -120,7 +123,7 @@ def region_parameters(strategy, automatic, baseline, signal, prob):
     adjusted = baseline.copy()
     status = '保持基准'
     if strategy != 'adjust':
-        status = {'remelt': '策略2 · 重熔', 'recoat': '策略3 · 整层重铺粉', 'stop': '策略4 · 整层停机调整'}[strategy]
+        status = {'remelt': '策略2 · 整层重熔', 'recoat': '策略3 · 整层重铺粉', 'stop': '策略4 · 整层停机调整'}[strategy]
     elif not automatic:
         status = '自动调整已暂停'
     elif signal and signal.get('stop'):
@@ -150,7 +153,7 @@ def control(request):
         if request.operation == 'execute':
             raise HTTPException(409, '尚未绑定真机执行器，方案可保存或模拟')
         if request.operation == 'simulate':
-            regions = slice_for(request.deviceId, result['taskId'], result['layerNo'])['regions'] if result['strategy'] in ('recoat','stop') else None
+            regions = slice_for(request.deviceId, result['taskId'], result['layerNo'])['regions'] if result['strategy'] in ('remelt','recoat','stop') else None
             return activate_plan(request.deviceId, request.planId, regions)
         return result
     fingerprint = json.dumps(request.model_dump(mode='json'), sort_keys=True, ensure_ascii=False)
@@ -170,8 +173,8 @@ def control(request):
     ids = request.regionIds or [r['id'] for r in regions]
     if set(ids) - {r['id'] for r in regions}:
         raise HTTPException(400, 'regionIds 必须对应当前切片中的区域编号')
-    # 重铺粉、停机作用于整层；即使调用方只传一个合法区域，也扩展为当前全部区域。
-    if request.strategy in ('recoat', 'stop'):
+    # 重熔、重铺粉、停机作用于整层；即使调用方只传一个合法区域，也扩展为当前全部区域。
+    if request.strategy in ('remelt', 'recoat', 'stop'):
         ids = [r['id'] for r in regions]
     baseline = request.currentParameters.model_dump()
     active, whole_layer = active_control_state(request.deviceId, result['taskId'])
@@ -189,7 +192,7 @@ def control(request):
         adjusted, status = region_parameters(strategy, automatic, baseline, signal, prob)
         rows.append(dict(regionId=region['id'], name=region['name'], color=region['color'],
                          currentParameters=baseline, controlParameters=adjusted, status=status,
-                         strategy=strategy, scope='layer' if strategy in ('recoat', 'stop') else 'region',
+                         strategy=strategy, scope='layer' if strategy in ('remelt', 'recoat', 'stop') else 'region',
                          automatic=automatic and strategy == 'adjust',
                          activePlanId=existing['plan_id'] if use_active else None))
     strategies = {r['strategy'] for r in rows}
@@ -229,6 +232,13 @@ def equipment(request):
                    diagnosis=fault['status'] if fault else device['statusText'],
                    advice=[fault['advice']] if fault else [], parameters=device['parameters'],
                    recognition=None, trace=None)
+        if not entry and request.parameterSource == 'archive':
+            from device_workspace import record_workspace
+            from workspace_demo import complete_workspace
+            frame = complete_workspace(record_workspace(key))['snapshot']
+            row.update(source='generated-workspace-demo', layerNo=frame['layer'], taskId=frame['recognition']['task']['id'],
+                       parameters=frame['parameters'], recognition=frame['recognition'], trace=frame['trace'], time=frame['time'],
+                       status='fault' if fault else 'normal', diagnosis=fault['status'] if fault else '正常')
         if entry and request.parameterSource == 'archive':
             result = recognition(Selection(deviceId=key, offset=request.offset, resultScope=request.resultScope, processingMode=request.processingMode))
             row.update({k: result[k] for k in ('source', 'layerNo', 'taskId', 'recognition', 'trace')})

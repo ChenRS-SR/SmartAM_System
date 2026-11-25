@@ -36,7 +36,7 @@
         <p class="note" role="status">{{ blocked ? '设备数据读取失败，调控已禁用' : !slice ? '未登记切片区域' : '正在读取工艺基准…' }}</p>
       </div>
     </section>
-    <LayerStrategyPlaceholders :region-name="selectedRegion?.name" :region-color="selectedRegion?.color" :enabled="!!activePlan && !submitting && !refreshing && !error && !blocked" :active-strategy="activePlan?.strategy" :pending-strategy="pendingRegion === '*' || pendingRegion === selectedId ? pendingStrategy : ''" @strategy="submitStrategy" />
+    <LayerStrategyPlaceholders :enabled="!!activePlan && !submitting && !refreshing && !error && !blocked" :active-strategy="activePlan?.strategy" :pending-strategy="pendingRegion === '*' || pendingRegion === selectedId ? pendingStrategy : ''" @strategy="submitStrategy" />
   </div>
 </template>
 <script setup>
@@ -156,7 +156,7 @@ header span, header label { font-size: 13px; color: var(--am-text-2); }
 header label { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 /* 左图右选区，限制总览高度，完整保留切片及引线。 */
 .region-overview { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); align-items: center; gap: 16px; padding: 14px; min-width: 0; }
-.slice-illustration { display: block; width: 100%; height: clamp(240px, 28vw, 340px); object-fit: contain; object-position: center; margin: 0 auto; box-sizing: border-box; border: 1px solid var(--am-card-border); background: white; }
+.slice-illustration { display: block; width: 100%; height: clamp(240px, 28vw, 340px); object-fit: contain; object-position: center; margin: 0 auto; box-sizing: border-box; background: transparent; }
 .region-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-content: center; gap: 10px; min-width: 0; }
 .region-list button { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%; min-width: 0; padding: 12px; overflow-wrap: anywhere; margin-bottom: 0; text-align: left; border: 1px solid var(--am-card-border); border-radius: 3px; background: var(--am-card-bg); color: var(--am-text); cursor: pointer; }
 .region-list button.selected { border-color: var(--am-accent); background: var(--am-card-bg-2); }

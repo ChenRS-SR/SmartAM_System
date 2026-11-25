@@ -97,7 +97,8 @@ class Task4Tests(unittest.TestCase):
             self.assertLessEqual(len(data['regions']),4)
             self.assertFalse(data['executed'])
             source=self.call('defect-recognition',{'deviceId':key})
-            self.assertIsNone(source['recognition'])
+            self.assertTrue(source['recognition']['available'])
+            self.assertEqual(source['source'],'generated-workspace-demo')
         for entry in catalog():
             data=self.call('quality-control',{'deviceId':entry['deviceId']})
             drawing=service.slice_for(entry['deviceId'],data['taskId'],data['layerNo'])
@@ -141,8 +142,8 @@ class Task4Tests(unittest.TestCase):
             return plan
         first=apply('region-1','remelt','R1')
         result=self.call('quality-control',base)
-        self.assertEqual(result['strategy'],'mixed')
-        self.assertEqual([r['strategy'] for r in result['regions']],['remelt','adjust'])
+        self.assertEqual(result['strategy'],'remelt')
+        self.assertEqual([r['strategy'] for r in result['regions']],['remelt','remelt'])
         self.assertFalse(result['regions'][0]['automatic'])
         self.assertEqual(result['regions'][0]['controlParameters'],result['regions'][0]['currentParameters'])
         full=apply('region-2','recoat','R2')
@@ -170,7 +171,7 @@ class Task4Tests(unittest.TestCase):
         original=service.slice_for('slm-b44','B44-20250321-09-20',8)
         expanded=copy.deepcopy(original)
         expanded['regions'].append(dict(expanded['regions'][0],id='region-3',name='区域3'))
-        for strategy in ('recoat','stop'):
+        for strategy in ('remelt','recoat','stop'):
             with self.subTest(strategy=strategy):
                 plan=self.call('quality-control',dict(base,operation='save',requestId='legacy-'+strategy,strategy=strategy))
                 # 模拟旧版本按单区域保存的整层方案，应用时必须补齐实际切片区域。
@@ -183,22 +184,32 @@ class Task4Tests(unittest.TestCase):
                     result=self.call('quality-control',dict(base,layerNo=9))
                     self.assertEqual([r['strategy'] for r in result['regions']],[strategy]*3)
                     self.assertTrue(all(r['scope']=='layer' and not r['automatic'] for r in result['regions']))
-                plan2=self.call('quality-control',dict(base,operation='save',requestId='regional-'+strategy,strategy='remelt',regionIds=['region-2']))
+                plan2=self.call('quality-control',dict(base,operation='save',requestId='regional-'+strategy,strategy='adjust',regionIds=['region-2']))
                 self.call('quality-control',{'deviceId':'slm-b44','operation':'simulate','planId':plan2['planId']})
                 self.assertIsNone(active_control_state('slm-b44','B44-20250321-09-20')[1])
-                self.assertEqual([r['strategy'] for r in self.call('quality-control',base)['regions']],['adjust','remelt'])
+                self.assertEqual([r['strategy'] for r in self.call('quality-control',base)['regions']],['adjust','adjust'])
 
-    def test_strategy_one_and_two_are_independent_by_region(self):
+    def test_remelt_covers_all_regions_even_when_one_region_requested(self):
         base={'deviceId':'slm-b44','layerNo':8,'operation':'save'}
-        for region,strategy,auto in [('region-1','adjust',False),('region-2','remelt',True)]:
-            plan=self.call('quality-control',dict(base,regionIds=[region],strategy=strategy,automatic=auto,requestId=region))
-            self.assertEqual(len(plan['regions']),1)
-            self.call('quality-control',{'deviceId':'slm-b44','planId':plan['planId'],'operation':'simulate'})
+        plan=self.call('quality-control',dict(base,regionIds=['region-2'],strategy='remelt',requestId='whole-remelt'))
+        self.assertEqual(len(plan['regions']),2)
+        self.assertTrue(all(row['scope']=='layer' for row in plan['regions']))
+        self.call('quality-control',{'deviceId':'slm-b44','planId':plan['planId'],'operation':'simulate'})
         rows=self.call('quality-control',{'deviceId':'slm-b44','layerNo':9})['regions']
-        self.assertEqual([r['strategy'] for r in rows],['adjust','remelt'])
-        self.assertEqual([r['scope'] for r in rows],['region','region'])
-        self.assertFalse(rows[0]['automatic'])
-        self.assertEqual(rows[0]['status'],'自动调整已暂停')
+        self.assertEqual([r['strategy'] for r in rows],['remelt','remelt'])
+        self.assertTrue(all(not r['automatic'] for r in rows))
+        # 策略1仍可按区域设置，退出整层重熔后其它区域恢复默认自适应。
+        plan=self.call('quality-control',dict(base,regionIds=['region-1'],strategy='adjust',automatic=False,requestId='regional-adjust'))
+        self.call('quality-control',{'deviceId':'slm-b44','planId':plan['planId'],'operation':'simulate'})
+        rows=self.call('quality-control',{'deviceId':'slm-b44','layerNo':9})['regions']
+        self.assertEqual([r['automatic'] for r in rows],[False,True])
+
+    def test_legacy_partial_remelt_migrates_to_whole_layer(self):
+        from task4.storage import database, active_control_state
+        with database() as db:
+            db.execute('INSERT INTO region_strategies VALUES (?,?,?,?,?,?)',('slm-b44','legacy-remelt','region-1','old-plan','remelt',1))
+            db.execute('PRAGMA user_version=1')
+        self.assertEqual(active_control_state('slm-b44','legacy-remelt')[1]['strategy'],'remelt')
 
     def test_existing_layer_strategy_migrates_once(self):
         from task4.storage import database, active_control_state

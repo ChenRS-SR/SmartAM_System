@@ -128,4 +128,5 @@ def record_workspace(device_id):
 
 @router.get('/devices/{device_id}')
 def workspace(device_id: str):
-    return record_workspace(device_id)
+    from workspace_demo import complete_workspace
+    return complete_workspace(record_workspace(device_id))

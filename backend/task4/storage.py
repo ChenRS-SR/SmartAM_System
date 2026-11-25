@@ -37,9 +37,16 @@ def database():
             db.execute('''INSERT OR IGNORE INTO layer_strategies
                 SELECT device,task,MIN(plan_id),MIN(strategy) FROM region_strategies
                 GROUP BY device,task
-                HAVING MIN(strategy)=MAX(strategy) AND MIN(strategy) IN ('recoat','stop')
+                HAVING MIN(strategy)=MAX(strategy) AND MIN(strategy) IN ('remelt','recoat','stop')
                    AND MIN(plan_id)=MAX(plan_id)''')
             db.execute('PRAGMA user_version=1')
+            db.commit()
+        if db.execute('PRAGMA user_version').fetchone()[0] < 2:
+            # 旧版局部重熔升级为整层策略；已有整层停机/重铺粉优先保留。
+            db.execute("""INSERT OR IGNORE INTO layer_strategies
+                SELECT device,task,MIN(plan_id),'remelt' FROM region_strategies
+                WHERE strategy='remelt' GROUP BY device,task""")
+            db.execute('PRAGMA user_version=2')
             db.commit()
         with db:
             yield db
@@ -85,7 +92,7 @@ def activate_plan(device, plan_id, layer_regions=None):
         result, request = json.loads(row[0]), json.loads(row[1])
         if result['state'] == 'simulated':
             return result
-        if result['strategy'] in ('recoat', 'stop'):
+        if result['strategy'] in ('remelt', 'recoat', 'stop'):
             # 整层策略独立存储，后续层新增区域也受同一策略约束。
             db.execute('''INSERT INTO layer_strategies VALUES (?,?,?,?)
                 ON CONFLICT(device,task) DO UPDATE SET plan_id=excluded.plan_id,strategy=excluded.strategy''',
@@ -95,10 +102,10 @@ def activate_plan(device, plan_id, layer_regions=None):
             result['regions'] = [dict(template, regionId=r['id'], name=r['name'], color=r['color'],
                                       strategy=result['strategy'], scope='layer', automatic=False)
                                  for r in layer_regions]
-        # 切回分区策略即退出整层覆盖；其余区域恢复默认策略1，不能留下半层停机/重铺粉。
-        if result['strategy'] in ('adjust', 'remelt'):
+        # 切回分区策略即退出整层覆盖；其余区域恢复默认策略1，不能留下半层重熔/停机/重铺粉。
+        if result['strategy'] in ('adjust',):
             db.execute('DELETE FROM layer_strategies WHERE device=? AND task=?', (device, result['taskId'] or ''))
-            db.execute("DELETE FROM region_strategies WHERE device=? AND task=? AND strategy IN ('recoat','stop')",
+            db.execute("DELETE FROM region_strategies WHERE device=? AND task=? AND strategy IN ('remelt','recoat','stop')",
                        (device, result['taskId'] or ''))
         for region in result['regions']:
             db.execute('''INSERT INTO region_strategies VALUES (?,?,?,?,?,?)

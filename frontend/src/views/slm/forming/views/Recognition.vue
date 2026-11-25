@@ -62,8 +62,8 @@
         </div>
 
         <div v-if="!d.infrared" class="card c-torque">
-          <div class="card-title">{{ replaySession?.source === 'device-record' ? '已接入扭矩采样片段' : replaySession ? `实时采样扭矩 · 第 ${replaySession.snapshot.layer} 层` : '当前层铺粉段扭矩' }}</div>
-          <div class="chart-window-note">{{ replaySession && replaySession.source !== 'device-record' ? '最近 50 个采样点 · 时间轴随采样滚动；识别结果使用完整铺粉段输入' : '最近 50 个采样点' }}</div>
+          <div class="card-title">{{ replaySession ? `实时采样扭矩 · 第 ${replaySession.snapshot.layer} 层` : '当前层铺粉段扭矩' }}</div>
+
           <EChart :option="torqueOption" class="chart" />
         </div>
 

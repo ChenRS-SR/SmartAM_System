@@ -51,7 +51,7 @@
         </div>
         <div v-if="visible('刮刀扭矩') || visible('加工平台扭矩')" class="card c-torque">
           <div class="card-title">{{ torqueTitle }}{{ replaySession?.source !== 'device-record' ? ' · 连续采样' : '' }}</div>
-          <div class="chart-window-note">{{ replaySession?.source === 'device-record' ? '已接入采样记录 · 最近 50 点' : '最近 50 个采样点 · 时间轴随采样滚动' }}</div>
+
           <EChart v-if="hasTorque" :option="torqueOption" class="chart" /><div v-else class="image-pending">数据暂未接入</div>
         </div>
 
@@ -71,7 +71,7 @@
           </table>
           </div>
         </div>
-        <div class="card c-rec raw-records"><div class="card-title">原始采样记录</div><div v-if="d.rawRecords?.length" class="table-scroll" tabindex="0" role="region" aria-label="原始采样记录"><table class="tbl"><thead><tr><th v-for="key in Object.keys(d.rawRecords[0]).filter(k => k.trim())" :key="key">{{ key }}</th></tr></thead><tbody><tr v-for="(row, index) in d.rawRecords" :key="index"><td v-for="key in Object.keys(d.rawRecords[0]).filter(k => k.trim())" :key="key">{{ row[key] }}</td></tr></tbody></table></div><p v-else>数据暂未接入</p></div>
+        <div class="card c-rec raw-records"><div class="card-title">采样记录</div><div v-if="d.rawRecords?.length" class="table-scroll" tabindex="0" role="region" aria-label="采样记录"><table class="tbl"><thead><tr><th v-for="key in Object.keys(d.rawRecords[0]).filter(k => k.trim())" :key="key">{{ key }}</th></tr></thead><tbody><tr v-for="(row, index) in d.rawRecords" :key="index"><td v-for="key in Object.keys(d.rawRecords[0]).filter(k => k.trim())" :key="key">{{ row[key] }}</td></tr></tbody></table></div><p v-else>数据暂未接入</p></div>
       </div>
     </Region>
   </div>
@@ -113,7 +113,7 @@ if (replaySession) watch(() => replaySession.snapshot?.access, value => { d.valu
 const layers = ref([])
 const acq = ref({ running: false })
 const devs = computed(() => replaySession ? (d.value ? [d.value.device] : []) : devicesFor('access'))
-const modeLabel = computed(() => { if (replaySession) return replaySession.source === 'device-record' ? '设备档案' : '在线接入'; const m = (state.status && state.status.modeLabel) || '在线'; return m === '在线' ? '在线接入' : m })
+const modeLabel = computed(() => { if (replaySession) return '在线接入'; const m = (state.status && state.status.modeLabel) || '在线'; return m === '在线' ? '在线接入' : m })
 const img = (k) => mediaUrl(d.value.images[k].url, 1200)
 let poll = null
 

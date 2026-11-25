@@ -1,17 +1,16 @@
 <template>
   <!-- 有区域上下文时由父组件保存并模拟方案，未接入设备执行器。 -->
   <div class="strategy-grid">
-    <section v-for="strategy in strategies" :key="strategy.number" class="strategy-panel" :class="{ 'strategy-wide': strategy.number === 2, active:activeStrategy === strategy.key }" :aria-label="`层间调控策略${strategy.number}`">
-      <div class="strategy-title"><strong>层间调控策略{{ strategy.number }}</strong><span v-if="activeStrategy === strategy.key" class="active-label">当前策略</span><span v-if="strategy.scope === 'layer'" class="scope-label">整层</span><RegionBadge v-else-if="regionName" :name="regionName" :color="regionColor" /></div>
+    <section v-for="strategy in strategies" :key="strategy.number" class="strategy-panel" :class="{ 'strategy-wide': strategy.number === 4, active:activeStrategy === strategy.key }" :aria-label="`层间调控策略${strategy.number}`">
+      <div class="strategy-title"><strong>层间调控策略{{ strategy.number }}</strong><span v-if="activeStrategy === strategy.key" class="active-label">当前策略</span><span v-if="strategy.scope === 'layer'" class="scope-label">整层</span></div>
       <el-button class="strategy-button" :disabled="!enabled" :aria-pressed="activeStrategy === strategy.key" @click="emit('strategy', strategy.key)">{{ pendingStrategy === strategy.key ? '指令发送中…' : strategy.name }}</el-button>
     </section>
   </div>
 </template>
 <script setup>
 import { controlStrategies } from './controlStrategies'
-import RegionBadge from './RegionBadge.vue'
 const emit = defineEmits(['strategy'])
-defineProps({ activeStrategy:{type:String,default:'adjust'}, pendingStrategy:{type:String,default:''}, enabled:{type:Boolean,default:false}, regionName: { type: String, default: '' }, regionColor: {type:String,default:'#4150b4'} })
+defineProps({ activeStrategy:{type:String,default:'adjust'}, pendingStrategy:{type:String,default:''}, enabled:{type:Boolean,default:false} })
 const strategies = Object.entries(controlStrategies).filter(([key]) => key !== 'adjust').map(([key, value]) => ({key, ...value}))
 </script>
 <style scoped>

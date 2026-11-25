@@ -46,12 +46,12 @@ describe('区域调控通过开放接口统一生成方案',()=>{
   expect(task4Api.mock.calls[2][1]).toEqual({deviceId:'slm-b44',operation:'simulate',planId:'P1'})
   w.unmount()
  })
- it('区域策略互斥、区域独立，并且只提示一次应用中',async()=>{
+ it('整层重熔替代全部区域策略，并且只提示一次应用中',async()=>{
   const state={'region-1':'adjust','region-2':'adjust'}
   let saved
   task4Api.mockImplementation(async (_,body)=>{
    if(body.operation==='save'){saved=body;return {planId:'P2'}}
-   if(body.operation==='simulate'){state[saved.regionIds[0]]=saved.strategy;return {state:'simulated'}}
+   if(body.operation==='simulate'){for(const id of saved.regionIds) state[id]=saved.strategy;return {state:'simulated'}}
    return {regions:Object.entries(state).map(([regionId,strategy])=>({...output(180).regions[0],regionId,strategy,automatic:strategy==='adjust',status:strategy==='adjust'?'自动调整':'策略2 · 重熔'}))}
   })
   const w=await setup()
@@ -60,12 +60,12 @@ describe('区域调控通过开放接口统一生成方案',()=>{
   w.findComponent(LayerStrategyPlaceholders).vm.$emit('strategy','remelt');await flushPromises()
   expect(w.get('[aria-label="区域自适应调整"]').element.checked).toBe(false)
   expect(w.find('.strategy-replacement').text()).toContain('重熔')
-  expect(w.findAll('.region-strategy').map(x=>x.text())).toEqual(['策略2 · 重熔','策略1 · 自适应调整'])
+  expect(w.findAll('.region-strategy').map(x=>x.text())).toEqual(['策略2 · 重熔','策略2 · 重熔'])
   expect(ElMessage.info.mock.calls.length-before).toBe(1)
   expect(ElMessage.info.mock.lastCall[0].message).toContain('应用中')
   expect(ElMessage.success).not.toHaveBeenCalled()
   await w.findAll('.region-list button')[1].trigger('click')
-  expect(w.get('[aria-label="区域自适应调整"]').element.checked).toBe(true)
+  expect(w.get('[aria-label="区域自适应调整"]').element.checked).toBe(false)
   await w.findAll('.region-list button')[0].trigger('click')
   await w.get('[aria-label="区域自适应调整"]').setValue(true);await flushPromises()
   expect(w.find('.strategy-replacement').exists()).toBe(false)
@@ -73,7 +73,7 @@ describe('区域调控通过开放接口统一生成方案',()=>{
   w.unmount()
  })
 
- it.each(['recoat','stop'])('整层策略 %s 提交所有区域且提示整层应用中',async strategy=>{
+ it.each(['remelt','recoat','stop'])('整层策略 %s 提交所有区域且提示整层应用中',async strategy=>{
   task4Api.mockResolvedValue(output(180))
   const w=await setup()
   await w.setProps({slice:{...slice,regions:[...slice.regions,{id:'region-2',name:'区域2',color:'#ddd'}]}})
@@ -83,8 +83,10 @@ describe('区域调控通过开放接口统一生成方案',()=>{
   expect(save.regionIds).toEqual(['region-1','region-2'])
   expect(ElMessage.info.mock.lastCall[0].message).toContain('整层')
   const panels=w.findComponent(LayerStrategyPlaceholders).findAll('.strategy-panel')
-  expect(panels[0].classes()).toContain('strategy-wide')
-  expect(panels[0].find('.scope-label').exists()).toBe(false)
+  expect(panels[2].classes()).toContain('strategy-wide')
+  expect(panels[0].classes()).not.toContain('strategy-wide')
+  expect(panels[1].classes()).not.toContain('strategy-wide')
+  expect(panels[0].find('.scope-label').text()).toBe('整层')
   expect(panels[1].find('.scope-label').text()).toBe('整层')
   expect(panels[2].find('.scope-label').text()).toBe('整层')
   w.unmount()

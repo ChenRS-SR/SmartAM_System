@@ -30,14 +30,14 @@
         </section>
       </div>
       <!-- 每台设备均提供维护面板，详情按当前设备与所属单位展示。 -->
-      <MaintenanceDecisionPanel :device-id="deviceId" :device-name="device.name" :organization-label="device.owner === '华科' ? '华科' : '7103（铂力特）'" />
+      <MaintenanceDecisionPanel :frame="frame" :device-id="deviceId" :device-name="device.name" :organization-label="device.owner === '华科' ? '华科' : '7103（铂力特）'" />
     </template>
     <template v-else-if="frame && tab === 'control'">
       <RegionControlPanel :frame="frame" :slice="currentSlice" :blocked="!!replay.error" />
     </template>
     <template v-else-if="frame">
       <div v-if="frame" class="analysis-time">
-        <span>{{ replay.source === 'device-record' ? '档案采样' : '当前采集' }}：第 {{ frame.layer ?? '—' }} 层</span>
+        <span>当前采集：第 {{ frame.layer ?? '—' }} 层</span>
         <span>当前可用结果：{{ frame[tab]?.available === false ? '未接入' : frame[tab] ? `第 ${frame[tab].layer} 层` : '尚未到达' }}</span>
       </div>
       <div class="forming-root forming-replay"><component :is="views[tab]" /></div>

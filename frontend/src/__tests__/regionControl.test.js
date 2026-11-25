@@ -11,7 +11,7 @@ describe('真实切片区域与自动调控示意', () => {
     expect(slice.image).toContain('/bp_3.png')
     expect(slice.regions.map(r => [r.name, r.color])).toEqual([['区域1', '#ffb0da'], ['区域2', '#4150b4']])
     expect(regionSlice({ ...frame(), layer: 999 })).toBeNull()
-    expect(regionSlice({ ...frame(), caseId: 'blt-s430-20240828' }).regions.length).toBe(4)
+    expect(regionSlice({ ...frame(), caseId: 'blt-s430-20240828' }).regions.length).toBe(2)
   })
   it('异常层为各区域单独生成层间等待参数，不修改基准', () => {
     const f = frame()
@@ -34,16 +34,16 @@ describe('真实切片区域与自动调控示意', () => {
     expect(regionControlPlan(r, f, defaults, ranges).status).toBe('等待本层识别')
     expect(regionControlPlan(r, frame(), defaults, ranges, false).parameters).toEqual(defaults)
   })
-  it('各案例首尾层有对应截面，区域数按原图变化', () => {
+  it('各案例首尾层有对应截面，区域数符合设备光源配置', () => {
     const specs = [['blt-s430-20240828', 700, 2700], ['b10-20250509-07-47', 1600, 6600], ['b15-20250107-20-02', 100, 200], ['m130-20251120', 6, 954]]
     for (const [caseId, first, last] of specs) {
       const a = regionSlice({caseId, layer:first}), b = regionSlice({caseId, layer:last})
       expect(a.regions.length).toBeGreaterThan(0)
-      expect(a.regions.length).toBeLessThanOrEqual(4)
+      expect(a.regions.length).toBe(caseId === 'blt-s430-20240828' ? 2 : 1)
       expect(a.annotatedImage).toBe(b.annotatedImage)
       expect(a.image).toContain(caseId)
     }
-    expect(regionSlice({caseId:'b10-20250509-07-47',layer:1600}).regions.length).toBeGreaterThan(2)
+    expect(regionSlice({caseId:'b10-20250509-07-47',layer:1600}).regions.length).toBe(1)
   })
   it('故障场景按过功率/欠功率调整，停机场景保持基准', () => {
     const region = {id:'region-1', name:'区域1'}

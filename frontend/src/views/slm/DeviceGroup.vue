@@ -3,9 +3,7 @@
     <div class="page-header">
       <div>
         <h1 class="page-title">设备总览</h1>
-        <div class="page-subtitle">
-          {{ deviceStore.sourceInfo.diagnosisPolicy || 'SLM 设备群实时状态' }}
-        </div>
+
       </div>
       <div class="header-actions">
         <el-button :loading="syncingDatabase" @click="syncFileDatabase">
@@ -68,9 +66,6 @@
           />
         </el-select>
       </div>
-      <span>数据源</span>
-      <strong>{{ deviceStore.sourceInfo.sourceRoot || '正在加载 7103 数据' }}</strong>
-      <el-tag size="small" type="info">状态码 0-4</el-tag>
     </section>
 
     <section class="fleet-summary">
@@ -412,8 +407,9 @@ const displayDevices = computed(() => deviceStore.devices.map(device => {
       ] }
   }
   const displayed = isMockMode.value ? toMockDevice(device) : toRealtimeDevice(device, realtimeSamples.value[device.id])
-  const analysisStatus = deviceAnalysisStatus(archiveFrames.value[device.id])
-  return {...displayed, analysisStatus, health:analysisStatus.equipment.state}
+  const frame = archiveFrames.value[device.id]
+  const analysisStatus = deviceAnalysisStatus(frame)
+  return {...displayed, online:!!frame || displayed.online, parameters:frame?.parameters || displayed.parameters, analysisStatus, health:analysisStatus.equipment.state}
 }))
 
 // 故障设备优先，随后完整案例；原始故障清单排序稳定，不随模拟波动跳动。
